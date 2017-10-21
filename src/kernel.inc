@@ -1,0 +1,30 @@
+#
+# guzhoudiaoke@126.com
+# 2017-10-21
+#
+
+.equ	SECT_SIZE,			512
+.equ	KERNEL_SECT_NUM,	64
+.equ	TMP_KERNEL_ADDR,	0x10000
+
+.equ	STACK_BOOT,			0x1000
+.equ    STACK_PM_BOTTOM,    0xf0000
+
+
+.equ	IDT_ADDR,			0x90000	
+.equ	IDT_SIZE,			(256*8)
+.equ	GDT_ADDR,			(IDT_ADDR + IDT_SIZE)
+.equ	GDT_LEN,			5
+.equ	GDT_SIZE,			(8 * GDT_LEN)
+
+.equ	VIDEO_INFO_ADDR,		(GDT_ADDR + GDT_SIZE)
+.equ    VIDEO_MODE_ADDR,        (VIDEO_INFO_ADDR)
+.equ	SCREEN_X_ADDR,			(VIDEO_INFO_ADDR + 2)
+.equ	SCREEN_Y_ADDR,			(VIDEO_INFO_ADDR + 4)
+.equ    BITS_PER_PIXEL_ADDR,    (VIDEO_INFO_ADDR + 6)
+.equ    MEMORY_MODEL_ADDR,      (VIDEO_INFO_ADDR + 7)
+.equ	VRAM_ADDR,				(VIDEO_INFO_ADDR + 8)
+.equ	VIDEO_INFO_SIZE,		(12)
+
+.equ	CODE_SELECTOR,		0x08
+.equ	DATA_SELECTOR,		0x10

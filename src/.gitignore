@@ -1,0 +1,9 @@
+*.[oa]
+*.img
+load
+kernel
+boot
+tags
+cscope*
+logbochs
+
