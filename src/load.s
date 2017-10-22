@@ -23,7 +23,7 @@ main:
 	movw	%ax,					%ss
 	movl	$STACK_PM_BOTTOM,		%esp
 
-	call	bootmain
+	call	loadmain
 
 1:
 	jmp		1b

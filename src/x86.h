@@ -40,7 +40,7 @@ static inline void outsl(int port, const void *addr, int cnt)
                  "cc");
 }
 
-static inline void stosb(void *addr, int data, int cnt)
+static inline void stosb(void *addr, int32 data, int32 cnt)
 {
     asm volatile("cld; rep stosb" :
                  "=D" (addr), "=c" (cnt) :

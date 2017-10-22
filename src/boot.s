@@ -125,7 +125,7 @@ load_kernel:
 	jne		1b
 
 	# move first sector(the loader) to 0x0000
-	cli									# si, di increment
+	cld									# si, di increment
 	movw	$TMP_KERNEL_ADDR>>4,%ax
 	movw	%ax,				%ds		# DS:SI src
 	xorw	%si,				%si
