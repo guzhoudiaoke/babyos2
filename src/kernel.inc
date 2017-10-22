@@ -4,7 +4,8 @@
 #
 
 .equ	SECT_SIZE,			512
-.equ	KERNEL_SECT_NUM,	64
+.equ    LOADER_SECT_NUM,    1
+.equ	KERNEL_SECT_NUM,	128
 .equ	TMP_KERNEL_ADDR,	0x10000
 
 .equ	STACK_BOOT,			0x1000

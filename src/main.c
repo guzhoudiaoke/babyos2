@@ -5,40 +5,20 @@
 
 #include "types.h"
 #include "kernel.h"
-
-typedef struct vidoe_info_s {
-    uint16 video_mode;
-    uint16 cx_screen;
-    uint16 cy_screen;
-    uint8  n_bits_per_pixel;
-    uint8  n_memory_model;
-    uint8* p_vram_base_addr;
-} video_info_t;
-
-video_info_t* p_video_info = (video_info_t *)VIDEO_INFO_ADDR;
-
-uint8* p_vram_base_addr = (uint8 *)0xe0000000;
-uint32 cx_screen = 1024;
-uint32 cy_screen = 768;
-uint32 n_bytes_per_pixel = 3;
-
-void set_pixel(int32 x, int32 y, uint8 r, uint8 g, uint8 b)
-{
-    uint8* pvram = NULL;
-
-    pvram = p_vram_base_addr + n_bytes_per_pixel*y*cx_screen + n_bytes_per_pixel*x;
-    pvram[0] = b;
-    pvram[1] = g;
-    pvram[2] = r;
-}
+#include "screen.h"
+#include "console.h"
 
 int main(void)
 {
-    p_vram_base_addr = p_video_info->p_vram_base_addr;
+    init_screen();
+    init_console();
 
-    for (int i = 0x100; i < 0x120; i++) {
-        set_pixel(i, 500, 0x00, 0x00, 0xff);
-    }
+    kprintf(WHITE, "Welcome to babyos\n");
+    kprintf(RED,   "Author:\tguzhoudiaoke@126.com\n");
+    kprintf(BLUE,  "0123456789abcdef0123456789abcdef\n");
+    kprintf(WHITE, "Today is %d/%d/%d, \tSunday\n", 2017, 10, 22);
+    kprintf(BLUE,  "hex(%d) = %x\n", 1234, 1234);
+    kprintf(GREEN, "%c - %c - %c\n", 'g', 'r', 'b');
 
     while (1) {
         ;

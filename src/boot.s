@@ -125,27 +125,27 @@ load_kernel:
 	jne		1b
 
 	# move first sector(the loader) to 0x0000
-	cld									# si, di increment
-	movw	$TMP_KERNEL_ADDR>>4,%ax
-	movw	%ax,				%ds		# DS:SI src
-	xorw	%si,				%si
-	movw	$0x00,				%ax
-	movw	%ax,				%es		# ES:DI dst
-	xorw	%di,				%di
-	movw	$SECT_SIZE >> 1,	%cx		# 512/2 times 
-	rep		movsl						# 4 bytes per time
+	cld													# si, di increment
+	movw	$TMP_KERNEL_ADDR>>4,				%ax
+	movw	%ax,								%ds		# DS:SI src
+	xorw	%si,								%si
+	movw	$0x00,								%ax
+	movw	%ax,								%es		# ES:DI dst
+	xorw	%di,								%di
+	movw	$(LOADER_SECT_NUM*SECT_SIZE) >> 2,	%cx		# 512/4 times 
+	rep		movsl										# 4 bytes per time
 
     ret
 
-# 
+# copy gdt and video info to a safe position
 copy_gdt_and_video_info:
 	xorw	%ax,						%ax
-	movw	%ax,						%ds		# DS:SI 为源地址
+	movw	%ax,						%ds		# DS:SI src
 	leaw	gdt,						%si
-	movw	$GDT_ADDR >> 4,				%ax		# 由要保存的地址来计算段基址
-	movw	%ax,						%es		# ES:DI 为目的地址
+	movw	$GDT_ADDR >> 4,				%ax
+	movw	%ax,						%es		# ES:DI dst
 	xorw	%di,						%di
-	movw	$(GDT_SIZE+VIDEO_INFO_SIZE),%cx		# 移动的双字个数
+	movw	$(GDT_SIZE+VIDEO_INFO_SIZE),%cx		# num of bytes to move
 	rep		movsb
 
 	ret

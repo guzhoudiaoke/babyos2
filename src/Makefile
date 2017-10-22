@@ -1,18 +1,22 @@
 OBJS = \
 	main.o\
+	screen.o\
+	console.o\
+	string.o\
 
 AS = as --32
 CC = gcc -m32
 LD = ld -m elf_i386
 
-CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -Wall -ggdb -m32 -Werror -fno-omit-frame-pointer -nostdinc 
+CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -Wall -ggdb -m32 -Werror -fno-omit-frame-pointer -nostdinc -fno-stack-protector
 
 all: babyos
 
 babyos: boot loader kernel
-	dd if=boot of=baby_hd.img ibs=512 count=1 conv=notrunc
-	dd if=loader of=baby_hd.img ibs=512 seek=1 count=2 conv=notrunc
-	dd if=kernel of=baby_hd.img ibs=512 seek=3 conv=notrunc
+	dd if=boot   of=baby_hd.img ibs=512 count=1 conv=notrunc
+	dd if=loader of=baby_hd.img ibs=512 seek=1 count=1 conv=notrunc
+	dd if=kernel of=baby_hd.img ibs=512 seek=2 conv=notrunc
+	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=66 conv=notrunc
 
 boot: boot.s
 	${CC} ${CFLAGS} -c boot.s
