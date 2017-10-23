@@ -7,9 +7,11 @@
 #include "kernel.h"
 #include "screen.h"
 #include "console.h"
+#include "mm.h"
 
 int main(void)
 {
+    init_mm();
     init_screen();
     init_console();
 
@@ -26,4 +28,5 @@ int main(void)
 
     return 0;
 }
+
 

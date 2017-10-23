@@ -12,6 +12,8 @@
 #define SEG_UDATA   4
 #define SEG_TSS     5
 
+#define KSTACK_SIZE 4096
+
 
 /* address of temp kernel */
 #define TMP_KERNEL_ADDR     (0x10000)
@@ -30,10 +32,11 @@
 #define LOADER_SECT_NUM     (1)
 
 #define ELF_BASE_ADDR       (LOADER_ADDR + LOADER_SECT_NUM * SECT_SIZE)
-#define ELF_SECT_NUM        (64)
+#define ELF_SECT_NUM        (128)
 
 #define FONT_ASC16_ADDR     (ELF_BASE_ADDR + ELF_SECT_NUM * SECT_SIZE)
 #define FONT_ASC16_SIZE     (4096)
+
 
 #endif
 

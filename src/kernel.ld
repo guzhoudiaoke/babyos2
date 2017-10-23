@@ -9,22 +9,36 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 0x100000;
+    . = 0xc0100000;
 
     .text : AT(0x100000) {
         *(.text .stub .text.* .gnu.linkonce.t.*)
     }
 
+    PROVIDE(etext = .);
+
+    .rodata : {
+        *(.rodata .rodata.* .gnu.linkonce.r.*)
+    }
+
     . = ALIGN(0x1000);
+
+    PROVIDE(data = .);
 
     .data : {
         *(.data)
     }
+
+    PROVIDE(edata = .);
+
     .bss : {
         *(.bss)
     }
+
+    PROVIDE(end = .);
 
     /DISCARD/ : {
         *(.eh_frame .note.GNU-stack)
     }
 }
+
