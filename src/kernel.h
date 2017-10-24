@@ -6,30 +6,35 @@
 #ifndef _KERNEL_H_
 #define _KENERL_H_
 
-#define SEG_KCODE   1
-#define SEG_KDATA   2
-#define SEG_UCODE   3
-#define SEG_UDATA   4
-#define SEG_TSS     5
+/* segs */
+#define SEG_KCODE           (1)
+#define SEG_KDATA           (2)
+#define SEG_UCODE           (3)
+#define SEG_UDATA           (4)
+#define SEG_TSS             (5)
 
-#define KSTACK_SIZE 4096
 
+#define	SECT_SIZE			(512)
+#define LOADER_SECT_NUM     (1)
+#define KERNEL_SECT_NUM	    (256)
 
 /* address of temp kernel */
-#define TMP_KERNEL_ADDR     (0x10000)
+#define TMP_KERNEL_ADDR	    (0x10000)
+
+#define KSTACK_SIZE         (4096)
+#define STACK_BOOT			(0x1000)
+#define STACK_PM_BOTTOM     (0x10000)
+
 
 /* address gdt */
-#define	GDT_ADDR			(0x90000)
-#define	GDT_LEN				(5)
-#define	GDT_SIZE			(8 * GDT_LEN)
+#define GDT_ADDR			(0x90000)
+#define GDT_LEN			    (5)
+#define GDT_SIZE			(8 * GDT_LEN)
 
-/* address of video information */
-#define	VIDEO_INFO_ADDR		(GDT_ADDR + GDT_SIZE)
-
-#define SECT_SIZE           (512)
+#define VIDEO_INFO_ADDR	    (GDT_ADDR + GDT_SIZE)
+#define VIDEO_INFO_SIZE	    (12)
 
 #define LOADER_ADDR         (TMP_KERNEL_ADDR)
-#define LOADER_SECT_NUM     (1)
 
 #define ELF_BASE_ADDR       (LOADER_ADDR + LOADER_SECT_NUM * SECT_SIZE)
 #define ELF_SECT_NUM        (128)
@@ -37,6 +42,24 @@
 #define FONT_ASC16_ADDR     (ELF_BASE_ADDR + ELF_SECT_NUM * SECT_SIZE)
 #define FONT_ASC16_SIZE     (4096)
 
+
+
+// page table, page directory entry flag
+#define PTE_P               0x001   // present
+#define PTE_W               0x002   // writeable
+
+
+#define PAGESIZE            4096
+#define KERNEL_BASE		    0xc0000000
+
+#define VA_2_PA(x)	        (((uint32)(x)) - KERNEL_BASE)
+#define PA_2_VA(x)	        (((void *)(x)) + KERNEL_BASE)
+
+
+// for cr0
+#define CR0_PE              0x00000001
+#define CR0_WP              0x00010000
+#define CR0_PG              0x80000000
 
 #endif
 

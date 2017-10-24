@@ -3,7 +3,7 @@
 # 2017-10-21
 #
 
-.include "kernel.inc"
+#include "kernel.h"
 
 .section .text
 .global _start
@@ -15,7 +15,7 @@ _start:
 
 
 main:
-	movl	$DATA_SELECTOR,			%eax
+	movl	$(SEG_KDATA<<3),		%eax
 	movw	%ax,					%ds
 	movw	%ax,					%es
 	movw	%ax,					%fs

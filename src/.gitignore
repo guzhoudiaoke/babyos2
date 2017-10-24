@@ -1,6 +1,6 @@
 *.[oa]
 *.img
-load
+loader
 kernel
 boot
 tags

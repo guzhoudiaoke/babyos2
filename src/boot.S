@@ -3,7 +3,7 @@
 # 2017-10-21
 #
 
-.include "kernel.inc"
+#include "kernel.h"
 
 .code16
 .global _start
@@ -12,6 +12,7 @@
 _start:
 	jmp main
 
+# function to clear the screen
 clear_screen:
 	movb	$0x06,	%ah
 	movb	$0x00,	%al		# roll up all rows, clear the screen
@@ -21,9 +22,9 @@ clear_screen:
 	movb	$0x4f,	%dl		# col of right bottom corner
 	movb	$0x07,	%bh		# property of roll up rows
 	int		$0x10
-
 	ret
 
+# function to set video mode
 set_video_mode:
 	xorw	%ax,		%ax
 	movw	%ax,		%ds
@@ -74,14 +75,12 @@ set_video_mode:
 	addw	$0x4000,	%bx
 	movw	$0x4f02,	%ax
 	int		$0x10
-
 	ret
 
 set_vga_0x13:
 	movb	$0,			%ah
 	movb	$0x13,		%al
 	int		$0x10
-
 	ret
 
 
@@ -96,6 +95,7 @@ disk_addr_packet:
     .long   0x01                        # [8] starting LBA
     .long   0x00                        # [12]used for upper part of 48 bit LBAs
 
+# function to read a sect from hd
 read_a_sect_hd:
     lea     disk_addr_packet,   %si
     movb    $0x42,              %ah
@@ -103,6 +103,7 @@ read_a_sect_hd:
     int     $0x13
     ret
 
+# function to load the kernel
 load_kernel:
     lea     disk_addr_packet,   %si
     movw    $TMP_KERNEL_ADDR>>4,6(%si)
@@ -137,7 +138,7 @@ load_kernel:
 
     ret
 
-# copy gdt and video info to a safe position
+# function to copy gdt and video info to a safe position
 copy_gdt_and_video_info:
 	xorw	%ax,						%ax
 	movw	%ax,						%ds		# DS:SI src
@@ -151,50 +152,34 @@ copy_gdt_and_video_info:
 	ret
 
 
+# function to begin protected mode
 begin_protected_mode:
 	cli
-	lgdt	gdt_ptr
+1:
+	inb		$0x64,			%al
+	testb	$0x02,			%al
+	jnz		1b
 
-enable_a20:
-	inb		$0x64,			%al			# 从端口0x64读取数据
-	testb	$0x02,			%al			# 测试读取数据第二个bit
-	jnz		enable_a20					# 忙等待
+	movb	$0xd1,			%al
+	outb	%al,			$0x64
+
+2:
+	inb		$0x64,			%al
+	testb	$0x02,			%al
+	jnz		2b
 
 	movb	$0xdf,			%al
-	outb	%al,			$0x60		# 将0xdf写入端口0x60
+	outb	%al,			$0x60
 
-	movl	%cr0,			%eax		# 读取cr0寄存器
-	orl		$0x01,			%eax		# 置位最后以为即PE位
-	movl	%eax,			%cr0		# 写cr0寄存器
+	lgdt	gdt_ptr
+	movl	%cr0,			%eax
+	orl		$CR0_PE,		%eax
+	movl	%eax,			%cr0
 
-	ljmp	$CODE_SELECTOR,	$0x00		# 跳转到代码段，即load.s处开始执行
-	
-	ret 
-#1:
-#	inb		$0x64,	%al
-#	testb	$0x02,	%al
-#	jnz		1b
-#
-#	movb	$0xd1,	%al
-#	outb	%al,	$0x64
-#
-#2:
-#	inb		$0x64,	%al
-#	testb	$0x02,	%al
-#	jnz		2b
-#
-#	movb	$0xdf,	%al
-#	outb	%al,	$0x60
-#
-#	lgdt	gdt_ptr
-#	movl	%cr0,	%eax
-#	orl		$0x01,	%eax
-#	movl	%eax,	%cr0
-#
-#	ljmp	$CODE_SELECTOR, $0x00
-#
-#	ret
-#    
+	ljmp	$SEG_KCODE<<3,	$0
+	ret
+    
+# the main function
 main:
 	xorw	%ax,			%ax
 	movw	%ax,			%ds
@@ -210,6 +195,7 @@ main:
 
 1:
 	jmp		1b
+
 
 .p2align 2
 gdt:
