@@ -56,5 +56,41 @@ static inline void movsb(void *dst, void *src, int32 cnt)
                      "memory", "cc");
 }
 
+static inline uint32 get_cr0(void)
+{
+    uint32 val;
+    __asm__ volatile("movl %%cr0, %0" : "=r" (val));
+    return val;
+}
+
+static inline void set_cr0(uint32 val)
+{
+    __asm__ volatile("movl %0, %%cr0" : : "r" (val));
+}
+
+static inline void set_cr3(uint32 val)
+{
+    __asm__ volatile("movl %0, %%cr3" : : "r" (val));
+}
+
+#define CMOS_ADDR_PORT		0x70
+#define CMOS_DATA_PORT		0x71
+
+#define NVRAM_BASELOW		(0x15)
+#define NVRAM_BASEHIGH		(0x16)
+#define NVRAM_EXTLOW		(0x17)
+#define NVRAM_EXTHIGH		(0x18)
+
+static inline uint32 cmos_read(uint32 reg)
+{
+	outb(CMOS_ADDR_PORT, reg);
+	return inb(CMOS_DATA_PORT);
+}
+
+static inline uint32 nvram_read(uint32 reg)
+{
+	return cmos_read(reg) | cmos_read(reg+1) << 8;
+}
+
 #endif
 

@@ -25,6 +25,8 @@ babyos: boot loader kernel
 boot: boot.S
 	${CC} ${CFLAGS} -c boot.S
 	${LD} ${LDFLAGS} --oformat binary -N -Ttext 0x7c00 -o boot boot.o
+	#objdump -S boot.o > boot.asm
+	#objcopy -S -O binary -j .text boot.o boot
 
 loader: load.S loadmain.c
 	${CC} ${CFLAGS} -c load.S
@@ -33,6 +35,9 @@ loader: load.S loadmain.c
 
 kernel: ${OBJS} entry.o kernel.ld
 	${LD} ${LDFLAGS} -T kernel.ld -o kernel entry.o ${OBJS}
+	#objdump -S kernel > kernel.asm
+	#objdump -t kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > kernel.sym
+
 
 clean:
 	rm -f boot loader kernel *.o  trace*

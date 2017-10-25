@@ -13,13 +13,13 @@ static screen_t screen;
 
 int32 init_screen()
 {
-    video_info_t *info = (video_info_t *) PA_2_VA(VIDEO_INFO_ADDR);
+    video_info_t *info = (video_info_t *) PA2VA(VIDEO_INFO_ADDR);
     screen.width    = info->width; 
     screen.height   = info->height; 
     screen.bytes_pp = info->bits_per_pixel / 8;
     screen.base     = (info->vram_base_addr);
 
-    screen.asc16_addr = (uint8 *) PA_2_VA(FONT_ASC16_ADDR);
+    screen.asc16_addr = (uint8 *) PA2VA(FONT_ASC16_ADDR);
 
     kmap_device(screen.base);
 

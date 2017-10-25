@@ -57,7 +57,7 @@ set_video_mode:
 	andw	$0x0080,	%ax	# not support Linear Frame Buffer memory model
 	jz		set_vga_0x13
 
-	#save video info
+	# save video info
     movw    $0x118,		video_mode
 	movw	0x12(%di),	%ax
 	movw	%ax,		screen_x
@@ -151,6 +151,43 @@ copy_gdt_and_video_info:
 
 	ret
 
+# finnction to get memory info by 0xe820
+get_memory_info:
+
+	movw	$(MEMORY_INFO_SEG),		%ax
+	movw	%ax,					%es
+	movw	%ax,					%ds
+
+	xorl	%ebx,					%ebx
+	movl	$(MEMORY_INFO_OFFSET),	%edi
+	addl	$4,						%edi
+	movl	$0,						(MEMORY_INFO_OFFSET)
+
+	#movl	$(MEMORY_INFO_ADDR+4),	%edi
+
+1:
+	movl	$0xe820,				%eax
+	movl	$20,					%ecx
+	movl	$0x534d4150,			%edx
+	int		$0x15
+	jc		failed
+
+	addl	$20,					%edi
+	incl	(MEMORY_INFO_OFFSET)
+	cmpl	$0,						%ebx
+	jne		1b
+	jmp		success
+
+failed:
+	movl	$0,						(MEMORY_INFO_ADDR)
+
+success:
+	xorl	%ax,					%ax
+	movw	%ax,					%es
+	movw	%ax,					%ds
+
+	ret
+
 
 # function to begin protected mode
 begin_protected_mode:
@@ -189,6 +226,7 @@ main:
 
 	call	clear_screen
 	call	set_video_mode
+	call	get_memory_info
 	call	load_kernel
 	call	copy_gdt_and_video_info
 	call	begin_protected_mode

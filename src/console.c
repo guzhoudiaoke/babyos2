@@ -17,8 +17,8 @@ static void draw_background()
 
 void init_console()
 {
-    console.row_num = screen_width() / ASC16_WIDTH;
-    console.col_num = screen_height() / ASC16_HEIGHT;
+    console.row_num = screen_height() / ASC16_HEIGHT;
+    console.col_num = screen_width() / ASC16_WIDTH;
     console.row     = 0;
     console.col     = 0;
     memset(console.text, 0, MAX_ROW * MAX_COL);
@@ -69,12 +69,15 @@ static void print_int(int32 n, int32 base, int32 sign, color_ref_t color)
     }
 
     int i = 0;
-    while (num != 0) {
+	do {
         buffer[i++] = digits[num % base];
         num /= base;
-    }
+    } while (num != 0);
 
     if (base == 16) {
+        while (i < 8) {
+            buffer[i++] = '0';
+        }
         buffer[i++] = 'x';
         buffer[i++] = '0';
     }

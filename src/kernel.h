@@ -34,6 +34,11 @@
 #define VIDEO_INFO_ADDR	    (GDT_ADDR + GDT_SIZE)
 #define VIDEO_INFO_SIZE	    (12)
 
+#define MEMORY_INFO_ADDR	(VIDEO_INFO_ADDR + VIDEO_INFO_SIZE)
+#define MEMORY_INFO_SIZE	(4+256)
+#define MEMORY_INFO_SEG     (MEMORY_INFO_ADDR >> 4)
+#define MEMORY_INFO_OFFSET  (MEMORY_INFO_ADDR - (MEMORY_INFO_SEG << 4))
+
 #define LOADER_ADDR         (TMP_KERNEL_ADDR)
 
 #define ELF_BASE_ADDR       (LOADER_ADDR + LOADER_SECT_NUM * SECT_SIZE)
@@ -48,12 +53,28 @@
 #define PTE_P               0x001   // present
 #define PTE_W               0x002   // writeable
 
+#define KB                  1024
+#define MB                  (1024*KB)
+#define GB                  (1024*GB)
 
-#define PAGESIZE            4096
-#define KERNEL_BASE		    0xc0000000
+#define PAGE_SHIFT          12
+#define PAGE_SIZE           (1UL << PAGE_SHIFT)
+#define PAGE_MASK           (~(PAGE_SIZE-1))
+#define PAGE_ALIGN(addr)    (((uint32)(addr)+PAGE_SIZE-1) & PAGE_MASK)
 
-#define VA_2_PA(x)	        (((uint32)(x)) - KERNEL_BASE)
-#define PA_2_VA(x)	        (((void *)(x)) + KERNEL_BASE)
+#define PD_INDEX(va)        (((uint32)va >> 22) & 0x3ff)
+#define PT_INDEX(va)        (((uint32)va >> 12) & 0x3ff)
+
+#define PTE_ADDR(pte)       ((uint32)(pte) & ~0xfff)
+#define PTE_FLAG(pte)       ((uint32)(pte) & 0xfff)
+
+#define KERNEL_BASE		    0xc0000000  // 3GB
+#define EXTENED_MEM         0x100000    // 1MB
+#define KERNEL_LOAD         (KERNEL_BASE+EXTENED_MEM)
+#define MAX_PHY_MEM         0x10000000  // 256MB
+
+#define VA2PA(x)	        (((uint32)(x)) - KERNEL_BASE)
+#define PA2VA(x)	        (((void *)(x)) + KERNEL_BASE)
 
 
 // for cr0
