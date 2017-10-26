@@ -3,51 +3,59 @@
  * 2017-10-22
  */
 
+#include "babyos.h"
 #include "console.h"
 #include "screen.h"
 #include "string.h"
 
-static console_t console;
+extern Screen screen;
 
-static void draw_background()
+Console::Console()
 {
-    rect_t rc = { 0, 0, screen_width(), screen_height() };
-    fill_rectangle(rc, BACKGROUND_COLOR);
+}
+Console::~Console()
+{
 }
 
-void init_console()
+void Console::draw_background()
 {
-    console.row_num = screen_height() / ASC16_HEIGHT;
-    console.col_num = screen_width() / ASC16_WIDTH;
-    console.row     = 0;
-    console.col     = 0;
-    memset(console.text, 0, MAX_ROW * MAX_COL);
+    rect_t rc = { 0, 0, os()->get_screen()->width(), os()->get_screen()->height() };
+    os()->get_screen()->fill_rectangle(rc, BACKGROUND_COLOR);
+}
+
+void Console::init()
+{
+    m_row_num = os()->get_screen()->height() / ASC16_HEIGHT;
+    m_col_num = os()->get_screen()->width() / ASC16_WIDTH;
+    m_row     = 0;
+    m_col     = 0;
+    memset(m_text, 0, MAX_ROW * MAX_COL);
 
     draw_background();
 }
 
-static void console_putchar(char c, color_ref_t color)
+void Console::console_putchar(char c, color_ref_t color)
 {
-    console.text[console.row][console.col] = (char) c;
-    draw_asc16((char) c, console.col*ASC16_WIDTH, console.row*ASC16_HEIGHT, color);
-    console.col++;
-    if (console.col == console.col_num) {
-        console.row++;
-        console.col = 0;
+    m_text[m_row][m_col] = (char) c;
+    os()->get_screen()->draw_asc16((char) c, m_col*ASC16_WIDTH, m_row*ASC16_HEIGHT, color);
+    m_col++;
+    if (m_col == m_col_num) {
+        m_row++;
+        m_col = 0;
     }
 }
 
-static void console_putc(int c, color_ref_t color)
+void Console::console_putc(int c, color_ref_t color)
 {
     uint32 num;
 
     switch (c) {
     case '\n':
-        console.row++;
-        console.col = 0;
+        m_row++;
+        m_col = 0;
         break;
     case '\t':
-        num = (4 - console.col % 4);
+        num = (4 - m_col % 4);
         while (num--) {
             console_putchar(' ', color);
         }
@@ -58,7 +66,7 @@ static void console_putc(int c, color_ref_t color)
     }
 }
 
-static void print_int(int32 n, int32 base, int32 sign, color_ref_t color)
+void Console::print_int(int32 n, int32 base, int32 sign, color_ref_t color)
 {
     static char digits[] = "0123456789abcdef";
     char buffer[16] = {0};
@@ -92,7 +100,7 @@ static void print_int(int32 n, int32 base, int32 sign, color_ref_t color)
 }
 
 // only support %d %u %x %p %c %s, and seems enough for now
-void kprintf(color_ref_t color, char *fmt, ...)
+void Console::kprintf(color_ref_t color, const char *fmt, ...)
 {
     if (fmt == NULL) {
         return;
@@ -103,6 +111,7 @@ void kprintf(color_ref_t color, char *fmt, ...)
 
     int c = 0;
     char *s = NULL;
+	char str_null[] = "NULL";
 
     for (int i = 0; (c = CHARACTER(fmt[i])) != 0; i++) {
         if (c != '%') {
@@ -132,7 +141,7 @@ void kprintf(color_ref_t color, char *fmt, ...)
         case 's':
             s = va_arg(ap, char *);
             if (s == NULL) {
-                s = "NULL";
+                s = str_null;
             }
             for (; *s != '\0'; s++) {
                 console_putc(*s, color);

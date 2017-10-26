@@ -3,6 +3,7 @@
  * 2017-10-23
  */
 
+#include "babyos.h"
 #include "kernel.h"
 #include "mm.h"
 #include "x86.h"
@@ -29,18 +30,29 @@ pde_t entry_pg_dir[1024] = {
     [0] = (0) | PTE_P | PTE_W,
 };
 
-pde_t *kernel_pg_dir = NULL;
-
-uint8 *mem_start = NULL;
-uint8 *mem_end = NULL;
-
-uint32 usable_phy_mem_start = 0;
-uint32 usable_phy_mem_end = 0;
-
 extern uint8 data[];    // defined by kernel.ld
 extern uint8 end[];     // defined by kernel.ld
 
-void map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
+MM::MM()
+{
+}
+MM::~MM()
+{
+}
+
+void *MM::boot_mem_alloc(uint32 size, uint32 page_align)
+{
+	if (page_align) {
+		m_mem_start = (uint8 *)PAGE_ALIGN(m_mem_start);
+	}
+
+	void *p = (void *) m_mem_start;
+	m_mem_start += size;
+
+	return p;
+}
+
+void MM::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
 {
     uint8 *v = (uint8 *) (((uint32)va) & PAGE_MASK);
     uint8 *e = (uint8 *) (((uint32)va + size) & PAGE_MASK);
@@ -52,14 +64,13 @@ void map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
 			pg_table = (pte_t *)(PA2VA((*pde) & PAGE_MASK));
 		}
 		else {
-            pg_table = (pte_t *)mem_start;
+            pg_table = (pte_t *)boot_mem_alloc(PAGE_SIZE, 1);
 			memset(pg_table, 0, PAGE_SIZE);
-            mem_start += PAGE_SIZE;
             *pde = (VA2PA(pg_table) | PTE_P | PTE_W);
 		}
 
 		pde++;
-		for (int i = PT_INDEX(v); i < NR_PTE_PER_PAGE && v < e; i++, v += PAGE_SIZE) {
+		for (uint32 i = PT_INDEX(v); i < NR_PTE_PER_PAGE && v < e; i++, v += PAGE_SIZE) {
 			pte_t *pte = &pg_table[i];
 			if (v < e) {
 				*pte = VA2PA(v) | PTE_P | perm;
@@ -71,22 +82,22 @@ void map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
 /* FIXME: only used for test now */
 void *screen_va = NULL;
 
-void test_page_mapping()
+void MM::test_page_mapping()
 {
 	uint32 total = 0;
-	for (uint8 *v = (uint8 *)KERNEL_BASE; v < mem_end; v += 1*KB) {
-		pde_t *pde = &kernel_pg_dir[PD_INDEX(v)];
+	for (uint8 *v = (uint8 *)KERNEL_BASE; v < m_mem_end; v += 1*KB) {
+		pde_t *pde = &m_kernel_pg_dir[PD_INDEX(v)];
 
         if ((*pde) & PTE_P) {
 			pte_t *pg_table = (pte_t *)(PA2VA(((*pde) & PAGE_MASK)));
 			pte_t *pte = &pg_table[PT_INDEX(v)];
 			if (!((*pte) & PTE_P)) {
-				kprintf(WHITE, "page fault: v: 0x%p, *pde: 0x%p, *pte: 0x%p\n", v, *pde, *pte);
+				os()->get_console()->kprintf(WHITE, "page fault: v: 0x%p, *pde: 0x%p, *pte: 0x%p\n", v, *pde, *pte);
 				break;
 			}
 		}
 		else {
-			kprintf(WHITE, "page fault2: v: 0x%p, *pde: 0x%p\n", v, *pde);
+			os()->get_console()->kprintf(WHITE, "page fault2: v: 0x%p, *pde: 0x%p\n", v, *pde);
 			break;
 		}
 
@@ -95,28 +106,25 @@ void test_page_mapping()
 	}
 }
 
-void init_paging()
+void MM::init_paging()
 {
-    mem_start = (uint8 *)PAGE_ALIGN(mem_start);
-
-    // mem for kernel_pg_dir
-    kernel_pg_dir = (pde_t *)mem_start;
-    mem_start += PAGE_SIZE;
-    memset(kernel_pg_dir, 0, PAGE_SIZE);
+    // mem for m_kernel_pg_dir
+    m_kernel_pg_dir = (pde_t *)boot_mem_alloc(PAGE_SIZE, 1);
+    memset(m_kernel_pg_dir, 0, PAGE_SIZE);
 
     // first 1MB: KERNEL_BASE ~ KERNEL_LOAD -> 0~1M
-    map_pages(kernel_pg_dir, (uint8 *)KERNEL_BASE, 0, EXTENED_MEM, PTE_W);
+    map_pages(m_kernel_pg_dir, (uint8 *)KERNEL_BASE, 0, EXTENED_MEM, PTE_W);
 
     // kernel text + rodata: KERNEL_LOAD ~ data -> 1M ~ VA2PA(data)
-    map_pages(kernel_pg_dir, (uint8 *)KERNEL_LOAD, VA2PA(KERNEL_LOAD), VA2PA(data) - VA2PA(KERNEL_LOAD), 0);
+    map_pages(m_kernel_pg_dir, (uint8 *)KERNEL_LOAD, VA2PA(KERNEL_LOAD), VA2PA(data) - VA2PA(KERNEL_LOAD), 0);
 
     // kernel data + memory: data ~ KERNEL_BASE+MAX_PHY_MEM -> VA2PA(data) ~ MAX_PHY_MEM
-    map_pages(kernel_pg_dir, data, VA2PA(data), VA2PA(mem_end) - VA2PA(data), PTE_W);
+    map_pages(m_kernel_pg_dir, data, VA2PA(data), VA2PA(m_mem_end) - VA2PA(data), PTE_W);
 
 	// FIXME: map the video vram mem, just for test now
-    kernel_pg_dir[((uint32)screen_va)>>22] = ((uint32)(VA2PA(entry_pg_table_vram)) | (PTE_P | PTE_W));
+    m_kernel_pg_dir[((uint32)screen_va)>>22] = ((uint32)(VA2PA(entry_pg_table_vram)) | (PTE_P | PTE_W));
 
-    set_cr3(VA2PA(kernel_pg_dir));
+    set_cr3(VA2PA(m_kernel_pg_dir));
 
     // FIXME: debug
 	test_page_mapping();
@@ -138,18 +146,19 @@ static uint32 i386_detect_memory()
 		npages = npages_base;
 	}
 
-	kprintf(WHITE, "npages_base: %u, npages_ext: %u, ext_: %u, npages: %u\n", npages_base, npages_ext, ext_, npages);
+	os()->get_console()->kprintf(WHITE, "npages_base: %u, npages_ext: %u, ext_: %u, npages: %u\n", 
+		npages_base, npages_ext, ext_, npages);
 	return npages * PAGE_SIZE;
 }
 #endif
 
-void init_mem_range()
+void MM::init_mem_range()
 {
-    boot_memory_info_t *info = (boot_memory_info_t *) PA2VA(MEMORY_INFO_ADDR);
-	kprintf(WHITE, "the memory info from int 0x15, eax=0xe820:\n");
-	kprintf(WHITE, "type\t\taddress\t\tlength\n");
+    memory_layout_t *info = (memory_layout_t *) PA2VA(MEMORY_INFO_ADDR);
+	os()->get_console()->kprintf(WHITE, "the memory info from int 0x15, eax=0xe820:\n");
+	os()->get_console()->kprintf(WHITE, "type\t\taddress\t\tlength\n");
 	for (uint32 i = 0; i < info->num_of_range; i++) {
-		kprintf(RED, "%x\t%x\t%x\n", 
+		os()->get_console()->kprintf(RED, "%x\t%x\t%x\n", 
                 info->ranges[i].type,
                 info->ranges[i].base_addr_low,
                 info->ranges[i].base_addr_low + info->ranges[i].length_low);
@@ -159,24 +168,24 @@ void init_mem_range()
          * and 127MB~128MB with type 2(Reserved - unusable)
          * for now, get the range of address >= 1M and type == 1 (Usable (normal) RAM */
         if (info->ranges[i].type == 1 && info->ranges[i].base_addr_low >= 1*MB) {
-            usable_phy_mem_start = info->ranges[i].base_addr_low;
-            usable_phy_mem_end = info->ranges[i].base_addr_low + info->ranges[i].length_low;
+            m_usable_phy_mem_start = info->ranges[i].base_addr_low;
+            m_usable_phy_mem_end = info->ranges[i].base_addr_low + info->ranges[i].length_low;
         }
 	}
 
-    kprintf(WHITE, "usable memory above 1MB: from %uMB, to %dMB\n", 
-            usable_phy_mem_start / (1*MB), usable_phy_mem_end / (1*MB));
+    os()->get_console()->kprintf(WHITE, "usable memory above 1MB: from %uMB, to %dMB\n", 
+            m_usable_phy_mem_start / (1*MB), m_usable_phy_mem_end / (1*MB));
 
-    mem_start = end;
-    mem_end = (uint8 *)PA2VA(usable_phy_mem_end);
-	kprintf(WHITE, "mem_start: 0x%x, mem_end: 0x%x\n", mem_start, mem_end);
+    m_mem_start = end;
+    m_mem_end = (uint8 *)PA2VA(m_usable_phy_mem_end);
+	os()->get_console()->kprintf(WHITE, "mem_start: 0x%x, mem_end: 0x%x\n", m_mem_start, m_mem_end);
 }
 
-void init_free_area()
+void MM::init_free_area()
 {
 }
 
-void init_mm()
+void MM::init()
 {
     init_mem_range();
     init_paging();
@@ -184,7 +193,7 @@ void init_mm()
 }
 
 /* FIXME: map the video vram mem, just for test now */
-void kmap_device(void *va)
+void MM::kmap_device(void *va)
 {
 	screen_va = va;
 

@@ -143,7 +143,7 @@ copy_gdt_and_video_info:
 	xorw	%ax,						%ax
 	movw	%ax,						%ds		# DS:SI src
 	leaw	gdt,						%si
-	movw	$GDT_ADDR >> 4,				%ax
+	movw	$BOOT_INFO_SEG,				%ax
 	movw	%ax,						%es		# ES:DI dst
 	xorw	%di,						%di
 	movw	$(GDT_SIZE+VIDEO_INFO_SIZE),%cx		# num of bytes to move
@@ -153,8 +153,7 @@ copy_gdt_and_video_info:
 
 # finnction to get memory info by 0xe820
 get_memory_info:
-
-	movw	$(MEMORY_INFO_SEG),		%ax
+	movw	$(BOOT_INFO_SEG),		%ax
 	movw	%ax,					%es
 	movw	%ax,					%ds
 
@@ -179,10 +178,10 @@ get_memory_info:
 	jmp		success
 
 failed:
-	movl	$0,						(MEMORY_INFO_ADDR)
+	movl	$0,						(MEMORY_INFO_OFFSET)
 
 success:
-	xorl	%ax,					%ax
+	xorw	%ax,					%ax
 	movw	%ax,					%es
 	movw	%ax,					%ds
 

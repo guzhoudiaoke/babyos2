@@ -7,11 +7,14 @@
 #define _KENERL_H_
 
 /* segs */
+#define SEG_NULL			(0)
 #define SEG_KCODE           (1)
 #define SEG_KDATA           (2)
 #define SEG_UCODE           (3)
 #define SEG_UDATA           (4)
-#define SEG_TSS             (5)
+
+#define GDT_LEN			    (5)
+#define IDT_LEN				(256)
 
 
 #define	SECT_SIZE			(512)
@@ -26,58 +29,45 @@
 #define STACK_PM_BOTTOM     (0x10000)
 
 
-/* address gdt */
-#define GDT_ADDR			(0x90000)
-#define GDT_LEN			    (5)
+/* boot information */
+#define BOOT_INFO_ADDR		(0x90000)
+#define BOOT_INFO_SEG		(BOOT_INFO_ADDR >> 4)
+
+#define GDT_ADDR			(BOOT_INFO_ADDR)
 #define GDT_SIZE			(8 * GDT_LEN)
 
 #define VIDEO_INFO_ADDR	    (GDT_ADDR + GDT_SIZE)
+#define VIDEO_INFO_OFFSET	(VIDEO_INFO_ADDR - BOOT_INFO_ADDR)
 #define VIDEO_INFO_SIZE	    (12)
 
 #define MEMORY_INFO_ADDR	(VIDEO_INFO_ADDR + VIDEO_INFO_SIZE)
+#define MEMORY_INFO_OFFSET  (MEMORY_INFO_ADDR - BOOT_INFO_ADDR)
 #define MEMORY_INFO_SIZE	(4+256)
-#define MEMORY_INFO_SEG     (MEMORY_INFO_ADDR >> 4)
-#define MEMORY_INFO_OFFSET  (MEMORY_INFO_ADDR - (MEMORY_INFO_SEG << 4))
 
+
+/* load addresses */
 #define LOADER_ADDR         (TMP_KERNEL_ADDR)
 
 #define ELF_BASE_ADDR       (LOADER_ADDR + LOADER_SECT_NUM * SECT_SIZE)
-#define ELF_SECT_NUM        (128)
+#define ELF_SECT_NUM        (242)
 
 #define FONT_ASC16_ADDR     (ELF_BASE_ADDR + ELF_SECT_NUM * SECT_SIZE)
 #define FONT_ASC16_SIZE     (4096)
 
 
-
-// page table, page directory entry flag
-#define PTE_P               0x001   // present
-#define PTE_W               0x002   // writeable
-
-#define KB                  1024
-#define MB                  (1024*KB)
-#define GB                  (1024*GB)
-
-#define PAGE_SHIFT          12
-#define PAGE_SIZE           (1UL << PAGE_SHIFT)
-#define PAGE_MASK           (~(PAGE_SIZE-1))
-#define PAGE_ALIGN(addr)    (((uint32)(addr)+PAGE_SIZE-1) & PAGE_MASK)
-
-#define PD_INDEX(va)        (((uint32)va >> 22) & 0x3ff)
-#define PT_INDEX(va)        (((uint32)va >> 12) & 0x3ff)
-
-#define PTE_ADDR(pte)       ((uint32)(pte) & ~0xfff)
-#define PTE_FLAG(pte)       ((uint32)(pte) & 0xfff)
-
+/* memory */
 #define KERNEL_BASE		    0xc0000000  // 3GB
 #define EXTENED_MEM         0x100000    // 1MB
 #define KERNEL_LOAD         (KERNEL_BASE+EXTENED_MEM)
 #define MAX_PHY_MEM         0x10000000  // 256MB
 
-#define VA2PA(x)	        (((uint32)(x)) - KERNEL_BASE)
-#define PA2VA(x)	        (((void *)(x)) + KERNEL_BASE)
+
+/* page table, page directory entry flag */
+#define PTE_P               0x001		// present
+#define PTE_W               0x002		// writeable
 
 
-// for cr0
+/* for cr0 */
 #define CR0_PE              0x00000001
 #define CR0_WP              0x00010000
 #define CR0_PG              0x80000000

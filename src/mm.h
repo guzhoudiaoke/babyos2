@@ -8,26 +8,52 @@
 
 #include "types.h"
 
-typedef uint32  pde_t;
-typedef uint32  pte_t;
+#define KB                  1024
+#define MB                  (1024*KB)
+#define GB                  (1024*GB)
 
+#define PAGE_SHIFT          12
+#define PAGE_SIZE           (1UL << PAGE_SHIFT)
+#define PAGE_MASK           (~(PAGE_SIZE-1))
+#define PAGE_ALIGN(addr)    (((uint32)(addr)+PAGE_SIZE-1) & PAGE_MASK)
+
+#define PD_INDEX(va)        (((uint32)va >> 22) & 0x3ff)
+#define PT_INDEX(va)        (((uint32)va >> 12) & 0x3ff)
+
+#define PTE_ADDR(pte)       ((uint32)(pte) & ~0xfff)
+#define PTE_FLAG(pte)       ((uint32)(pte) & 0xfff)
+
+#define VA2PA(x)	        (((uint32)(x)) - KERNEL_BASE)
+#define PA2VA(x)	        ((void *)((x) + KERNEL_BASE))
 #define NR_PDE_PER_PAGE     (PAGE_SIZE / sizeof(pde_t))
 #define NR_PTE_PER_PAGE     (PAGE_SIZE / sizeof(pte_t))
 
-typedef struct address_range_s {
-	uint32	base_addr_low;
-	uint32	base_addr_high;
-	uint32	length_low;
-	uint32	lenght_high;
-    uint32  type;
-} address_range_t;
-typedef struct boot_memory_info_s {
-	uint32 num_of_range;
-	address_range_t ranges[32];
-} boot_memory_info_t;
+class BabyOS;
+class MM {
+public:
+	MM();
+	~MM();
 
-void init_mm();
-void kmap_device(void *va);
+	void init();
+	void kmap_device(void *va);
+	void *boot_mem_alloc(uint32 size, uint32 page_align);
+
+private:
+	void map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm);
+	void test_page_mapping();
+	void init_paging();
+	void init_mem_range();
+	void init_free_area();
+
+private:
+	pde_t *m_kernel_pg_dir;
+
+	uint8 *m_mem_start;
+	uint8 *m_mem_end;
+
+	uint32 m_usable_phy_mem_start;
+	uint32 m_usable_phy_mem_end;
+};
 
 #endif
 

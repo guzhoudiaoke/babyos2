@@ -92,5 +92,41 @@ static inline uint32 nvram_read(uint32 reg)
 	return cmos_read(reg) | cmos_read(reg+1) << 8;
 }
 
+static inline void
+lgdt(void* gdt, uint32 size)
+{
+    volatile uint16 pd[3];
+
+    pd[0] = size-1;
+    pd[1] = (uint32)gdt;
+    pd[2] = (uint32)gdt >> 16;
+
+    asm volatile("lgdt (%0)" : : "r" (pd));
+}
+
+static inline void
+lidt(void* idt, uint32 size)
+{
+    volatile uint16 pd[3];
+
+    pd[0] = size-1;
+    pd[1] = (uint32)idt;
+    pd[2] = (uint32)idt >> 16;
+
+    asm volatile("lidt (%0)" : : "r" (pd));
+}
+
+static inline void
+sti(void)
+{
+    asm volatile("sti");
+}
+
+static inline void
+halt(void)
+{
+    asm volatile("hlt");
+}
+
 #endif
 

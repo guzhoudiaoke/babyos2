@@ -8,6 +8,7 @@
 #include "elf.h"
 #include "x86.h"
 
+extern "C" 
 void loadmain(void)
 {
     elf_hdr_t *elf = (elf_hdr_t *) (ELF_BASE_ADDR);
