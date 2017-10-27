@@ -123,6 +123,12 @@ sti(void)
 }
 
 static inline void
+cli(void)
+{
+    asm volatile("cli");
+}
+
+static inline void
 halt(void)
 {
     asm volatile("hlt");

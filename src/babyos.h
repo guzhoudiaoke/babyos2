@@ -13,22 +13,22 @@
 
 class BabyOS {
 public:
-	BabyOS();
-	~BabyOS();
+    BabyOS();
+    ~BabyOS();
 
-	void run();
+    void run();
 
-	Screen *get_screen();
-	Console *get_console();
-	MM *get_mm();
+    Screen *get_screen();
+    Console *get_console();
+    MM *get_mm();
     Arch *get_arch();
 
-	static BabyOS *get_os();
+    static BabyOS *get_os();
 
 private:
-	Screen	m_screen;
-	Console m_console;
-	MM		m_mm;
+    Screen	m_screen;
+    Console m_console;
+    MM		m_mm;
     Arch    m_arch;
 };
 

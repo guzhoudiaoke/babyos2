@@ -10,7 +10,7 @@ BabyOS os;
 extern "C" 
 int main(void)
 {
-	os.run();
+    os.run();
     return 0;
 }
 

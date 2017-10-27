@@ -1,11 +1,16 @@
+/*
+ * guzhoudiaoke@126.com
+ * 2017-10-26
+ */
+
 extern "C"
 {
-   int __cxa_atexit(void (*Destructor) (void *), void *Parameter, void *HomeDSO);
-   void __cxa_finalize(void *);
-   void __cxa_pure_virtual();
-   void __stack_chk_guard_setup();
-   void __attribute__((noreturn)) __stack_chk_fail();
-   void _Unwind_Resume();
+    int __cxa_atexit(void (*Destructor) (void *), void *Parameter, void *HomeDSO);
+    void __cxa_finalize(void *);
+    void __cxa_pure_virtual();
+    void __stack_chk_guard_setup();
+    void __attribute__((noreturn)) __stack_chk_fail();
+    void _Unwind_Resume();
 }
 
 void *__dso_handle;
@@ -30,18 +35,16 @@ int __cxa_atexit(void (*) (void *), void *, void *)
     return 0;
 }
 
-void _Unwind_Resume(){
-    
+void _Unwind_Resume()
+{
 }
 
 void __cxa_finalize(void *)
 {
-    
 }
 
 void __cxa_pure_virtual()
 {
-
 }
 
 void __stack_chk_guard_setup()

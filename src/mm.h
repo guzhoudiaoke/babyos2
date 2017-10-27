@@ -35,7 +35,6 @@ public:
 	~MM();
 
 	void init();
-	void kmap_device(void *va);
 	void *boot_mem_alloc(uint32 size, uint32 page_align);
 
 private:

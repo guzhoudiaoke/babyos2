@@ -10,7 +10,7 @@
 
 
 _start:
-	jmp main
+jmp main
 
 # function to clear the screen
 clear_screen:
@@ -22,7 +22,7 @@ clear_screen:
 	movb	$0x4f,	%dl		# col of right bottom corner
 	movb	$0x07,	%bh		# property of roll up rows
 	int		$0x10
-	ret
+ret
 
 # function to set video mode
 set_video_mode:
@@ -58,7 +58,7 @@ set_video_mode:
 	jz		set_vga_0x13
 
 	# save video info
-    movw    $0x118,		video_mode
+	movw    $0x118,		video_mode
 	movw	0x12(%di),	%ax
 	movw	%ax,		screen_x
 	movw	0x14(%di),	%ax

@@ -8,7 +8,7 @@
 extern BabyOS os;
 BabyOS *BabyOS::get_os()
 {
-	return &os;
+    return &os;
 }
 
 BabyOS::BabyOS()
@@ -21,17 +21,17 @@ BabyOS::~BabyOS()
 
 Screen *BabyOS::get_screen() 
 {
-	return &m_screen; 
+    return &m_screen; 
 }
 
 Console *BabyOS::get_console()
 {
-	return &m_console;
+    return &m_console;
 }
 
 MM* BabyOS::get_mm()
 {
-	return &m_mm;
+    return &m_mm;
 }
 
 Arch* BabyOS::get_arch()
@@ -50,11 +50,6 @@ void BabyOS::run()
     m_mm.init();
     m_arch.init();
 
-
-    m_console.kprintf(RED, "11 / 2 = %d\n", 11 / 2);
-    m_console.kprintf(RED, "1 / 0 = %d\n", 1 / 0);
-
     while (1) {
-        ;
     }
 }

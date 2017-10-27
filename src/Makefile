@@ -8,8 +8,8 @@ OBJS = \
 	mm.o\
 	arch.o\
 	exception.o\
-	isr.o\
-	traps.o\
+	keyboard.o\
+	queue.o\
 
 AS = as --32
 CC = gcc -m32

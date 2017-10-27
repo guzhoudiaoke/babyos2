@@ -18,6 +18,7 @@ typedef char* va_list;
 #define MAX_ROW             128
 #define MAX_COL             48
 #define BACKGROUND_COLOR    RGB(0x40, 0, 0x30)
+#define CURSOR_COLOR        RGB(0xff, 0xff, 0x00)
 
 class BabyOS;
 class Console {
@@ -30,15 +31,18 @@ public:
 
 private:
 	void draw_background();
-	void console_putchar(char c, color_ref_t color);
-	void console_putc(int c, color_ref_t color);
+    void draw_cursor();
+	void put_char(char c, color_ref_t color);
+    void unput_char();
+    void backspace();
+	void putc(int c, color_ref_t color);
 	void print_int(int32 n, int32 base, int32 sign, color_ref_t color);
 
-    uint32 m_row_num;
-    uint32 m_col_num;
-    uint32 m_row;
-    uint32 m_col;
-    char m_text[MAX_ROW][MAX_COL];
+	uint32 m_row_num;
+	uint32 m_col_num;
+	uint32 m_row;
+	uint32 m_col;
+	char m_text[MAX_ROW][MAX_COL];
 };
 
 #endif

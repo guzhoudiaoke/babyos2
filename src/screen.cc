@@ -18,7 +18,7 @@ Screen::~Screen()
 {
 }
 
-int32 Screen::init()
+void Screen::init()
 {
     video_info_t *info = (video_info_t *) PA2VA(VIDEO_INFO_ADDR);
     m_width    = info->width; 
@@ -26,10 +26,6 @@ int32 Screen::init()
     m_bytes_pp = info->bits_per_pixel / 8;
     m_base     = (info->vram_base_addr);
     m_asc16_addr = (uint8 *) PA2VA(FONT_ASC16_ADDR);
-
-    os()->get_mm()->kmap_device(m_base);
-
-    return 0;
 }
 
 uint32 Screen::width()
@@ -40,6 +36,11 @@ uint32 Screen::width()
 uint32 Screen::height()
 {
     return m_height;
+}
+
+uint8* Screen::vram()
+{
+    return m_base;
 }
 
 void Screen::set_pixel(uint32 x, uint32 y, color_ref_t color)
@@ -56,17 +57,17 @@ void Screen::draw_asc16(char ch, uint32 left, uint32 top, color_ref_t color)
 {
     uint8* p_asc = m_asc16_addr + ch * ASC16_SIZE;
 
-	for (int32 y = 0; y < ASC16_HEIGHT; y++) {
-		uint8 test_bit = 1 << 7;
-		for (int32 x = 0; x < ASC16_WIDTH; x++) {
-			if (*p_asc & test_bit) {
-				set_pixel(left+x, top+y, color);
+    for (int32 y = 0; y < ASC16_HEIGHT; y++) {
+        uint8 test_bit = 1 << 7;
+        for (int32 x = 0; x < ASC16_WIDTH; x++) {
+            if (*p_asc & test_bit) {
+                set_pixel(left+x, top+y, color);
             }
 
-			test_bit >>= 1;
-		}
-		p_asc++;
-	}
+            test_bit >>= 1;
+        }
+        p_asc++;
+    }
 }
 
 void Screen::fill_rectangle(rect_t rect, color_ref_t color)

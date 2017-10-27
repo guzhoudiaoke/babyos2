@@ -7,13 +7,26 @@
 #define _ARCH_H_
 
 #include "kernel.h"
+#include "keyboard.h"
 
-#define NR_IRQ	32
+#define NR_IRQ  256
 
 #define TRAP_GATE_FLAG      0x00008f0000000000ULL
 #define INTERRUPT_GATE_FLAG 0x00008e0000000000ULL
 
+#define IRQ_TIMER           (0x0)
+#define IRQ_KEYBOARD        (0x1)
+
 typedef struct trap_frame_s {
+    uint16 gs;
+    uint16 padding1;
+    uint16 fs;
+    uint16 padding2;
+    uint16 es;
+    uint16 padding3;
+    uint16 ds;
+    uint16 padding4;
+
     // registers as pushed by pusha
     uint32 edi;
     uint32 esi;
@@ -24,15 +37,6 @@ typedef struct trap_frame_s {
     uint32 ecx;
     uint32 eax;
 
-    // rest of trap frame
-    uint16 gs;
-    uint16 padding1;
-    uint16 fs;
-    uint16 padding2;
-    uint16 es;
-    uint16 padding3;
-    uint16 ds;
-    uint16 padding4;
     uint32 trapno;
 
     // below here defined by x86 hardware
@@ -50,52 +54,52 @@ typedef struct trap_frame_s {
 
 class CPU {
 public:
-	CPU();
-	~CPU();
+    CPU();
+    ~CPU();
 
-	void init();
-    void do_isr(trap_frame_t* frame);
-
-private:
-	void init_gdt();
-	void init_idt();
-	void init_traps();
-	void init_isrs();
-
-	void set_gate(uint32 index, uint32 addr, uint64 flag);
-	void set_trap_gate(uint32 index, uint32 addr);
-	void set_interrupt_gate(uint32 index, uint32 addr);
+    void init();
+    void do_irq(trap_frame_t* frame);
 
 private:
-	uint64	m_gdt[GDT_LEN];
-	uint64	m_idt[IDT_LEN];
-	uint32	m_isr_table[NR_IRQ];
+    void init_gdt();
+    void init_idt();
+    void init_isrs();
+
+    void set_gate(uint32 index, uint32 addr, uint64 flag);
+    void set_trap_gate(uint32 index, uint32 addr);
+    void set_intr_gate(uint32 index, uint32 addr);
+
+private:
+    uint64	m_gdt[GDT_LEN];
+    uint64	m_idt[IDT_LEN];
 };
 
 class I8259a {
 public:
-	I8259a();
-	~I8259a();
+    I8259a();
+    ~I8259a();
 
-	void init();
-
-private:
+    void init();
+    void enable_irq(uint32 irq);
 
 private:
 };
 
 class Arch {
 public:
-	Arch();
-	~Arch();
+    Arch();
+    ~Arch();
 
-	void init();
+    void init();
 
     CPU* get_cpu();
+    I8259a* get_8259a();
+    Keyboard* get_keyboard();
 
 private:
-	CPU		m_cpu;
-	I8259a	m_8259a;
+    CPU		m_cpu;
+    I8259a	m_8259a;
+    Keyboard m_keyboard;
 };
 
 #endif
