@@ -28,10 +28,13 @@ public:
 
 	void init();
 	void kprintf(color_ref_t color, const char *fmt, ...);
+    void update();
 
 private:
 	void draw_background();
     void draw_cursor();
+    void draw_time();
+
 	void put_char(char c, color_ref_t color);
     void unput_char();
     void backspace();
@@ -43,6 +46,8 @@ private:
 	uint32 m_row;
 	uint32 m_col;
 	char m_text[MAX_ROW][MAX_COL];
+
+    uint32 m_tick_to_update;
 };
 
 #endif

@@ -9,7 +9,6 @@
 #include "x86.h"
 
 extern uint32 isr_vector[];
-uint32 isr_table[NR_IRQ];
 
 static char* exception_msg[] = {
     "int0  #DE divide error",
@@ -157,17 +156,22 @@ void CPU::do_irq(trap_frame_t* frame)
         os()->get_console()->kprintf(RED, "Exception: %s\n", exception_msg[frame->trapno]);
         halt();
     }
-    else if (frame->trapno < 0x20) {
+    else if (frame->trapno < IRQ_0) {
         os()->get_console()->kprintf(RED, "Error Interrupt: %x, RESERVED!\n", frame->trapno);
     }
-    else if (frame->trapno < 0x30) {
-        if (frame->trapno == 0x20 + IRQ_KEYBOARD) {
+    else if (frame->trapno < IRQ_0 + 0x10) {
+        if (frame->trapno == IRQ_0 + IRQ_KEYBOARD) {
             os()->get_arch()->get_keyboard()->do_irq();
 
             int ch = os()->get_arch()->get_keyboard()->read();
             if (ch != 0) {
                 os()->get_console()->kprintf(WHITE, "%c", ch);
             }
+        }
+        else if (frame->trapno == IRQ_0 + IRQ_TIMER) {
+            os()->get_arch()->get_timer()->do_irq();
+            os()->get_arch()->get_rtc()->update();
+            os()->get_console()->update();
         }
         else {
             os()->get_console()->kprintf(RED, "Interrupt: %x\n", frame->trapno);
@@ -253,6 +257,8 @@ void Arch::init()
     m_cpu.init();
     m_8259a.init();
     m_keyboard.init();
+    m_timer.init();
+    m_rtc.init();
 
     os()->get_console()->kprintf(RED, "sti()\n");
     sti();
@@ -272,3 +278,14 @@ Keyboard* Arch::get_keyboard()
 {
     return &m_keyboard;
 }
+
+Timer* Arch::get_timer()
+{
+    return &m_timer;
+}
+
+RTC* Arch::get_rtc()
+{
+    return &m_rtc;
+}
+

@@ -8,12 +8,12 @@
 
 #include "kernel.h"
 #include "keyboard.h"
+#include "timer.h"
 
-#define NR_IRQ  256
+#define TRAP_GATE_FLAG      (0x00008f0000000000ULL)
+#define INTERRUPT_GATE_FLAG (0x00008e0000000000ULL)
 
-#define TRAP_GATE_FLAG      0x00008f0000000000ULL
-#define INTERRUPT_GATE_FLAG 0x00008e0000000000ULL
-
+#define IRQ_0               (0x20)
 #define IRQ_TIMER           (0x0)
 #define IRQ_KEYBOARD        (0x1)
 
@@ -92,14 +92,18 @@ public:
 
     void init();
 
-    CPU* get_cpu();
-    I8259a* get_8259a();
-    Keyboard* get_keyboard();
+    CPU*        get_cpu();
+    I8259a*     get_8259a();
+    Keyboard*   get_keyboard();
+    Timer*      get_timer();
+    RTC*        get_rtc();
 
 private:
     CPU		m_cpu;
     I8259a	m_8259a;
     Keyboard m_keyboard;
+    Timer   m_timer;
+    RTC     m_rtc;
 };
 
 #endif

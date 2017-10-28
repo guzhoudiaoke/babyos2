@@ -10,6 +10,7 @@ OBJS = \
 	exception.o\
 	keyboard.o\
 	queue.o\
+	timer.o\
 
 AS = as --32
 CC = gcc -m32

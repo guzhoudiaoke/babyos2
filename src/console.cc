@@ -7,6 +7,7 @@
 #include "console.h"
 #include "screen.h"
 #include "string.h"
+#include "timer.h"
 
 extern Screen screen;
 
@@ -35,6 +36,7 @@ void Console::init()
     m_col_num = os()->get_screen()->width() / ASC16_WIDTH;
     m_row     = 0;
     m_col     = 0;
+    m_tick_to_update = HZ;
     memset(m_text, 0, MAX_ROW * MAX_COL);
 
     draw_background();
@@ -198,3 +200,28 @@ void Console::kprintf(color_ref_t color, const char *fmt, ...)
 
     va_end(ap);
 }
+
+void Console::draw_time()
+{
+    uint32 year, month, day, h, m, s;
+    year = os()->get_arch()->get_rtc()->year();
+    month = os()->get_arch()->get_rtc()->month();
+    day = os()->get_arch()->get_rtc()->day();
+    h = os()->get_arch()->get_rtc()->hour();
+    m = os()->get_arch()->get_rtc()->minute();
+    s = os()->get_arch()->get_rtc()->second();
+    kprintf(GREEN, "%d-%d-%d %d:%d:%d\n", year, month, day, h, m, s);
+}
+
+void Console::update()
+{
+    if (--m_tick_to_update != 0) {
+        return;
+    }
+
+    /* reset tick to update */
+    m_tick_to_update = HZ;
+
+    draw_time();
+}
+
