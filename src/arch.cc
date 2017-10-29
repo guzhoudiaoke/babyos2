@@ -173,6 +173,9 @@ void CPU::do_irq(trap_frame_t* frame)
             os()->get_arch()->get_rtc()->update();
             os()->get_console()->update();
         }
+        else if (frame->trapno == IRQ_0 + IRQ_HARDDISK) {
+            os()->get_harddisk()->do_irq();
+        }
         else {
             os()->get_console()->kprintf(RED, "Interrupt: %x\n", frame->trapno);
         }
@@ -180,6 +183,11 @@ void CPU::do_irq(trap_frame_t* frame)
     else {
         os()->get_console()->kprintf(RED, "Interrupt: %x, NOT KNOWN\n", frame->trapno);
     }
+}
+
+void CPU::sleep()
+{
+    __asm__("nop");
 }
 
 /*************************************** 8259a ******************************************/

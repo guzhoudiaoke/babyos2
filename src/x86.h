@@ -134,5 +134,17 @@ halt(void)
     asm volatile("hlt");
 }
 
+static inline uint32 xchg(volatile uint32 *addr, uint32 newval)
+{
+    uint32 result;
+
+    // "+m": read-modify-write operand
+    asm volatile("lock; xchgl %0, %1" :
+            "+m" (*addr), "=a" (result) :
+            "1" (newval) :
+            "cc");
+    return result;
+}
+
 #endif
 

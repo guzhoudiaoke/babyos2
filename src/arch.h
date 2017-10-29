@@ -16,6 +16,7 @@
 #define IRQ_0               (0x20)
 #define IRQ_TIMER           (0x0)
 #define IRQ_KEYBOARD        (0x1)
+#define IRQ_HARDDISK        (0xe)
 
 typedef struct trap_frame_s {
     uint16 gs;
@@ -59,6 +60,7 @@ public:
 
     void init();
     void do_irq(trap_frame_t* frame);
+    void sleep();
 
 private:
     void init_gdt();

@@ -204,12 +204,13 @@ void Console::kprintf(color_ref_t color, const char *fmt, ...)
 void Console::draw_time()
 {
     uint32 year, month, day, h, m, s;
-    year = os()->get_arch()->get_rtc()->year();
-    month = os()->get_arch()->get_rtc()->month();
-    day = os()->get_arch()->get_rtc()->day();
-    h = os()->get_arch()->get_rtc()->hour();
-    m = os()->get_arch()->get_rtc()->minute();
-    s = os()->get_arch()->get_rtc()->second();
+    RTC *rtc = os()->get_arch()->get_rtc();
+    year = rtc->year();
+    month = rtc->month();
+    day = rtc->day();
+    h = rtc->hour();
+    m = rtc->minute();
+    s = rtc->second();
     kprintf(GREEN, "%d-%d-%d %d:%d:%d\n", year, month, day, h, m, s);
 }
 
@@ -222,6 +223,6 @@ void Console::update()
     /* reset tick to update */
     m_tick_to_update = HZ;
 
-    draw_time();
+    //draw_time();
 }
 

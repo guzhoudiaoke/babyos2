@@ -11,6 +11,8 @@ OBJS = \
 	keyboard.o\
 	queue.o\
 	timer.o\
+	harddisk.o\
+	spinlock.o\
 
 AS = as --32
 CC = gcc -m32

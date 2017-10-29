@@ -10,6 +10,7 @@
 #include "console.h"
 #include "mm.h"
 #include "arch.h"
+#include "harddisk.h"
 
 class BabyOS {
 public:
@@ -22,14 +23,16 @@ public:
     Console *get_console();
     MM *get_mm();
     Arch *get_arch();
+    Harddisk *get_harddisk();
 
     static BabyOS *get_os();
 
 private:
-    Screen	m_screen;
-    Console m_console;
-    MM		m_mm;
-    Arch    m_arch;
+    Screen	    m_screen;
+    Console     m_console;
+    MM		    m_mm;
+    Arch        m_arch;
+    Harddisk    m_harddisk;
 };
 
 #define os()	BabyOS::get_os()
