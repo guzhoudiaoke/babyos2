@@ -32,24 +32,6 @@ static char* exception_msg[] = {
 };
 
 extern "C" {
-void int_0_divide_error();
-void int_1_debug();
-void int_2_nmi();
-void int_3_break_point();
-void int_4_overflow();
-void int_5_bounds_check();
-void int_6_invalid_opcode();
-void int_7_device_not_available();
-void int_8_double_fault();
-void int_9_coprocessor_seg_overrun();
-void int_10_invalid_tss();
-void int_11_segment_not_present();
-void int_12_stack_segment();
-void int_13_general_protection();
-void int_14_page_fault();
-void int_15_reserved();
-void int_16_coprocessor_error();
-
 void isr_0();
 void isr_1();
 void isr_2();
@@ -67,7 +49,6 @@ void isr_13();
 void isr_14();
 void isr_15();
 
-extern void do_divide_error();
 void do_irq(trap_frame_t* frame)
 {
     os()->get_arch()->get_cpu()->do_irq(frame);
@@ -109,12 +90,12 @@ void cpu_t::set_intr_gate(uint32 index, uint32 addr)
 void cpu_t::init_isrs()
 {
     // exceptions
-    for (uint32 i = 0; i < 0x20; i++) {
+    for (uint32 i = 0; i < IRQ_0; i++) {
         set_trap_gate(i, (uint32)isr_vector[i]);
     }
 
     // interrupts
-    for (uint32 i = 0x20; i < 0x30; i++) {
+    for (uint32 i = IRQ_0; i < 256; i++) {
         set_intr_gate(i, (uint32)isr_vector[i]);
     }
 }
@@ -181,8 +162,9 @@ void cpu_t::do_interrupt(uint32 trapno)
     }
 }
 
-void cpu_t::do_systemcall()
+void cpu_t::do_syscall(trap_frame_t* frame)
 {
+    m_syscall.do_syscall(frame);
 }
 
 void cpu_t::do_irq(trap_frame_t* frame)
@@ -191,8 +173,11 @@ void cpu_t::do_irq(trap_frame_t* frame)
     if (trapno < IRQ_0) {
         do_exception(trapno);
     }
-    else if (frame->trapno < IRQ_0 + 0x10) {
+    else if (trapno < IRQ_0 + 0x10) {
         do_interrupt(trapno);
+    }
+    else if (trapno == IRQ_SYSCALL) {
+        do_syscall(frame);
     }
     else {
         console()->kprintf(RED, "Interrupt: %x, NOT KNOWN\n", frame->trapno);

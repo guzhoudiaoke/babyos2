@@ -7,12 +7,13 @@ OBJS = \
 	string.o\
 	mm.o\
 	arch.o\
-	exception.o\
+	isr.o\
 	keyboard.o\
 	queue.o\
 	timer.o\
 	ide.o\
 	spinlock.o\
+	systemcall.o\
 
 AS = as --32
 CC = gcc -m32

@@ -77,6 +77,15 @@ void test_ide()
         }
         console()->kprintf(PINK, "%x ", ((uint32 *)clb.m_buffer)[i]);
     }
+    console()->kprintf(PINK, "\n");
+}
+
+void test_syscall()
+{
+    console()->kprintf(WHITE, "test system call\n");
+    __asm__(
+        "movl $0, %eax; int $0x80;"
+    );
 }
 
 void babyos_t::run()
@@ -96,6 +105,8 @@ void babyos_t::run()
 
     draw_time();
     test_ide();
+
+    test_syscall();
 
     while (1) {
     }
