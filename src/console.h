@@ -21,10 +21,10 @@ typedef char* va_list;
 #define CURSOR_COLOR        RGB(0xff, 0xff, 0x00)
 
 class BabyOS;
-class Console {
+class console_t {
 public:
-	Console();
-	~Console();
+	console_t();
+	~console_t();
 
 	void init();
 	void kprintf(color_ref_t color, const char *fmt, ...);

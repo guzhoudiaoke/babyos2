@@ -29,10 +29,10 @@
 
 class BabyOS;
 
-class Screen {
+class screen_t {
 public:
-	Screen();
-	~Screen();
+	screen_t();
+	~screen_t();
 
 	void init();
 	uint32 width();

@@ -10,31 +10,32 @@
 #include "console.h"
 #include "mm.h"
 #include "arch.h"
-#include "harddisk.h"
+#include "ide.h"
 
-class BabyOS {
+class babyos_t {
 public:
-    BabyOS();
-    ~BabyOS();
+    babyos_t();
+    ~babyos_t();
 
     void run();
 
-    Screen *get_screen();
-    Console *get_console();
-    MM *get_mm();
-    Arch *get_arch();
-    Harddisk *get_harddisk();
+    screen_t*   get_screen();
+    console_t*  get_console();
+    mm_t*       get_mm();
+    arch_t*     get_arch();
+    ide_t*      get_ide();
 
-    static BabyOS *get_os();
+    static babyos_t* get_os();
 
 private:
-    Screen	    m_screen;
-    Console     m_console;
-    MM		    m_mm;
-    Arch        m_arch;
-    Harddisk    m_harddisk;
+    screen_t	m_screen;
+    console_t   m_console;
+    mm_t		m_mm;
+    arch_t      m_arch;
+    ide_t       m_ide;
 };
 
-#define os()	BabyOS::get_os()
+#define os()	    babyos_t::get_os()
+#define console()   os()->get_console()
 
 #endif

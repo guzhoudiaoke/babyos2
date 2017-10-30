@@ -11,10 +11,10 @@
 #define HZ              (100)
 #define CLOCK_TICK_RATE (1193180)
 
-class Timer {
+class timer_t {
 public:
-    Timer();
-    ~Timer();
+    timer_t();
+    ~timer_t();
 
     void init();
     void do_irq();
@@ -25,10 +25,10 @@ private:
     uint64 m_tick;
 };
 
-class RTC {
+class rtc_t {
 public:
-    RTC();
-    ~RTC();
+    rtc_t();
+    ~rtc_t();
 
     void init();
     void update();

@@ -5,7 +5,7 @@
 
 #include "babyos.h"
 
-BabyOS os;
+babyos_t os;
 
 extern "C" 
 int main(void)

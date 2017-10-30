@@ -7,24 +7,24 @@
 #include "x86.h"
 #include "babyos.h"
 
-Spinlock::Spinlock()
+spinlock_t::spinlock_t()
 {
 }
-Spinlock::~Spinlock()
+spinlock_t::~spinlock_t()
 {
 }
 
-void Spinlock::init()
+void spinlock_t::init()
 {
     m_locked = 0;
 }
 
-uint32 Spinlock::holding()
+uint32 spinlock_t::holding()
 {
     return (m_locked == 1);
 }
 
-void Spinlock::lock()
+void spinlock_t::lock()
 {
     while (xchg(&m_locked, 1) != 0)
         ;
@@ -32,10 +32,10 @@ void Spinlock::lock()
     __sync_synchronize();
 }
 
-void Spinlock::unlock()
+void spinlock_t::unlock()
 {
     if (!holding()) {
-        os()->get_console()->kprintf(RED, "Not holding the lock when try to unlock\n");
+        console()->kprintf(RED, "Not holding the lock when try to unlock\n");
     }
 
     __sync_synchronize();

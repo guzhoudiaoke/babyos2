@@ -11,7 +11,7 @@ OBJS = \
 	keyboard.o\
 	queue.o\
 	timer.o\
-	harddisk.o\
+	ide.o\
 	spinlock.o\
 
 AS = as --32

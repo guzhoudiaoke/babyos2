@@ -5,21 +5,21 @@
 
 #include "queue.h"
 
-Queue::Queue()
+queue_t::queue_t()
 {
 }
 
-Queue::~Queue()
+queue_t::~queue_t()
 {
 }
 
-void Queue::init()
+void queue_t::init()
 {
 	m_front = 0;
 	m_rear = 0;
 }
 
-int32 Queue::empty()
+int32 queue_t::empty()
 {
 	if (m_rear == m_front)
 		return 1;
@@ -27,7 +27,7 @@ int32 Queue::empty()
 	return 0;
 }
 
-int32 Queue::full()
+int32 queue_t::full()
 {
 	if ((m_rear + 1) % BUFFER_SIZE == m_front)
 		return 1;
@@ -35,7 +35,7 @@ int32 Queue::full()
 	return 0;
 }
 
-int32 Queue::en_queue(uint8 val)
+int32 queue_t::en_queue(uint8 val)
 {
 	if (full())
 		return -1;
@@ -46,7 +46,7 @@ int32 Queue::en_queue(uint8 val)
 	return 0;
 }
 
-int32 Queue::de_queue(uint8 *val)
+int32 queue_t::de_queue(uint8 *val)
 {
 	if (empty())
 		return -1;

@@ -33,14 +33,14 @@ __attribute__ ((__aligned__(PAGE_SIZE)))
 extern uint8 data[];    // defined by kernel.ld
 extern uint8 end[];     // defined by kernel.ld
 
-MM::MM()
+mm_t::mm_t()
 {
 }
-MM::~MM()
+mm_t::~mm_t()
 {
 }
 
-void *MM::boot_mem_alloc(uint32 size, uint32 page_align)
+void *mm_t::boot_mem_alloc(uint32 size, uint32 page_align)
 {
     if (page_align) {
         m_mem_start = (uint8 *)PAGE_ALIGN(m_mem_start);
@@ -52,7 +52,7 @@ void *MM::boot_mem_alloc(uint32 size, uint32 page_align)
     return p;
 }
 
-void MM::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
+void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
 {
     uint8 *v = (uint8 *) (((uint32)va) & PAGE_MASK);
     uint8 *e = (uint8 *) (((uint32)va + size) & PAGE_MASK);
@@ -79,7 +79,7 @@ void MM::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
     }
 }
 
-void MM::test_page_mapping()
+void mm_t::test_page_mapping()
 {
     uint32 total = 0;
     for (uint8 *v = (uint8 *)KERNEL_BASE; v < m_mem_end; v += 1*KB) {
@@ -89,12 +89,12 @@ void MM::test_page_mapping()
             pte_t *pg_table = (pte_t *)(PA2VA(((*pde) & PAGE_MASK)));
             pte_t *pte = &pg_table[PT_INDEX(v)];
             if (!((*pte) & PTE_P)) {
-                os()->get_console()->kprintf(WHITE, "page fault: v: 0x%p, *pde: 0x%p, *pte: 0x%p\n", v, *pde, *pte);
+                console()->kprintf(WHITE, "page fault: v: 0x%p, *pde: 0x%p, *pte: 0x%p\n", v, *pde, *pte);
                 break;
             }
         }
         else {
-            os()->get_console()->kprintf(WHITE, "page fault2: v: 0x%p, *pde: 0x%p\n", v, *pde);
+            console()->kprintf(WHITE, "page fault2: v: 0x%p, *pde: 0x%p\n", v, *pde);
             break;
         }
 
@@ -103,7 +103,7 @@ void MM::test_page_mapping()
     }
 }
 
-void MM::init_paging()
+void mm_t::init_paging()
 {
     // mem for m_kernel_pg_dir
     m_kernel_pg_dir = (pde_t *)boot_mem_alloc(PAGE_SIZE, 1);
@@ -128,13 +128,13 @@ void MM::init_paging()
     test_page_mapping();
 }
 
-void MM::init_mem_range()
+void mm_t::init_mem_range()
 {
     memory_layout_t *info = (memory_layout_t *) PA2VA(MEMORY_INFO_ADDR);
-    os()->get_console()->kprintf(WHITE, "the memory info from int 0x15, eax=0xe820:\n");
-    os()->get_console()->kprintf(WHITE, "type\t\taddress\t\tlength\n");
+    console()->kprintf(WHITE, "the memory info from int 0x15, eax=0xe820:\n");
+    console()->kprintf(WHITE, "type\t\taddress\t\tlength\n");
     for (uint32 i = 0; i < info->num_of_range; i++) {
-        os()->get_console()->kprintf(RED, "%x\t%x\t%x\n", 
+        console()->kprintf(RED, "%x\t%x\t%x\n", 
                 info->ranges[i].type,
                 info->ranges[i].base_addr_low,
                 info->ranges[i].base_addr_low + info->ranges[i].length_low);
@@ -149,19 +149,19 @@ void MM::init_mem_range()
         }
     }
 
-    os()->get_console()->kprintf(WHITE, "usable memory above 1MB: from %uMB, to %dMB\n", 
+    console()->kprintf(WHITE, "usable memory above 1MB: from %uMB, to %dMB\n", 
             m_usable_phy_mem_start / (1*MB), m_usable_phy_mem_end / (1*MB));
 
     m_mem_start = end;
     m_mem_end = (uint8 *)PA2VA(m_usable_phy_mem_end);
-    os()->get_console()->kprintf(WHITE, "mem_start: 0x%x, mem_end: 0x%x\n", m_mem_start, m_mem_end);
+    console()->kprintf(WHITE, "mem_start: 0x%x, mem_end: 0x%x\n", m_mem_start, m_mem_end);
 }
 
-void MM::init_free_area()
+void mm_t::init_free_area()
 {
 }
 
-void MM::init()
+void mm_t::init()
 {
     init_mem_range();
     init_paging();

@@ -8,14 +8,14 @@
 #include "arch.h"
 #include "x86.h"
 
-Timer::Timer()
+timer_t::timer_t()
 {
 }
-Timer::~Timer()
+timer_t::~timer_t()
 {
 }
 
-void Timer::init()
+void timer_t::init()
 {
     m_tick = 0;
 
@@ -31,7 +31,7 @@ void Timer::init()
 	os()->get_arch()->get_8259a()->enable_irq(IRQ_TIMER);		/* enable keyboard interrupt */
 }
 
-void Timer::do_irq()
+void timer_t::do_irq()
 {
     m_tick++;
 
@@ -39,26 +39,26 @@ void Timer::do_irq()
     outb(0x20, 0x20);
 }
 
-uint64 Timer::get_tick()
+uint64 timer_t::get_tick()
 {
     return m_tick;
 }
 
-/***************************************** RTC **********************************************/
-RTC::RTC()
+/***************************************** rtc_t **********************************************/
+rtc_t::rtc_t()
 {
 }
-RTC::~RTC()
+rtc_t::~rtc_t()
 {
 }
 
-void RTC::init()
+void rtc_t::init()
 {
     m_tick_to_update = HZ;
     get_time();
 }
 
-void RTC::update()
+void rtc_t::update()
 {
     if (--m_tick_to_update != 0) {
         return;
@@ -73,7 +73,7 @@ void RTC::update()
     }
 }
 
-void RTC::get_time()
+void rtc_t::get_time()
 {
     m_year  = bcd_to_binary(cmos_read(9));
     m_month = bcd_to_binary(cmos_read(8));
@@ -83,7 +83,7 @@ void RTC::get_time()
     m_second= bcd_to_binary(cmos_read(0));
 }
 
-uint8 RTC::bcd_to_binary(uint8 bcd)
+uint8 rtc_t::bcd_to_binary(uint8 bcd)
 {
     return (bcd >> 4) * 10 + (bcd & 0xf);
 }

@@ -254,17 +254,17 @@ static const uint32 keymap[NR_SCAN_CODES][NR_CODE_COL] = {
 	/* 0x7F	*/	{ 0,				0,				0 },
 };
 
-class Keyboard {
+class keyboard_t {
 public:
-    Keyboard();
-    ~Keyboard();
+    keyboard_t();
+    ~keyboard_t();
 
     void init();
     void do_irq();
     int32 read();
 
 private:
-    Queue m_queue;
+    queue_t m_queue;
     uint8 m_shift_l;
     uint8 m_shift_r;
     uint8 m_leading_e0;

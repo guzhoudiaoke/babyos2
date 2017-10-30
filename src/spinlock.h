@@ -8,10 +8,10 @@
 
 #include "types.h"
 
-class Spinlock {
+class spinlock_t {
 public:
-    Spinlock();
-    ~Spinlock();
+    spinlock_t();
+    ~spinlock_t();
 
     void init();
     uint32 holding();

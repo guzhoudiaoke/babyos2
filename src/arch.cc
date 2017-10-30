@@ -72,22 +72,17 @@ void do_irq(trap_frame_t* frame)
 {
     os()->get_arch()->get_cpu()->do_irq(frame);
 }
-extern void print(uint32 n);
-void print(uint32 n)
-{
-    os()->get_console()->kprintf(BLUE, "%x\n");
-}
 }
 
 /*************************************** cpu ******************************************/
-CPU::CPU()
+cpu_t::cpu_t()
 {
 }
-CPU::~CPU()
+cpu_t::~cpu_t()
 {
 }
 
-void CPU::set_gate(uint32 index, uint32 addr, uint64 flag)
+void cpu_t::set_gate(uint32 index, uint32 addr, uint64 flag)
 {
     uint64 idt_item;
 
@@ -100,18 +95,18 @@ void CPU::set_gate(uint32 index, uint32 addr, uint64 flag)
 }
 
 /* set idt by trap gate */
-void CPU::set_trap_gate(uint32 index, uint32 addr)
+void cpu_t::set_trap_gate(uint32 index, uint32 addr)
 {
     set_gate(index, addr, TRAP_GATE_FLAG);
 }
 
 /* set idt by interrupt gate */
-void CPU::set_intr_gate(uint32 index, uint32 addr)
+void cpu_t::set_intr_gate(uint32 index, uint32 addr)
 {
     set_gate(index, addr, INTERRUPT_GATE_FLAG);
 }
 
-void CPU::init_isrs()
+void cpu_t::init_isrs()
 {
     // exceptions
     for (uint32 i = 0; i < 0x20; i++) {
@@ -124,9 +119,9 @@ void CPU::init_isrs()
     }
 }
 
-void CPU::init_gdt()
+void cpu_t::init_gdt()
 {
-    os()->get_console()->kprintf(RED, "CPU::init_gdt\n");
+    console()->kprintf(RED, "cpu_t::init_gdt\n");
     m_gdt[SEG_NULL]  = 0x0000000000000000ULL;
     m_gdt[SEG_KCODE] = 0x00cf9a000000ffffULL;
     m_gdt[SEG_KDATA] = 0x00cf92000000ffffULL;
@@ -136,71 +131,90 @@ void CPU::init_gdt()
     lgdt(m_gdt, sizeof(m_gdt));
 }
 
-void CPU::init_idt()
+void cpu_t::init_idt()
 {
-    os()->get_console()->kprintf(RED, "CPU::init_idt\n");
+    console()->kprintf(RED, "cpu_t::init_idt\n");
     init_isrs();
     lidt(m_idt, sizeof(m_idt));
 }
 
-void CPU::init()
+void cpu_t::init()
 {
-    os()->get_console()->kprintf(RED, "CPU::init()\n");
+    console()->kprintf(RED, "cpu_t::init()\n");
     init_gdt();
     init_idt();
 }
 
-void CPU::do_irq(trap_frame_t* frame)
+void cpu_t::do_exception(uint32 trapno)
 {
-    if (frame->trapno <= 0x10) {
-        os()->get_console()->kprintf(RED, "Exception: %s\n", exception_msg[frame->trapno]);
-        halt();
-    }
-    else if (frame->trapno < IRQ_0) {
-        os()->get_console()->kprintf(RED, "Error Interrupt: %x, RESERVED!\n", frame->trapno);
-    }
-    else if (frame->trapno < IRQ_0 + 0x10) {
-        if (frame->trapno == IRQ_0 + IRQ_KEYBOARD) {
-            os()->get_arch()->get_keyboard()->do_irq();
-
-            int ch = os()->get_arch()->get_keyboard()->read();
-            if (ch != 0) {
-                os()->get_console()->kprintf(WHITE, "%c", ch);
-            }
-        }
-        else if (frame->trapno == IRQ_0 + IRQ_TIMER) {
-            os()->get_arch()->get_timer()->do_irq();
-            os()->get_arch()->get_rtc()->update();
-            os()->get_console()->update();
-        }
-        else if (frame->trapno == IRQ_0 + IRQ_HARDDISK) {
-            os()->get_harddisk()->do_irq();
-        }
-        else {
-            os()->get_console()->kprintf(RED, "Interrupt: %x\n", frame->trapno);
-        }
+    if (trapno <= 0x10) {
+        console()->kprintf(RED, "Exception: %s\n", exception_msg[trapno]);
     }
     else {
-        os()->get_console()->kprintf(RED, "Interrupt: %x, NOT KNOWN\n", frame->trapno);
+        console()->kprintf(RED, "Error Interrupt: %x, RESERVED!\n", trapno);
+    }
+    halt();
+}
+
+void cpu_t::do_interrupt(uint32 trapno)
+{
+    int ch;
+    switch (trapno) {
+    case IRQ_0 + IRQ_KEYBOARD:
+        os()->get_arch()->get_keyboard()->do_irq();
+        ch = os()->get_arch()->get_keyboard()->read();
+        if (ch != 0) {
+            console()->kprintf(WHITE, "%c", ch);
+        }
+        break;
+    case IRQ_0 + IRQ_TIMER:
+        os()->get_arch()->get_timer()->do_irq();
+        os()->get_arch()->get_rtc()->update();
+        os()->get_console()->update();
+        break;
+    case IRQ_0 + IRQ_HARDDISK:
+        os()->get_ide()->do_irq();
+        break;
+    default:
+        console()->kprintf(RED, "Interrupt: %x\n", trapno);
+        break;
     }
 }
 
-void CPU::sleep()
+void cpu_t::do_systemcall()
+{
+}
+
+void cpu_t::do_irq(trap_frame_t* frame)
+{
+    uint32 trapno = frame->trapno;
+    if (trapno < IRQ_0) {
+        do_exception(trapno);
+    }
+    else if (frame->trapno < IRQ_0 + 0x10) {
+        do_interrupt(trapno);
+    }
+    else {
+        console()->kprintf(RED, "Interrupt: %x, NOT KNOWN\n", frame->trapno);
+    }
+}
+
+void cpu_t::sleep()
 {
     __asm__("nop");
 }
 
 /*************************************** 8259a ******************************************/
-I8259a::I8259a()
+i8259a_t::i8259a_t()
 {
 }
-I8259a::~I8259a()
+i8259a_t::~i8259a_t()
 {
 }
 
-void I8259a::init()
+void i8259a_t::init()
 {
-    os()->get_console()->kprintf(RED, "I8259a::init()\n");
+    console()->kprintf(RED, "i8259a_t::init()\n");
 
     /* ICW1：0x11, 表示边沿触发、多片级联、需要发送ICW4 */
     outb(0x20, 0x11);
@@ -226,19 +240,17 @@ void I8259a::init()
     outb(0x21, 0x01);
     outb(0xa1, 0x01);
 
-    /* 关闭 IRQ0~IRQ7 号中断 */
+    /* disable all interrupts */
     outb(0x21, 0xff);
-    /* 关闭 IRQ8~IRQ15 号中断 */
     outb(0xa1, 0xff);
 }
 
-void I8259a::enable_irq(uint32 irq)
+void i8259a_t::enable_irq(uint32 irq)
 {
 	uint8 mask;
 	
 	if (irq < 8)
 	{
-		/* 开启irq_no号中断，即将中断屏蔽寄存器相应位置为0 */
 		mask = inb(0x21) & (0xff ^ (1 << irq));
 		outb(0x21, mask);
 	}
@@ -253,14 +265,14 @@ void I8259a::enable_irq(uint32 irq)
 }
 
 /*************************************** arch ******************************************/
-Arch::Arch()
+arch_t::arch_t()
 {
 }
-Arch::~Arch()
+arch_t::~arch_t()
 {
 }
 
-void Arch::init()
+void arch_t::init()
 {
     m_cpu.init();
     m_8259a.init();
@@ -268,31 +280,29 @@ void Arch::init()
     m_timer.init();
     m_rtc.init();
 
-    os()->get_console()->kprintf(RED, "sti()\n");
-    sti();
 }
 
-CPU* Arch::get_cpu()
+cpu_t* arch_t::get_cpu()
 {
     return &m_cpu;
 }
 
-I8259a* Arch::get_8259a()
+i8259a_t* arch_t::get_8259a()
 {
     return &m_8259a;
 }
 
-Keyboard* Arch::get_keyboard()
+keyboard_t* arch_t::get_keyboard()
 {
     return &m_keyboard;
 }
 
-Timer* Arch::get_timer()
+timer_t* arch_t::get_timer()
 {
     return &m_timer;
 }
 
-RTC* Arch::get_rtc()
+rtc_t* arch_t::get_rtc()
 {
     return &m_rtc;
 }

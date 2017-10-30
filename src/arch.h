@@ -53,10 +53,10 @@ typedef struct trap_frame_s {
     uint16 padding6;
 } trap_frame_t;
 
-class CPU {
+class cpu_t {
 public:
-    CPU();
-    ~CPU();
+    cpu_t();
+    ~cpu_t();
 
     void init();
     void do_irq(trap_frame_t* frame);
@@ -71,15 +71,19 @@ private:
     void set_trap_gate(uint32 index, uint32 addr);
     void set_intr_gate(uint32 index, uint32 addr);
 
+    void do_exception(uint32 trapno);
+    void do_interrupt(uint32 trapno);
+    void do_systemcall();
+
 private:
     uint64	m_gdt[GDT_LEN];
     uint64	m_idt[IDT_LEN];
 };
 
-class I8259a {
+class i8259a_t {
 public:
-    I8259a();
-    ~I8259a();
+    i8259a_t();
+    ~i8259a_t();
 
     void init();
     void enable_irq(uint32 irq);
@@ -87,25 +91,25 @@ public:
 private:
 };
 
-class Arch {
+class arch_t {
 public:
-    Arch();
-    ~Arch();
+    arch_t();
+    ~arch_t();
 
     void init();
 
-    CPU*        get_cpu();
-    I8259a*     get_8259a();
-    Keyboard*   get_keyboard();
-    Timer*      get_timer();
-    RTC*        get_rtc();
+    cpu_t*      get_cpu();
+    i8259a_t*   get_8259a();
+    keyboard_t* get_keyboard();
+    timer_t*    get_timer();
+    rtc_t*      get_rtc();
 
 private:
-    CPU		m_cpu;
-    I8259a	m_8259a;
-    Keyboard m_keyboard;
-    Timer   m_timer;
-    RTC     m_rtc;
+    cpu_t		m_cpu;
+    i8259a_t	    m_8259a;
+    keyboard_t  m_keyboard;
+    timer_t     m_timer;
+    rtc_t       m_rtc;
 };
 
 #endif

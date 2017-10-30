@@ -8,15 +8,15 @@
 #include "x86.h"
 #include "arch.h"
 
-Keyboard::Keyboard()
+keyboard_t::keyboard_t()
 {
 }
 
-Keyboard::~Keyboard()
+keyboard_t::~keyboard_t()
 {
 }
 
-void Keyboard::do_irq()
+void keyboard_t::do_irq()
 {
 	uint8 scan_code = inb(0x60);				        /* read scan code */
 	if (!m_queue.full())
@@ -27,9 +27,9 @@ void Keyboard::do_irq()
 	outb(0x20, 0x20);
 }
 
-void Keyboard::init()
+void keyboard_t::init()
 {
-    os()->get_console()->kprintf(RED, "Keyboard::init()\n");
+    console()->kprintf(RED, "keyboard_t::init()\n");
 	os()->get_arch()->get_8259a()->enable_irq(IRQ_KEYBOARD);		/* enable keyboard interrupt */
 	m_queue.init();
 
@@ -38,7 +38,7 @@ void Keyboard::init()
 	m_leading_e0 = 0;
 }
 
-int32 Keyboard::read()
+int32 keyboard_t::read()
 {
 	uint8 scan_code = 0, shift = 0;
 	uint32 col = 0, key = 0;

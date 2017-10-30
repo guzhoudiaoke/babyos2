@@ -10,10 +10,10 @@
 
 #define BUFFER_SIZE		0x100		/* buffer size */
 
-class Queue {
+class queue_t {
 public:
-    Queue();
-    ~Queue();
+    queue_t();
+    ~queue_t();
 
     void init();
     int32 empty();

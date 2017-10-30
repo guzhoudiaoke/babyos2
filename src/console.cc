@@ -9,28 +9,26 @@
 #include "string.h"
 #include "timer.h"
 
-extern Screen screen;
-
-Console::Console()
+console_t::console_t()
 {
 }
-Console::~Console()
+console_t::~console_t()
 {
 }
 
-void Console::draw_background()
+void console_t::draw_background()
 {
     rect_t rc = { 0, 0, os()->get_screen()->width(), os()->get_screen()->height() };
     os()->get_screen()->fill_rectangle(rc, BACKGROUND_COLOR);
 }
 
-void Console::draw_cursor()
+void console_t::draw_cursor()
 {
     rect_t rc = { m_col*ASC16_WIDTH, m_row*ASC16_HEIGHT, ASC16_WIDTH, ASC16_HEIGHT };
     os()->get_screen()->fill_rectangle(rc, CURSOR_COLOR);
 }
 
-void Console::init()
+void console_t::init()
 {
     m_row_num = os()->get_screen()->height() / ASC16_HEIGHT;
     m_col_num = os()->get_screen()->width() / ASC16_WIDTH;
@@ -43,7 +41,7 @@ void Console::init()
     draw_cursor();
 }
 
-void Console::put_char(char c, color_ref_t color)
+void console_t::put_char(char c, color_ref_t color)
 {
     m_text[m_row][m_col] = (char) c;
 
@@ -58,13 +56,13 @@ void Console::put_char(char c, color_ref_t color)
     draw_cursor();
 }
 
-void Console::unput_char()
+void console_t::unput_char()
 {
     rect_t rc = { m_col*ASC16_WIDTH, m_row*ASC16_HEIGHT, ASC16_WIDTH, ASC16_HEIGHT };
     os()->get_screen()->fill_rectangle(rc, BACKGROUND_COLOR);
 }
 
-void Console::backspace()
+void console_t::backspace()
 {
     unput_char();
     if (m_col == 0) {
@@ -82,7 +80,7 @@ void Console::backspace()
     unput_char();
 }
 
-void Console::putc(int c, color_ref_t color)
+void console_t::putc(int c, color_ref_t color)
 {
     uint32 num;
     rect_t rc;
@@ -110,7 +108,7 @@ void Console::putc(int c, color_ref_t color)
     draw_cursor();
 }
 
-void Console::print_int(int32 n, int32 base, int32 sign, color_ref_t color)
+void console_t::print_int(int32 n, int32 base, int32 sign, color_ref_t color)
 {
     static char digits[] = "0123456789abcdef";
     char buffer[16] = {0};
@@ -144,7 +142,7 @@ void Console::print_int(int32 n, int32 base, int32 sign, color_ref_t color)
 }
 
 // only support %d %u %x %p %c %s, and seems enough for now
-void Console::kprintf(color_ref_t color, const char *fmt, ...)
+void console_t::kprintf(color_ref_t color, const char *fmt, ...)
 {
     if (fmt == NULL) {
         return;
@@ -201,10 +199,10 @@ void Console::kprintf(color_ref_t color, const char *fmt, ...)
     va_end(ap);
 }
 
-void Console::draw_time()
+void console_t::draw_time()
 {
     uint32 year, month, day, h, m, s;
-    RTC *rtc = os()->get_arch()->get_rtc();
+    rtc_t *rtc = os()->get_arch()->get_rtc();
     year = rtc->year();
     month = rtc->month();
     day = rtc->day();
@@ -214,7 +212,7 @@ void Console::draw_time()
     kprintf(GREEN, "%d-%d-%d %d:%d:%d\n", year, month, day, h, m, s);
 }
 
-void Console::update()
+void console_t::update()
 {
     if (--m_tick_to_update != 0) {
         return;

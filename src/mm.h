@@ -3,8 +3,8 @@
  * 2017-10-23
  */
 
-#ifndef _MM_H_
-#define _MM_H_
+#ifndef _mm_t_H_
+#define _mm_t_H_
 
 #include "types.h"
 
@@ -29,10 +29,10 @@
 #define NR_PTE_PER_PAGE     (PAGE_SIZE / sizeof(pte_t))
 
 class BabyOS;
-class MM {
+class mm_t {
 public:
-	MM();
-	~MM();
+	mm_t();
+	~mm_t();
 
 	void init();
 	void *boot_mem_alloc(uint32 size, uint32 page_align);

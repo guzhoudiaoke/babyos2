@@ -10,15 +10,15 @@
 #include "string.h"
 #include "mm.h"
 
-Screen::Screen()
+screen_t::screen_t()
 {
 }
 
-Screen::~Screen()
+screen_t::~screen_t()
 {
 }
 
-void Screen::init()
+void screen_t::init()
 {
     video_info_t *info = (video_info_t *) PA2VA(VIDEO_INFO_ADDR);
     m_width    = info->width; 
@@ -28,22 +28,22 @@ void Screen::init()
     m_asc16_addr = (uint8 *) PA2VA(FONT_ASC16_ADDR);
 }
 
-uint32 Screen::width()
+uint32 screen_t::width()
 {
     return m_width;
 }
 
-uint32 Screen::height()
+uint32 screen_t::height()
 {
     return m_height;
 }
 
-uint8* Screen::vram()
+uint8* screen_t::vram()
 {
     return m_base;
 }
 
-void Screen::set_pixel(uint32 x, uint32 y, color_ref_t color)
+void screen_t::set_pixel(uint32 x, uint32 y, color_ref_t color)
 {
     if (x < m_width && y < m_height) {
         uint8* pvram = m_base + m_bytes_pp*y*m_width + m_bytes_pp*x;
@@ -53,7 +53,7 @@ void Screen::set_pixel(uint32 x, uint32 y, color_ref_t color)
     }
 }
 
-void Screen::draw_asc16(char ch, uint32 left, uint32 top, color_ref_t color)
+void screen_t::draw_asc16(char ch, uint32 left, uint32 top, color_ref_t color)
 {
     uint8* p_asc = m_asc16_addr + ch * ASC16_SIZE;
 
@@ -70,7 +70,7 @@ void Screen::draw_asc16(char ch, uint32 left, uint32 top, color_ref_t color)
     }
 }
 
-void Screen::fill_rectangle(rect_t rect, color_ref_t color)
+void screen_t::fill_rectangle(rect_t rect, color_ref_t color)
 {
     for (uint32 y = 0; y < rect.height; ++y)
     {
