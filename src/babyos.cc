@@ -147,8 +147,6 @@ void test_syscall()
 
 void test_init()
 {
-    //return;
-
     // 1. read init from hd
     clb.flags = 0;
     clb.read = 1;

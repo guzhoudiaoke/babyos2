@@ -65,6 +65,7 @@
 /* page table, page directory entry flag */
 #define PTE_P               0x001		// present
 #define PTE_W               0x002		// writeable
+#define PTE_U               0x004		// user
 
 
 /* for cr0 */

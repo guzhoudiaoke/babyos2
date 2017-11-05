@@ -34,7 +34,7 @@ static char* exception_msg[] = {
     "int17 #AC align check",
 };
 
-extern "C"
+    extern "C"
 void do_common_isr(trap_frame_t* frame)
 {
     os()->get_arch()->get_cpu()->do_common_isr(frame);
@@ -51,14 +51,13 @@ process_t::~process_t()
 
 void process_t::init_idle()
 {
-	m_pid = 0;
-	m_state = PROCESS_ST_RUNABLE;
-	memset(&m_context, 0, sizeof(context_t));
-	strcpy(m_name, "idle");
+    m_pid = 0;
+    m_state = PROCESS_ST_RUNABLE;
+    memset(&m_context, 0, sizeof(context_t));
+    strcpy(m_name, "idle");
     m_pg_dir = os()->get_mm()->get_pg_dir();
-    m_kstack = kernel_stack + KSTACK_SIZE;
 
-	m_next = this;
+    m_next = this;
     m_prev = this;
 }
 
@@ -133,43 +132,53 @@ void cpu_t::init_idt()
     init_isrs();
     lidt(m_idt, sizeof(m_idt));
 
-	/*
-	 * Delete NT
-	 */
-	__asm__("pushfl ; andl $0xffffbfff,(%esp) ; popfl");
+    /*
+     * Delete NT
+     */
+    __asm__("pushfl ; andl $0xffffbfff,(%esp) ; popfl");
 }
 
 void cpu_t::init_tss()
 {
     //console()->kprintf(WHITE, "cpu_t::init_tss\n");
-	memset(&m_tss, 0, sizeof(tss_t));
-	m_tss.esp0 = (uint32)&kernel_stack + KSTACK_SIZE;
-	m_tss.ss0 = SEG_KDATA << 3;
-	m_tss.bitmap = INVALID_IO_BITMAP;
-	memset(&m_tss.io_bitmap, ~0, sizeof(uint32) * (IO_BITMAP_SIZE + 1));
+    memset(&m_tss, 0, sizeof(tss_t));
+    m_tss.esp0 = (uint32)&kernel_stack + KSTACK_SIZE;
+    m_tss.ss0 = SEG_KDATA << 3;
+    m_tss.bitmap = INVALID_IO_BITMAP;
+    memset(&m_tss.io_bitmap, ~0, sizeof(uint32) * (IO_BITMAP_SIZE + 1));
 
-	uint64 base = (uint64)&m_tss;
-	uint64 limit = (uint64)(sizeof(tss_t) - 1);
-	uint64 des = (limit & 0xffff) |					// limit 15-0
-				 ((base & 0xffffff) << 16) |		// base  23-0
-				 ((0x9ULL) << 40) |				    // type
-				 ((0x8ULL) << 44) |				    // p(1), dlp(00), s(0)
-				 (((limit >> 16) & 0xf) << 48) |	// limit 19-16
-				 ((0x00ULL) << 52) |				// g(0), d/b(1), 0, AVL(0)
-				 (((base) >> 24) & 0xff) << 56;		// base  31-24
-	
-	m_gdt[SEG_TSS] = des;
-	uint32 *p = (uint32 *)(&des);
-	ltr(SEG_TSS << 3);
+    uint64 base = (uint64)&m_tss;
+    uint64 limit = (uint64)(sizeof(tss_t) - 1);
+    uint64 des = (limit & 0xffff) |					// limit 15-0
+        ((base & 0xffffff) << 16) |		// base  23-0
+        ((0x9ULL) << 40) |				    // type
+        ((0x8ULL) << 44) |				    // p(1), dlp(00), s(0)
+        (((limit >> 16) & 0xf) << 48) |	// limit 19-16
+        ((0x00ULL) << 52) |				// g(0), d/b(1), 0, AVL(0)
+        (((base) >> 24) & 0xff) << 56;		// base  31-24
+
+    m_gdt[SEG_TSS] = des;
+    uint32 *p = (uint32 *)(&des);
+    ltr(SEG_TSS << 3);
 }
 
 void cpu_t::init_idle_process()
 {
     m_next_pid = 0;
-	m_idle_process.init_idle();
-    m_idle_process.m_pid = m_next_pid++;
-    m_idle_process.m_context.esp0 = ((uint32)(&kernel_stack) + KSTACK_SIZE);
-	m_current_process = &m_idle_process;
+    m_idle_process = (process_t *) kernel_stack;
+
+    m_idle_process->m_pid = m_next_pid++;
+    m_idle_process->m_state = PROCESS_ST_RUNABLE;
+    memset(&m_idle_process->m_context, 0, sizeof(context_t));
+    strcpy(m_idle_process->m_name, "idle");
+
+    m_idle_process->m_pg_dir = os()->get_mm()->get_pg_dir();
+    m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + KSTACK_SIZE);
+    m_idle_process->m_need_resched = 1;
+
+    // make link
+    m_idle_process->m_next = m_idle_process;
+    m_idle_process->m_prev = m_idle_process;
 }
 
 void cpu_t::init()
@@ -177,7 +186,7 @@ void cpu_t::init()
     //console()->kprintf(WHITE, "cpu_t::init()\n");
     init_gdt();
     init_idt();
-	init_tss();
+    init_tss();
     init_idle_process();
 }
 
@@ -186,7 +195,7 @@ void cpu_t::do_exception(trap_frame_t* frame)
     uint32 trapno = frame->trapno;
     if (trapno <= 0x10) {
         console()->kprintf(RED, "Exception: %s\n", exception_msg[trapno]);
-        console()->kprintf(RED, "current: %p\n", os()->get_arch()->get_cpu()->get_current());
+        console()->kprintf(RED, "current: %p\n", current->m_pid);
         console()->kprintf(RED, "errno: %x, eip: %x, cs: %x, esp: %x\n", frame->err, frame->eip, frame->cs, frame->esp);
 
         uint32 cr2 = 0xffffffff;
@@ -205,25 +214,26 @@ void cpu_t::do_interrupt(uint32 trapno)
 {
     int ch;
     switch (trapno) {
-    case IRQ_0 + IRQ_KEYBOARD:
-        os()->get_arch()->get_keyboard()->do_irq();
-        ch = os()->get_arch()->get_keyboard()->read();
-        if (ch != 0) {
-            console()->kprintf(WHITE, "%c", ch);
-        }
-        break;
-    case IRQ_0 + IRQ_TIMER:
-        os()->get_arch()->get_rtc()->update();
-        os()->get_console()->update();
-        os()->get_arch()->get_timer()->do_irq();
-		schedule();
-        break;
-    case IRQ_0 + IRQ_HARDDISK:
-        os()->get_ide()->do_irq();
-        break;
-    default:
-        console()->kprintf(RED, "Interrupt: %x\n", trapno);
-        break;
+        case IRQ_0 + IRQ_KEYBOARD:
+            os()->get_arch()->get_keyboard()->do_irq();
+            ch = os()->get_arch()->get_keyboard()->read();
+            if (ch != 0) {
+                console()->kprintf(WHITE, "%c", ch);
+            }
+            break;
+        case IRQ_0 + IRQ_TIMER:
+            os()->get_arch()->get_rtc()->update();
+            os()->get_console()->update();
+            current->m_need_resched = 1;
+            os()->get_arch()->get_timer()->do_irq();
+            //schedule();
+            break;
+        case IRQ_0 + IRQ_HARDDISK:
+            os()->get_ide()->do_irq();
+            break;
+        default:
+            console()->kprintf(RED, "Interrupt: %x\n", trapno);
+            break;
     }
 }
 
@@ -251,7 +261,7 @@ void cpu_t::do_common_isr(trap_frame_t* frame)
 
 void cpu_t::sleep()
 {
-	// FIXME: only test
+    // FIXME: only test
     __asm__("nop");
 }
 
@@ -308,50 +318,48 @@ extern "C" void FASTCALL(__switch_to(process_t* prev));
 
 
 #define switch_to(prev,next,last) do {					\
-	__asm__ volatile(									\
-			 "pushl %%esi\n\t"							\
-		     "pushl %%edi\n\t"							\
-		     "pushl %%ebp\n\t"							\
-		     "movl  %%esp,%0\n\t"	/* save ESP */		\
-		     "movl  %2,%%esp\n\t"	/* restore ESP */	\
-		     "movl  $1f,%1\n\t"		/* save EIP */		\
-		     "pushl %3\n\t"			/* restore EIP */	\
-		     "jmp __switch_to\n"						\
-		     "1:\t"										\
-		     "popl %%ebp\n\t"							\
-		     "popl %%edi\n\t"							\
-		     "popl %%esi\n\t"							\
-		     :"=m" (prev->m_context.esp),				\
-			  "=m" (prev->m_context.eip)				\
-		     :"m" (next->m_context.esp),				\
-			  "m" (next->m_context.eip),				\
-		      "a" (next)            					\
-	);													\
+    __asm__ volatile(									\
+            "pushl %%esi\n\t"							\
+            "pushl %%edi\n\t"							\
+            "pushl %%ebp\n\t"							\
+            "movl  %%esp,%0\n\t"	/* save ESP */		\
+            "movl  %2,%%esp\n\t"	/* restore ESP */	\
+            "movl  $1f,%1\n\t"		/* save EIP */		\
+            "pushl %3\n\t"			/* restore EIP */	\
+            "jmp __switch_to\n"						\
+            "1:\t"										\
+            "popl %%ebp\n\t"							\
+            "popl %%edi\n\t"							\
+            "popl %%esi\n\t"							\
+            :"=m" (prev->m_context.esp),				\
+            "=m" (prev->m_context.eip)				\
+            :"m" (next->m_context.esp),				\
+            "m" (next->m_context.eip),				\
+            "a" (next)            					\
+            );													\
 } while (0)
 
 extern "C" void __switch_to(process_t* next)
 {
-	tss_t* tss = os()->get_arch()->get_cpu()->get_tss();
-	tss->esp0 = next->m_context.esp0;
+    tss_t* tss = os()->get_arch()->get_cpu()->get_tss();
+    tss->esp0 = next->m_context.esp0;
     //console()->kprintf(PURPLE, "%p,", next);
 }
 
 void cpu_t::schedule()
 {
-	process_t* prev = m_current_process;
-	process_t* next = m_current_process->m_next;
-    //console()->kprintf(YELLOW, "prev:%p next:%p\n", prev, next);
+    process_t* prev = current;
+    process_t* next = current->m_next;
     if (prev == next) {
         return;
     }
-
+    //console()->kprintf(YELLOW, "schedule %p->%p\n", prev, next);
 
     //console()->kprintf(YELLOW, "process list: %p->%p->%p->%p\n", prev, next, next->m_next, next->m_next->m_next);
-
     //console()->kprintf(YELLOW, "schedule, prev: %p, next: %p\n", prev, next);
     //while (1) {
     //    next = next->m_next;
-    //    if (next == m_current_process) {
+    //    if (next == current) {
     //        return;
     //    }
     //    if (next->m_state == PROCESS_ST_RUNABLE) {
@@ -359,24 +367,31 @@ void cpu_t::schedule()
     //    }
     //}
     //console()->kprintf(YELLOW, "schedule, prev: %p, next: %p\n", prev, next);
-    m_current_process = next;
-	switch_to(prev, next, prev);
-    //console()->kprintf(YELLOW, "cur:%p prev:%p %p %p\n", m_current_process, prev, prev->m_context.eip, prev->m_context.esp);
+    prev->m_need_resched = 0;
+    switch_to(prev, next, prev);
+}
+
+    extern "C"
+void schedule()
+{
+    //console()->kprintf(GREEN, "schedule()\n");
+    os()->get_arch()->get_cpu()->schedule();
 }
 
 process_t* cpu_t::fork(trap_frame_t* frame)
 {
     // alloc a process_t
-    process_t* p = (process_t *)os()->get_mm()->boot_mem_alloc(4096, 1);
-    *p = *m_current_process;
+    //os()->get_mm()->boot_mem_alloc(PAGE_SIZE, 1);
+    process_t* p = (process_t *)os()->get_mm()->boot_mem_alloc(PAGE_SIZE*2, 1);
+    *p = *current;
+
+    //console()->kprintf(YELLOW, "fork %p->%p\n", current, p);
 
     // kstack
-    uint32 kstack = (uint32)(os()->get_mm()->boot_mem_alloc(4096, 1)) + KSTACK_SIZE;
-    p->m_kstack = (uint8 *)kstack;
-    trap_frame_t* child_frame = ((trap_frame_t *) (kstack)) - 1;
+    //uint32 kstack = (uint32)(os()->get_mm()->boot_mem_alloc(4096, 1)) + KSTACK_SIZE;
+    trap_frame_t* child_frame = ((trap_frame_t *) ((uint32(p) + PAGE_SIZE*2))) - 1;
     memcpy(child_frame, frame, sizeof(trap_frame_t));
     child_frame->eax = 0;
-    //child_frame->esp = kstack;
 
     // pg_dir
 
@@ -387,16 +402,18 @@ process_t* cpu_t::fork(trap_frame_t* frame)
 
     // pid, need check if same with other process
     p->m_pid = m_next_pid++;
-    
+
     // change state
     p->m_state = PROCESS_ST_RUNABLE;
+    p->m_need_resched = 1;
 
     // link to list
-    p->m_next = &m_idle_process;
-    p->m_prev = m_idle_process.m_prev;
-    m_idle_process.m_prev->m_next = p;
-    m_idle_process.m_prev = p;
+    p->m_next = m_idle_process;
+    p->m_prev = m_idle_process->m_prev;
+    m_idle_process->m_prev->m_next = p;
+    m_idle_process->m_prev = p;
 
+    //console()->kprintf(YELLOW, "list %p->%p->%p\n", current, current->m_next, current->m_next->m_next);
     return p;
 }
 
@@ -443,21 +460,21 @@ void i8259a_t::init()
 
 void i8259a_t::enable_irq(uint32 irq)
 {
-	uint8 mask;
-	
-	if (irq < 8)
-	{
-		mask = inb(0x21) & (0xff ^ (1 << irq));
-		outb(0x21, mask);
-	}
-	else if (irq < 16)
-	{
-		mask = inb(0x21) & 0xfb;
-		outb(0x21, mask);
+    uint8 mask;
 
-		mask = inb(0xa1) & (0xff ^ (1 << (irq-8)));
-		outb(0xa1, mask);
-	}
+    if (irq < 8)
+    {
+        mask = inb(0x21) & (0xff ^ (1 << irq));
+        outb(0x21, mask);
+    }
+    else if (irq < 16)
+    {
+        mask = inb(0x21) & 0xfb;
+        outb(0x21, mask);
+
+        mask = inb(0xa1) & (0xff ^ (1 << (irq-8)));
+        outb(0xa1, mask);
+    }
 }
 
 /*************************************** arch ******************************************/

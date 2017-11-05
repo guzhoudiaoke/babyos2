@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "screen.h"
+#include "spinlock.h"
 
 typedef char* va_list;
 #define va_start(ap,p)      (ap = (char *) (&(p)+1))
@@ -48,6 +49,7 @@ private:
 	char m_text[MAX_ROW][MAX_COL];
 
     uint32 m_tick_to_update;
+    spinlock_t m_lock;
 };
 
 #endif

@@ -15,7 +15,6 @@ enum {
     SYS_PRINT = 0,
     SYS_FORK,
     SYS_EXEC,
-    SYS_SCHED,
     MAX_SYSCALL,
 };
 

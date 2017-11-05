@@ -63,9 +63,19 @@
     popl %ds;   \
     popl %es;   \
 
+#define GET_CURRENT(reg) \
+	movl $-8192, reg; \
+	andl %esp, reg
+
+need_resched = 0
+
+reschedule:
+	call schedule
+	jmp	 restore_all
 
 common_isr:
 	SAVE_ALL
+	GET_CURRENT(%ebx)
     movl    $(SEG_KDATA<<3),%edx
     movw    %dx,            %ds
     movw    %dx,            %es
@@ -76,8 +86,11 @@ common_isr:
     pushl   %esp
     call    do_common_isr
     addl    $4,             %esp
-
 ret_from_isr:
+	cli
+	cmpl	$0,				need_resched(%ebx)
+	jne		reschedule
+restore_all:
 	RESTORE_ALL
     addl    $8,             %esp
     iret

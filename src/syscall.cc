@@ -11,12 +11,10 @@
 extern int32 sys_print(trap_frame_t* frame);
 extern int32 sys_fork(trap_frame_t* frame);
 extern int32 sys_exec(trap_frame_t* frame);
-extern int32 sys_sched(trap_frame_t* frame);
 static int32 (*system_call_table[])(trap_frame_t* frame) = {
     sys_print,
     sys_fork,
     sys_exec,
-    sys_sched,
 };
 
 int32 sys_print(trap_frame_t* frame)
@@ -31,24 +29,38 @@ int32 sys_fork(trap_frame_t* frame)
     return proc->m_pid;
 }
 
+io_clb_t clb1;
 int32 sys_exec(trap_frame_t* frame)
 {
-    frame->cs = (SEG_UCODE << 3 | 0x03);
-    frame->ds = (SEG_UDATA << 3 | 0x03);
-    frame->es = (SEG_UDATA << 3 | 0x03);
-    frame->ss = (SEG_UDATA << 3 | 0x03);
-    frame->fs = (SEG_UDATA << 3 | 0x03);
-    frame->gs = (SEG_UDATA << 3 | 0x03);
+    frame->cs = (SEG_UCODE << 3 | 0x3);
+    frame->ds = (SEG_UDATA << 3 | 0x3);
+    frame->es = (SEG_UDATA << 3 | 0x3);
+    frame->ss = (SEG_UDATA << 3 | 0x3);
+    frame->fs = (SEG_UDATA << 3 | 0x3);
+    frame->gs = (SEG_UDATA << 3 | 0x3);
 
-    frame->eip = 0;
-    frame->esp = 4096;
+//    // 1. read init from hd
+//    clb1.flags = 0;
+//    clb1.read = 1;
+//    clb1.dev = 0;
+//    clb1.lba = 512;
+//
+//    memset(clb1.buffer, 0, 512);
+//    os()->get_ide()->request(&clb1);
+//
+//    // 2. allocate a page and map to va 0-4k,
+//    void* mem = os()->get_mm()->boot_mem_alloc(PAGE_SIZE*2, 1);
+//    pde_t* pg_dir = os()->get_mm()->get_pg_dir();
+//    uint32* p = (uint32 *) 0;
+//    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), PAGE_SIZE*2, PTE_W | PTE_U);
+//
+//    // 3. load init to 0x0
+//    memcpy(p, clb1.buffer, 512);
+//
 
-    return 0;
-}
+    frame->eip = 0;         // need get eip by load elf and get address
+    frame->esp = PAGE_SIZE*2;
 
-int32 sys_sched(trap_frame_t* frame)
-{
-    os()->get_arch()->get_cpu()->schedule();
     return 0;
 }
 
@@ -63,7 +75,7 @@ void syscall_t::do_syscall(trap_frame_t* frame)
 {
     uint32 id = frame->eax;
     if (id >= MAX_SYSCALL) {
-        console()->kprintf(RED, "unknown system call %u\n", id);
+        console()->kprintf(RED, "unknown system call %x, current: %p\n", id, current->m_pid);
         frame->eax = -1;
     }
     else {

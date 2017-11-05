@@ -41,6 +41,7 @@ void spinlock_t::unlock()
     __sync_synchronize();
 
     //xchg(&m_locked, 0);
-    m_locked = 0;
+    //m_locked = 0;
+    __asm__ volatile("movl $0, %0" : "+m" (m_locked));
 }
 

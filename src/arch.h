@@ -25,6 +25,18 @@
 #define IO_BITMAP_SIZE		(32)
 #define INVALID_IO_BITMAP	(0x8000)
 
+
+class process_t;
+static inline struct process_t* get_current(void)
+{
+	process_t* current;
+	__asm__("andl %%esp,%0; ":"=r" (current) : "0" (~8191UL));
+	return current;
+ }
+ 
+#define current get_current()
+
+
 /* tss struct defined in linux */
 typedef struct tss_s {
 	uint16	back_link,__blh;
@@ -78,6 +90,7 @@ public:
 	~process_t();
 	void init_idle();
 
+    uint32      m_need_resched;
 	char		m_name[32];
 	pid_t		m_pid;
 	uint32		m_state;
@@ -101,7 +114,6 @@ public:
 	void schedule();
 	tss_t* get_tss() { return &m_tss; }
     process_t* fork(trap_frame_t* frame);
-    process_t* get_current() { return m_current_process; }
 
 private:
     void init_gdt();
@@ -124,8 +136,7 @@ private:
     uint64			m_idt[IDT_LEN];
 	tss_t			m_tss;
     syscall_t	    m_syscall;
-	process_t		m_idle_process;
-	process_t*		m_current_process;
+	process_t*		m_idle_process;
     uint32          m_next_pid;
 };
 

@@ -36,6 +36,7 @@ void console_t::init()
     m_row     = 0;
     m_col     = 0;
     m_tick_to_update = HZ;
+    m_lock.init();
     memset(m_text, 0, MAX_ROW * MAX_COL);
 
     draw_background();
@@ -145,7 +146,9 @@ void console_t::print_int(int32 n, int32 base, int32 sign, color_ref_t color)
 // only support %d %u %x %p %c %s, and seems enough for now
 void console_t::kprintf(color_ref_t color, const char *fmt, ...)
 {
+    //m_lock.lock();
     if (fmt == NULL) {
+        //m_lock.unlock();
         return;
     }
 
@@ -198,6 +201,7 @@ void console_t::kprintf(color_ref_t color, const char *fmt, ...)
     }
 
     va_end(ap);
+    //m_lock.unlock();
 }
 
 void console_t::draw_time()
