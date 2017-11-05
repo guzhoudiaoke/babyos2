@@ -33,7 +33,7 @@ void* memcpy(void *dst, const void *src, uint32 n)
 
 void* memset(void *dst, uint32 c, uint32 n)
 {
-    char *d = (char *) dst;
+    char* d = (char *) dst;
     for (uint32 i = 0; i < n; i++) {
         *d++ = (c & 0xff);
     }
@@ -41,3 +41,12 @@ void* memset(void *dst, uint32 c, uint32 n)
     return dst;
 }
 
+char* strcpy(char* dst, char* src)
+{
+	char* d = dst;
+	while (*d) {
+		*d++ = *src++;
+	}
+
+	return dst;
+}

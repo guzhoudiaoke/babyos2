@@ -7,10 +7,10 @@
 #include "string.h"
 #include "x86.h"
 
-extern babyos_t os;
+extern babyos_t babyos;
 babyos_t* babyos_t::get_os()
 {
-    return &os;
+    return &babyos;
 }
 
 babyos_t::babyos_t()
@@ -62,30 +62,114 @@ void draw_time()
 io_clb_t clb;
 void test_ide()
 {
-    // only test
-    clb.m_flags = 0;
-    clb.m_read = 1;
-    clb.m_dev = 0;
-    clb.m_lba = 244;
+	return;
 
-    memset(clb.m_buffer, 0, 512);
+    // only test
+    clb.flags = 0;
+    clb.read = 1;
+    clb.dev = 0;
+    clb.lba = 244;
+
+    memset(clb.buffer, 0, 512);
     os()->get_ide()->request(&clb);
 
     for (int i = 0; i < SECT_SIZE/4; i++) {
         if (i % 8 == 0) {
             console()->kprintf(PINK, "\n");
         }
-        console()->kprintf(PINK, "%x ", ((uint32 *)clb.m_buffer)[i]);
+        console()->kprintf(PINK, "%x ", ((uint32 *)clb.buffer)[i]);
     }
     console()->kprintf(PINK, "\n");
 }
 
+void delay_print(char* s)
+{
+    while (1) {
+        for (int i = 0; i < 100000000; i++);
+        console()->kprintf(YELLOW, s);
+    }
+}
+
+void init()
+{
+    int32 ret = 0;
+
+    // fork
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+
+    // child
+    if (ret == 0) {
+        delay_print("cc,");
+    }
+
+    // parent
+    // exec
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x02));
+    console()->kprintf(RED, "ERROR, should not reach here!!\n");
+}
+
 void test_syscall()
 {
-    console()->kprintf(WHITE, "test system call\n");
-    __asm__(
-        "movl $0, %eax; int $0x80;"
-    );
+    int32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+
+    if (ret == 0) {
+        // child
+        init();
+    }
+    else {
+        // fork
+        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+
+        // child
+        if (ret == 0) {
+            delay_print("c1,");
+        }
+        else {
+            // fork
+            __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+
+            // child
+            if (ret == 0) {
+                delay_print("c2,");
+            }
+        }
+    }
+
+
+    // parent
+    //uint32 flags, esp;
+    //__asm__ volatile("pushfl; popl %%eax; movl %%esp, %%ebx" : "=a" (flags), "=b" (esp));
+    //console()->kprintf(WHITE, "parent, flags: %x, esp: %x\n", flags, esp);
+
+    delay_print("P,");
+}
+
+void test_init()
+{
+    //return;
+
+    // 1. read init from hd
+    clb.flags = 0;
+    clb.read = 1;
+    clb.dev = 0;
+    clb.lba = 512;
+
+    memset(clb.buffer, 0, 512);
+    os()->get_ide()->request(&clb);
+
+    // 2. allocate a page and map to va 0-4k,
+    void* mem = os()->get_mm()->boot_mem_alloc(4096, 1);
+    pde_t* pg_dir = os()->get_mm()->get_pg_dir();
+    uint32* p = (uint32 *) 0;
+    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), PAGE_SIZE, PTE_W | 0x04);
+
+    // 3. load init to 0x0
+    memcpy(p, clb.buffer, 512);
+
+    mem = os()->get_mm()->boot_mem_alloc(4096, 1);
+    p = (uint32 *) (4096);
+    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), PAGE_SIZE, PTE_W | 0x04);
 }
 
 void babyos_t::run()
@@ -94,19 +178,22 @@ void babyos_t::run()
     m_console.init();
 
     m_console.kprintf(WHITE, "Welcome to babyos\n");
-    m_console.kprintf(RED,   "Author:\tguzhoudiaoke@126.com\n");
+    m_console.kprintf(WHITE,   "Author:\tguzhoudiaoke@126.com\n");
 
     m_mm.init();
     m_arch.init();
     m_ide.init();
 
-    m_console.kprintf(RED, "sti()\n");
+    m_console.kprintf(WHITE, "sti()\n");
     sti();
 
     draw_time();
     test_ide();
 
+    test_init();
     test_syscall();
+
+    //m_arch->get_cpu()->test_user_mode();
 
     while (1) {
     }

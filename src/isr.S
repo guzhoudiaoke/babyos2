@@ -33,30 +33,52 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 .global isr_vector
+.global ret_from_isr
 
-int_service_routine:
-    pushal
-    push    %ds
-    push    %es
-    push    %fs
-    push    %gs
 
+#define SAVE_ALL \
+    cld; \
+    pushl %es; \
+    pushl %ds; \
+    push  %fs; \
+    push  %gs; \
+    pushl %eax; \
+    pushl %ebp; \
+    pushl %edi; \
+    pushl %esi; \
+    pushl %edx; \
+    pushl %ecx; \   
+    pushl %ebx; \
+    
+#define RESTORE_ALL \
+    popl %ebx;  \
+    popl %ecx;  \
+    popl %edx;  \
+    popl %esi;  \
+    popl %edi;  \
+    popl %ebp;  \
+    popl %eax;  \
+	popl %gs;	\
+	popl %fs;	\
+    popl %ds;   \
+    popl %es;   \
+
+
+common_isr:
+	SAVE_ALL
     movl    $(SEG_KDATA<<3),%edx
     movw    %dx,            %ds
     movw    %dx,            %es
     movw    %dx,            %fs
     movw    %dx,            %gs
 
-    movl    48(%esp),       %eax
+    #movl    48(%esp),       %eax
     pushl   %esp
-    call    do_irq
+    call    do_common_isr
     addl    $4,             %esp
 
-    pop     %gs
-    pop     %fs
-    pop     %es
-    pop     %ds
-    popal
+ret_from_isr:
+	RESTORE_ALL
     addl    $8,             %esp
     iret
 
@@ -65,12 +87,12 @@ int_service_routine:
 isr_##index:				\
 	pushl	$0x00;			\
 	pushl	$index;			\
-	jmp		int_service_routine
+	jmp		common_isr
 
 #define MAKE_ISR_WITH_ERROR(index) \
 isr_##index:				\
 	pushl	$index;			\
-	jmp		int_service_routine
+	jmp		common_isr
 
 MAKE_ISR(0x00)
 MAKE_ISR(0x01)
@@ -334,10 +356,12 @@ isr_vector:
 .long	isr_0x04, isr_0x05, isr_0x06, isr_0x07
 .long	isr_0x08, isr_0x09, isr_0x0a, isr_0x0b
 .long	isr_0x0c, isr_0x0d, isr_0x0e, isr_0x0f
+
 .long	isr_0x10, isr_0x11, isr_0x12, isr_0x13
 .long	isr_0x14, isr_0x15, isr_0x16, isr_0x17
 .long	isr_0x18, isr_0x19, isr_0x1a, isr_0x1b
 .long	isr_0x1c, isr_0x1d, isr_0x1e, isr_0x1f
+
 .long	isr_0x20, isr_0x21, isr_0x22, isr_0x23
 .long	isr_0x24, isr_0x25, isr_0x26, isr_0x27
 .long	isr_0x28, isr_0x29, isr_0x2a, isr_0x2b
@@ -352,7 +376,6 @@ isr_vector:
 .long	isr_0x44, isr_0x45, isr_0x46, isr_0x47
 .long	isr_0x48, isr_0x49, isr_0x4a, isr_0x4b
 .long	isr_0x4c, isr_0x4d, isr_0x4e, isr_0x4f
-
 
 .long	isr_0x50, isr_0x51, isr_0x52, isr_0x53
 .long	isr_0x54, isr_0x55, isr_0x56, isr_0x57
@@ -384,12 +407,10 @@ isr_vector:
 .long	isr_0xa8, isr_0xa9, isr_0xaa, isr_0xab
 .long	isr_0xac, isr_0xad, isr_0xae, isr_0xaf
 
-
 .long	isr_0xb0, isr_0xb1, isr_0xb2, isr_0xb3
 .long	isr_0xb4, isr_0xb5, isr_0xb6, isr_0xb7
 .long	isr_0xb8, isr_0xb9, isr_0xba, isr_0xbb
 .long	isr_0xbc, isr_0xbd, isr_0xbe, isr_0xbf
-
 
 .long	isr_0xc0, isr_0xc1, isr_0xc2, isr_0xc3
 .long	isr_0xc4, isr_0xc5, isr_0xc6, isr_0xc7

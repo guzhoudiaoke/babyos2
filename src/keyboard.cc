@@ -29,7 +29,7 @@ void keyboard_t::do_irq()
 
 void keyboard_t::init()
 {
-    console()->kprintf(RED, "keyboard_t::init()\n");
+    //console()->kprintf(WHITE, "keyboard_t::init()\n");
 	os()->get_arch()->get_8259a()->enable_irq(IRQ_KEYBOARD);		/* enable keyboard interrupt */
 	m_queue.init();
 

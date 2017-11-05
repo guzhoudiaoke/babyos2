@@ -92,8 +92,7 @@ static inline uint32 nvram_read(uint32 reg)
 	return cmos_read(reg) | cmos_read(reg+1) << 8;
 }
 
-static inline void
-lgdt(void* gdt, uint32 size)
+static inline void lgdt(void* gdt, uint32 size)
 {
     volatile uint16 pd[3];
 
@@ -101,11 +100,10 @@ lgdt(void* gdt, uint32 size)
     pd[1] = (uint32)gdt;
     pd[2] = (uint32)gdt >> 16;
 
-    asm volatile("lgdt (%0)" : : "r" (pd));
+    __asm__ volatile("lgdt (%0)" : : "r" (pd));
 }
 
-static inline void
-lidt(void* idt, uint32 size)
+static inline void lidt(void* idt, uint32 size)
 {
     volatile uint16 pd[3];
 
@@ -113,25 +111,27 @@ lidt(void* idt, uint32 size)
     pd[1] = (uint32)idt;
     pd[2] = (uint32)idt >> 16;
 
-    asm volatile("lidt (%0)" : : "r" (pd));
+    __asm__ volatile("lidt (%0)" : : "r" (pd));
 }
 
-static inline void
-sti(void)
+static inline void ltr(uint16 sel)
 {
-    asm volatile("sti");
+	__asm__ volatile("ltr %0" : : "r" (sel));
 }
 
-static inline void
-cli(void)
+static inline void sti(void)
 {
-    asm volatile("cli");
+    __asm__ volatile("sti");
 }
 
-static inline void
-halt(void)
+static inline void cli(void)
 {
-    asm volatile("hlt");
+    __asm__ volatile("cli");
+}
+
+static inline void halt(void)
+{
+    __asm__ volatile("hlt");
 }
 
 static inline uint32 xchg(volatile uint32 *addr, uint32 newval)
@@ -139,7 +139,7 @@ static inline uint32 xchg(volatile uint32 *addr, uint32 newval)
     uint32 result;
 
     // "+m": read-modify-write operand
-    asm volatile("lock; xchgl %0, %1" :
+    __asm__ volatile("lock; xchgl %0, %1" :
             "+m" (*addr), "=a" (result) :
             "1" (newval) :
             "cc");

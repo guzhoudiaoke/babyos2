@@ -13,7 +13,7 @@ OBJS = \
 	timer.o\
 	ide.o\
 	spinlock.o\
-	systemcall.o\
+	syscall.o\
 
 AS = as --32
 CC = gcc -m32
@@ -27,13 +27,14 @@ CPPFLAGS = -g -w -trigraphs -fno-builtin -fno-exceptions -fno-stack-protector -m
 
 all: babyos
 
-babyos: boot loader kernel
+babyos: boot loader kernel init
 	../tool/checksize loader 1
-	../tool/checksize kernel 242
+	../tool/checksize kernel 502
 	dd if=boot   of=baby_hd.img ibs=512 count=1 conv=notrunc
 	dd if=loader of=baby_hd.img ibs=512 seek=1 count=1 conv=notrunc
 	dd if=kernel of=baby_hd.img ibs=512 seek=2 conv=notrunc
-	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=244 conv=notrunc
+	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=504 conv=notrunc
+	dd if=init of=baby_hd.img ibs=512 seek=512 conv=notrunc
 
 boot: boot.S
 	${CPP} ${CFLAGS} -c boot.S
@@ -47,6 +48,10 @@ loader: load.S loadmain.cc
 kernel: ${OBJS} entry.o kernel.ld
 	${LD} ${LDFLAGS} -T kernel.ld -o kernel entry.o ${OBJS}
 
+init: init.cc
+	${CPP} ${CFLAGS} -O -c init.cc
+	${LD} --oformat binary -N -Ttext 0x0000 -o init init.o
+
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< -o  $@
 
@@ -55,5 +60,5 @@ kernel: ${OBJS} entry.o kernel.ld
 
 
 clean:
-	rm -f boot loader kernel *.o  trace*
+	rm -f boot loader kernel *.o  trace* init
 

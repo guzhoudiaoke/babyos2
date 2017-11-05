@@ -25,16 +25,16 @@ void ide_t::request(io_clb_t *clb)
 {
     m_lock.lock();
 
-    clb->m_next = NULL;
+    clb->next = NULL;
     if (m_head == NULL) {
         m_head = clb;
     }
     else {
         io_clb_t *p = m_head;
-        while (p->m_next != NULL) {
-            p = p->m_next;
+        while (p->next != NULL) {
+            p = p->next;
         }
-        p->m_next = clb;
+        p->next = clb;
     }
     m_lock.unlock();
 
@@ -42,7 +42,7 @@ void ide_t::request(io_clb_t *clb)
         start(clb);
     }
 
-    while ((clb->m_flags & IO_STATE_DONE) != IO_STATE_DONE) {
+    while ((clb->flags & IO_STATE_DONE) != IO_STATE_DONE) {
         os()->get_arch()->get_cpu()->sleep();
     }
 
@@ -50,7 +50,7 @@ void ide_t::request(io_clb_t *clb)
 
 void ide_t::start(io_clb_t *clb)
 {
-    int lba = clb->m_lba;
+    int lba = clb->lba;
 
     wait();
 
@@ -59,14 +59,14 @@ void ide_t::start(io_clb_t *clb)
     outb(0x1f3, lba & 0xff);
     outb(0x1f4, (lba >> 8)  & 0xff);
     outb(0x1f5, (lba >> 16) & 0xff);
-    outb(0x1f6, 0xe0 | ((clb->m_dev & 0x1) << 4) | ((lba >> 24) & 0xff));
+    outb(0x1f6, 0xe0 | ((clb->dev & 0x1) << 4) | ((lba >> 24) & 0xff));
 
-    if (clb->m_read) {
+    if (clb->read) {
         outb(0x1f7, IO_CMD_READ);
     }
     else {
         outb(0x1f7, IO_CMD_WRITE);
-        outsl(0x1f0, clb->m_buffer, SECT_SIZE/4);
+        outsl(0x1f0, clb->buffer, SECT_SIZE/4);
     }
 }
 
@@ -89,12 +89,12 @@ void ide_t::do_irq()
     }
 
     io_clb_t *clb = m_head;
-    m_head = clb->m_next;
+    m_head = clb->next;
     m_lock.unlock();
 
-    insl(0x1f0, clb->m_buffer, SECT_SIZE/4);
+    insl(0x1f0, clb->buffer, SECT_SIZE/4);
 
-    clb->m_flags |= IO_STATE_DONE;
+    clb->flags |= IO_STATE_DONE;
     // wakeup()
 
     if (m_head != NULL) {

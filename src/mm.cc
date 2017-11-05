@@ -56,6 +56,7 @@ void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 per
 {
     uint8 *v = (uint8 *) (((uint32)va) & PAGE_MASK);
     uint8 *e = (uint8 *) (((uint32)va + size) & PAGE_MASK);
+    pa = (pa & PAGE_MASK);
 
     pde_t *pde = &pg_dir[PD_INDEX(va)];
     pte_t *pg_table;
@@ -66,14 +67,14 @@ void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 per
         else {
             pg_table = (pte_t *)boot_mem_alloc(PAGE_SIZE, 1);
             memset(pg_table, 0, PAGE_SIZE);
-            *pde = (VA2PA(pg_table) | PTE_P | PTE_W);
+            *pde = (VA2PA(pg_table) | PTE_P | PTE_W | 0x04);
         }
 
         pde++;
-        for (uint32 i = PT_INDEX(v); i < NR_PTE_PER_PAGE && v < e; i++, v += PAGE_SIZE) {
+        for (uint32 i = PT_INDEX(v); i < NR_PTE_PER_PAGE && v < e; i++, v += PAGE_SIZE, pa += PAGE_SIZE) {
             pte_t *pte = &pg_table[i];
             if (v < e) {
-                *pte = VA2PA(v) | PTE_P | perm;
+                *pte = pa | PTE_P | perm;
             }
         }
     }

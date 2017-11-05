@@ -8,6 +8,7 @@
 #include "screen.h"
 #include "string.h"
 #include "timer.h"
+#include "x86.h"
 
 console_t::console_t()
 {

@@ -35,10 +35,11 @@ public:
 	~mm_t();
 
 	void init();
-	void *boot_mem_alloc(uint32 size, uint32 page_align);
+	void* boot_mem_alloc(uint32 size, uint32 page_align);
+    pde_t* get_pg_dir() { return m_kernel_pg_dir; } 
+	void map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm);
 
 private:
-	void map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm);
 	void test_page_mapping();
 	void init_paging();
 	void init_mem_range();

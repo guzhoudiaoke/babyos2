@@ -20,12 +20,12 @@
 
 /* io control block */
 typedef struct io_clb_s {
-    uint32              m_flags;
-    uint32              m_read;
-    uint32              m_dev;
-    uint32              m_lba;
-    struct io_clb_s*    m_next;
-    uint8               m_buffer[SECT_SIZE];
+    uint32            flags;
+    uint32            read;
+    uint32            dev;
+    uint32            lba;
+    struct io_clb_s*  next;
+    uint8             buffer[SECT_SIZE];
 } io_clb_t;
 
 class ide_t {

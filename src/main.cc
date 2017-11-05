@@ -5,12 +5,12 @@
 
 #include "babyos.h"
 
-babyos_t os;
+babyos_t babyos;
 
 extern "C" 
 int main(void)
 {
-    os.run();
+    babyos.run();
     return 0;
 }
 
