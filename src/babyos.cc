@@ -90,8 +90,25 @@ void delay_print(char* s)
     }
 }
 
+inline int32 fork()
+{
+    int32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+
+    if (ret == 0) {
+        console()->kprintf(WHITE, "int 0x80, return from child\n");
+    }
+    else {
+        console()->kprintf(WHITE, "int 0x80, return from parent\n");
+    }
+
+    return ret;
+}
+
 void init()
 {
+    //delay_print("c,");
+
     int32 ret = 0;
 
     // fork
@@ -112,6 +129,7 @@ void test_syscall()
 {
     int32 ret = 0;
     __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+    //ret = fork();
 
     if (ret == 0) {
         // child
@@ -135,12 +153,6 @@ void test_syscall()
             }
         }
     }
-
-
-    // parent
-    //uint32 flags, esp;
-    //__asm__ volatile("pushfl; popl %%eax; movl %%esp, %%ebx" : "=a" (flags), "=b" (esp));
-    //console()->kprintf(WHITE, "parent, flags: %x, esp: %x\n", flags, esp);
 
     delay_print("P,");
 }
@@ -191,9 +203,17 @@ void babyos_t::run()
     test_init();
     test_syscall();
 
-    //m_arch->get_cpu()->test_user_mode();
-
     while (1) {
+		halt();
     }
+}
+
+void babyos_t::update(uint32 tick)
+{
+	// arch
+	m_arch.update();
+
+	// console
+	m_console.update();
 }
 

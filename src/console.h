@@ -16,12 +16,16 @@ typedef char* va_list;
 #define va_end(ap)
 
 #define CHARACTER(ch)       (ch & 0xff)
-#define MAX_ROW             128
-#define MAX_COL             48
+#define MAX_ROW             48
+#define MAX_COL             128
 #define BACKGROUND_COLOR    RGB(0x40, 0, 0x30)
 #define CURSOR_COLOR        RGB(0xff, 0xff, 0x00)
 
-class BabyOS;
+typedef struct color_text_s {
+    char ch;
+    color_ref_t color;
+} color_text_t;
+
 class console_t {
 public:
 	console_t();
@@ -42,11 +46,14 @@ private:
 	void putc(int c, color_ref_t color);
 	void print_int(int32 n, int32 base, int32 sign, color_ref_t color);
 
+    void scroll();
+
 	uint32 m_row_num;
 	uint32 m_col_num;
 	uint32 m_row;
 	uint32 m_col;
-	char m_text[MAX_ROW][MAX_COL];
+	//char m_text[MAX_ROW][MAX_COL];
+    color_text_t m_text[MAX_ROW][MAX_COL];
 
     uint32 m_tick_to_update;
     spinlock_t m_lock;

@@ -14,6 +14,8 @@ OBJS = \
 	ide.o\
 	spinlock.o\
 	syscall.o\
+	cpu.o\
+	i8259a.o\
 
 AS = as --32
 CC = gcc -m32
@@ -30,6 +32,7 @@ all: babyos
 babyos: boot loader kernel init
 	../tool/checksize loader 1
 	../tool/checksize kernel 502
+	../tool/checksize init 1
 	dd if=boot   of=baby_hd.img ibs=512 count=1 conv=notrunc
 	dd if=loader of=baby_hd.img ibs=512 seek=1 count=1 conv=notrunc
 	dd if=kernel of=baby_hd.img ibs=512 seek=2 conv=notrunc

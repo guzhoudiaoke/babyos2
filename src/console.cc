@@ -43,9 +43,36 @@ void console_t::init()
     draw_cursor();
 }
 
+void console_t::scroll()
+{
+    if (m_row < m_row_num-1) {
+        return;
+    }
+
+    for (int i = 1; i < m_row; i++) {
+        memcpy(m_text[i-1], m_text[i], sizeof(color_text_t) * m_col_num);
+    }
+    memset(m_text[m_row-1], 0, sizeof(color_text_t) * m_col_num);
+
+    draw_background();
+
+    for (int i = 0; i < m_row; i++) {
+        for (int j = 0; j < m_col_num; j++) {
+            if (m_text[i][j].ch != '\0') {
+                rect_t rc = { j*ASC16_WIDTH, i*ASC16_HEIGHT, ASC16_WIDTH, ASC16_HEIGHT };
+                os()->get_screen()->draw_asc16((char) m_text[i][j].ch, j*ASC16_WIDTH, i*ASC16_HEIGHT, m_text[i][j].color);
+            }
+        }
+    }
+    m_row--;
+    m_col = 0;
+    draw_cursor();
+}
+
 void console_t::put_char(char c, color_ref_t color)
 {
-    m_text[m_row][m_col] = (char) c;
+    m_text[m_row][m_col].ch = (char) c;
+    m_text[m_row][m_col].color = color;
 
     rect_t rc = { m_col*ASC16_WIDTH, m_row*ASC16_HEIGHT, ASC16_WIDTH, ASC16_HEIGHT };
     os()->get_screen()->fill_rectangle(rc, BACKGROUND_COLOR);
@@ -54,6 +81,7 @@ void console_t::put_char(char c, color_ref_t color)
     if (m_col == m_col_num) {
         m_row++;
         m_col = 0;
+        scroll();
     }
     draw_cursor();
 }
@@ -93,6 +121,7 @@ void console_t::putc(int c, color_ref_t color)
             os()->get_screen()->fill_rectangle(rc, BACKGROUND_COLOR);
             m_row++;
             m_col = 0;
+            scroll();
             break;
         case '\t':
             num = (4 - m_col % 4);
@@ -225,7 +254,5 @@ void console_t::update()
 
     /* reset tick to update */
     m_tick_to_update = HZ;
-
-    //draw_time();
 }
 

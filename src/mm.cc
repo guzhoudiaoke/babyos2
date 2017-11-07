@@ -10,7 +10,7 @@
 #include "console.h"
 #include "string.h"
 
-__attribute__ ((__aligned__(PAGE_SIZE)))
+__attribute__ ((__aligned__(2*PAGE_SIZE)))
     uint8 kernel_stack[KSTACK_SIZE*2] = {
         0xff,
     };

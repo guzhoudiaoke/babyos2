@@ -18,6 +18,7 @@ public:
     ~babyos_t();
 
     void run();
+	void update(uint32 tick);
 
     screen_t*   get_screen();
     console_t*  get_console();
