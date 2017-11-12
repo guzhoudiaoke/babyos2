@@ -27,8 +27,6 @@
 #define ASC16_WIDTH     8
 #define ASC16_HEIGHT    16
 
-class BabyOS;
-
 class screen_t {
 public:
 	screen_t();

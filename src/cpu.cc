@@ -310,15 +310,6 @@ void cpu_t::schedule()
         return;
     }
 
-    //while (1) {
-    //    next = next->m_next;
-    //    if (next == current) {
-    //        return;
-    //    }
-    //    if (next->m_state == PROCESS_ST_RUNABLE) {
-    //        break;
-    //    }
-    //}
     prev->m_need_resched = 0;
     switch_to(prev, next, prev);
 }

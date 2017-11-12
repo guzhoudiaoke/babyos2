@@ -1,0 +1,298 @@
+/*
+ * guzhoudiaoke@126.com
+ * 2017-11-9
+ */
+
+#include "buddy.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+unsigned char* start_mem = NULL;
+unsigned char* end_mem = NULL;
+free_area_t free_area;
+
+void dump()
+{
+	printf("------------dump-------------\n");
+	for (int i = 0; i <= MAX_ORDER; i++) {
+		free_list_t* head = free_area.free_list + i;
+		free_list_t* p = head->next;
+
+		printf("order %2d:| ", i);
+		while (p->next != head->next) {
+			printf("0x%x->", p);
+			p = p->next;
+		}
+		printf("\n");
+	}
+}
+
+void init_free_area()
+{
+	unsigned mask = PAGE_MASK;
+	unsigned bitmap_size;
+	for (int i = 0; i <= MAX_ORDER; i++) {
+		free_area.free_list[i].prev = free_area.free_list[i].next = &free_area.free_list[i];
+		mask += mask;
+		end_mem = (unsigned char *)(((unsigned)end_mem) & mask);
+		bitmap_size = (unsigned (end_mem - start_mem)) >> (PAGE_SHIFT + i);
+		bitmap_size = (bitmap_size + 7) >> 3;
+		bitmap_size = (bitmap_size + sizeof(unsigned) - 1) & ~(sizeof(unsigned)-1);
+		free_area.free_list[i].map = (unsigned *) start_mem;
+		memset((void *) start_mem, 0, bitmap_size);
+		start_mem += bitmap_size;
+	}
+	free_area.base = (unsigned char*)(((unsigned)start_mem + ~mask) & mask);
+}
+
+static inline void add_to_head(free_list_t* head, free_list_t * entry)
+{
+	entry->prev = head;
+	entry->next = head->next;
+	head->next->prev = entry;
+	head->next = entry;
+}
+
+static inline void remove_head(free_list_t* head, free_list_t * entry)
+{
+	entry->next->prev = entry->prev;
+	entry->prev->next = entry->next;
+}
+
+extern __inline__ int change_bit(int nr, void* addr)
+{
+	int oldbit;
+
+	__asm__ __volatile__("btcl %2,%1\n\tsbbl %0,%0"
+		:"=r" (oldbit),"=m" (*((unsigned *)(addr)))
+		:"r" (nr));
+	return oldbit;
+}
+
+unsigned get_buddy(unsigned addr, unsigned mask)
+{
+	unsigned buddy = ((addr - (unsigned)free_area.base) ^ (-mask)) + (unsigned)free_area.base;
+	return buddy;
+}
+
+void free_pages(unsigned addr, unsigned order)
+{
+	if (order > MAX_ORDER) {
+		return;
+	}
+
+	unsigned index = MAP_NR(addr - (unsigned)free_area.base) >> (1 + order);
+	unsigned mask = PAGE_MASK << order;
+
+	addr &= mask;
+	while (order < MAX_ORDER) {
+		if (!change_bit(index, free_area.free_list[order].map)) {
+			break;
+		}
+
+		unsigned buddy = get_buddy(addr, mask);
+		remove_head(free_area.free_list+order, (free_list_t *)buddy);
+		order++;
+		index >>= 1;
+		mask <<= 1;
+		addr &= mask;
+	}
+	add_to_head(free_area.free_list+order, (free_list_t *) addr);
+}
+
+static inline int mark_used(unsigned addr, unsigned order)
+{
+	return change_bit(MAP_NR(addr - (unsigned)free_area.base) >> (1+order), free_area.free_list[order].map);
+}
+
+void* expand(free_list_t* addr, unsigned low, unsigned high)
+{
+	unsigned size = PAGE_SIZE << high;
+	while (low < high) {
+		high--;
+		size >>= 1;
+		add_to_head(free_area.free_list+high, addr);
+		mark_used((unsigned) addr, high);
+		addr = (free_list_t *) (size + (unsigned) addr);
+	}
+	return addr;
+}
+
+void* alloc_pages(unsigned order)
+{
+	free_list_t* queue = free_area.free_list + order;
+	unsigned new_order = order;
+	do {
+		free_list_t* next = queue->next;
+		if (queue != next) {
+			queue->next = next->next;
+			next->next->prev = queue;
+			mark_used((unsigned) next, new_order);
+			return expand(next, order, new_order);
+		}
+		new_order++;
+		queue++;
+	} while (new_order <= MAX_ORDER);
+}
+
+void free_all_lefted()
+{
+	for (unsigned char *p = free_area.base; p < end_mem; p += PAGE_SIZE) {
+		free_pages((unsigned)p, 0);
+	}
+}
+
+void test1()
+{
+	dump();
+	void* addr0 = alloc_pages(0);
+	dump();
+	void* addr1 = alloc_pages(1);
+	dump();
+	void* addr2 = alloc_pages(2);
+	dump();
+	void* addr3 = alloc_pages(3);
+	dump();
+	void* addr4 = alloc_pages(4);
+	dump();
+	void* addr5 = alloc_pages(5);
+	dump();
+	void* addr6 = alloc_pages(6);
+	dump();
+	void* addr7 = alloc_pages(7);
+	dump();
+	void* addr8 = alloc_pages(8);
+	dump();
+	void* addr9 = alloc_pages(9);
+	dump();
+	void* addr10 = alloc_pages(10);
+	dump();
+
+	free_pages((unsigned)addr1, 1);
+	dump();
+	free_pages((unsigned)addr3, 3);
+	dump();
+	free_pages((unsigned)addr5, 5);
+	dump();
+	free_pages((unsigned)addr4, 4);
+	dump();
+	free_pages((unsigned)addr6, 6);
+	dump();
+	free_pages((unsigned)addr2, 2);
+	dump();
+	free_pages((unsigned)addr10, 10);
+	dump();
+	free_pages((unsigned)addr7, 7);
+	dump();
+	free_pages((unsigned)addr9, 9);
+	dump();
+	free_pages((unsigned)addr8, 8);
+	dump();
+	free_pages((unsigned)addr0, 0);
+	dump();
+}
+
+void shuftle(unsigned* order, unsigned* addr, int size)
+{
+	for (int i = 0; i < 1000; i++) {
+		int a = rand() % size;
+		int b = rand() % size;
+
+		unsigned t = order[a];
+		order[a] = order[b];
+		order[b] = t;
+
+		t = addr[a];
+		addr[a] = addr[b];
+		addr[b] = t;
+	}
+}
+
+void test2()
+{
+	const int size = 30;
+	unsigned address[size];
+	unsigned order[size];
+
+	srand(time(0));
+
+	for (int i = 0; i < size; i++) {
+		order[i] = rand() % 10;
+	}
+
+	dump();
+	for (int i = 0; i < 10000; i++) {
+		for (int j = 0; j < size; j++) {
+			address[j] = (unsigned) alloc_pages(order[j]);
+		}
+
+		shuftle(order, address, size);
+
+		for (int j = 0; j < size; j++) {
+			free_pages(address[j], order[j]);
+		}
+	}
+	dump();
+}
+
+void test3()
+{
+	dump();
+	void* addr0 = alloc_pages(0);
+	dump();
+	void* addr1 = alloc_pages(1);
+	dump();
+	void* addr2 = alloc_pages(2);
+	dump();
+	void* addr3 = alloc_pages(3);
+
+	dump();
+	void* addr4 = alloc_pages(0);
+	dump();
+	void* addr5 = alloc_pages(1);
+	dump();
+	void* addr6 = alloc_pages(2);
+	dump();
+	void* addr7 = alloc_pages(3);
+	dump();
+
+
+	free_pages((unsigned)addr0, 0);
+	dump();
+	free_pages((unsigned)addr1, 1);
+	dump();
+	free_pages((unsigned)addr2, 2);
+	dump();
+	free_pages((unsigned)addr3, 3);
+	dump();
+	free_pages((unsigned)addr4, 0);
+	dump();
+	free_pages((unsigned)addr5, 1);
+	dump();
+	free_pages((unsigned)addr6, 2);
+	dump();
+	free_pages((unsigned)addr7, 3);
+	dump();
+}
+
+int main()
+{
+	// allocate mem to simulate pages
+	start_mem = (unsigned char *) malloc(MAX_MEM);
+	if (start_mem == NULL) {
+		return -1;
+	}
+	end_mem = start_mem + MAX_MEM;
+
+	init_free_area();
+	free_all_lefted();
+
+	//test1();
+	test2();
+	//test3();
+
+	return 0;
+}
+

@@ -162,8 +162,6 @@ get_memory_info:
 	addl	$4,						%edi
 	movl	$0,						(MEMORY_INFO_OFFSET)
 
-	#movl	$(MEMORY_INFO_ADDR+4),	%edi
-
 1:
 	movl	$0xe820,				%eax
 	movl	$20,					%ecx

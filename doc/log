@@ -1,0 +1,46 @@
+when schedule?
+linux: after syscall, interrupt, check current->need_sched
+
+can syscall interrupted?
+yes
+
+can schedule interrupted?
+no
+linux: cli before schedule
+
+
+problems:
+1. sometime when schedule Page fault, because current is wrong, because process_t not 2*PAGE_SIZE aligned.
+need a better phyical mem manager, because process_t need 2*PAGE_SIZE aligned
+2. why get unknown syscall if I use a spinlock in kprintf?
+3. page fault, when I make fork a function
+4. when in syscall, if interrept come, how to do?
+if in a fork syscall, then a clock interrept come, and need schedule, how to do?
+5. now init.cc have no _start, it's binary file, so if I put a function before main, it will be _start...
+need implement load elf instead binary file.
+6. init now only load 512 byte, so check it less than 512
+
+todo:
+MM:
+1.physical memory manager, buddy
+2.vm, vm_area, page fault
+3.mmap
+4.brk
+5.kmalloc, kfree
+6.io buffer
+
+interrupt, exception:
+1. apic
+
+process:
+1.exit
+2.sleep
+3.fork: pgdir, vm
+4.exec: vm, load elf
+
+graphic:
+1.console: scroll, read, lock and so on
+
+fs:
+1.super block
+
