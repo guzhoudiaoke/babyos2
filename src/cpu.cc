@@ -323,7 +323,8 @@ void schedule()
 process_t* cpu_t::fork(trap_frame_t* frame)
 {
     // alloc a process_t
-    process_t* p = (process_t *)os()->get_mm()->boot_mem_alloc(PAGE_SIZE*2, 1);
+    //process_t* p = (process_t *)os()->get_mm()->boot_mem_alloc(PAGE_SIZE*2, 1);
+    process_t* p = (process_t *)os()->get_mm()->alloc_pages(1);
     *p = *current;
 
     // kstack

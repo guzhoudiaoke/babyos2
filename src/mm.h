@@ -28,7 +28,26 @@
 #define NR_PDE_PER_PAGE     (PAGE_SIZE / sizeof(pde_t))
 #define NR_PTE_PER_PAGE     (PAGE_SIZE / sizeof(pte_t))
 
-class BabyOS;
+#define MAX_ORDER           6
+#define MAP_NR(addr)		(((unsigned long)(addr)) >> PAGE_SHIFT)
+
+typedef struct page_s {
+	struct page_s*	next;
+	struct page_s*	prev;
+} page_t;
+
+typedef struct free_list_s {
+	struct free_list_s*	next;
+	struct free_list_s*	prev;
+	unsigned*			map;
+} free_list_t;
+
+typedef struct free_area_s {
+	free_list_t free_list[MAX_ORDER+1];
+	unsigned char*		base;
+} free_area_t;
+
+
 class mm_t {
 public:
 	mm_t();
@@ -39,11 +58,20 @@ public:
     pde_t* get_pg_dir() { return m_kernel_pg_dir; } 
 	void map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm);
 
+    void* alloc_pages(uint32 order);
+    void free_pages(void* addr, unsigned order);
+
 private:
 	void test_page_mapping();
 	void init_paging();
 	void init_mem_range();
 	void init_free_area();
+	void boot_map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm);
+
+    unsigned get_buddy(unsigned addr, unsigned mask);
+    int mark_used(unsigned addr, unsigned order);
+    void* expand(free_list_t* addr, unsigned low, unsigned high);
+    void free_boot_mem();
 
 private:
 	pde_t *m_kernel_pg_dir;
@@ -53,6 +81,8 @@ private:
 
 	uint32 m_usable_phy_mem_start;
 	uint32 m_usable_phy_mem_end;
+
+    free_area_t m_free_area;
 };
 
 #endif

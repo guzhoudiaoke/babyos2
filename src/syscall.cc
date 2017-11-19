@@ -32,6 +32,26 @@ int32 sys_fork(trap_frame_t* frame)
 io_clb_t clb1;
 int32 sys_exec(trap_frame_t* frame)
 {
+    // 1. read init from hd
+    clb1.flags = 0;
+    clb1.read = 1;
+    clb1.dev = 0;
+    clb1.lba = 512;
+
+    memset(clb1.buffer, 0, 512);
+    os()->get_ide()->request(&clb1);
+
+    // 2. allocate a page and map to va 0-4k,
+    pde_t* pg_dir = os()->get_mm()->get_pg_dir();
+
+    void* mem = os()->get_mm()->alloc_pages(1);
+    uint32* p = (uint32 *) 0;
+    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), 2*PAGE_SIZE, PTE_W | 0x04);
+
+    // 3. load init to 0x0
+    memcpy(p, clb1.buffer, 512);
+
+    // frame
     frame->cs = (SEG_UCODE << 3 | 0x3);
     frame->ds = (SEG_UDATA << 3 | 0x3);
     frame->es = (SEG_UDATA << 3 | 0x3);
@@ -39,25 +59,7 @@ int32 sys_exec(trap_frame_t* frame)
     frame->fs = (SEG_UDATA << 3 | 0x3);
     frame->gs = (SEG_UDATA << 3 | 0x3);
 
-//    // 1. read init from hd
-//    clb1.flags = 0;
-//    clb1.read = 1;
-//    clb1.dev = 0;
-//    clb1.lba = 512;
-//
-//    memset(clb1.buffer, 0, 512);
-//    os()->get_ide()->request(&clb1);
-//
-//    // 2. allocate a page and map to va 0-4k,
-//    void* mem = os()->get_mm()->boot_mem_alloc(PAGE_SIZE*2, 1);
-//    pde_t* pg_dir = os()->get_mm()->get_pg_dir();
-//    uint32* p = (uint32 *) 0;
-//    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), PAGE_SIZE*2, PTE_W | PTE_U);
-//
-//    // 3. load init to 0x0
-//    memcpy(p, clb1.buffer, 512);
-//
-
+    // eip & esp
     frame->eip = 0;         // need get eip by load elf and get address
     frame->esp = PAGE_SIZE*2;
 

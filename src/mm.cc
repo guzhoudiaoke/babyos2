@@ -33,6 +33,21 @@ __attribute__ ((__aligned__(PAGE_SIZE)))
 extern uint8 data[];    // defined by kernel.ld
 extern uint8 end[];     // defined by kernel.ld
 
+
+static inline void add_to_head(free_list_t* head, free_list_t * entry)
+{
+	entry->prev = head;
+	entry->next = head->next;
+	head->next->prev = entry;
+	head->next = entry;
+}
+
+static inline void remove_head(free_list_t* head, free_list_t * entry)
+{
+	entry->next->prev = entry->prev;
+	entry->prev->next = entry->next;
+}
+
 mm_t::mm_t()
 {
 }
@@ -52,7 +67,7 @@ void *mm_t::boot_mem_alloc(uint32 size, uint32 page_align)
     return p;
 }
 
-void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
+void mm_t::boot_map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
 {
     uint8 *v = (uint8 *) (((uint32)va) & PAGE_MASK);
     uint8 *e = (uint8 *) (((uint32)va + size) & PAGE_MASK);
@@ -79,6 +94,36 @@ void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 per
         }
     }
 }
+
+void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
+{
+    uint8 *v = (uint8 *) (((uint32)va) & PAGE_MASK);
+    uint8 *e = (uint8 *) (((uint32)va + size) & PAGE_MASK);
+    pa = (pa & PAGE_MASK);
+
+    pde_t *pde = &pg_dir[PD_INDEX(va)];
+    pte_t *pg_table;
+    while (v < e) {
+        if ((*pde) & PTE_P) {
+            pg_table = (pte_t *)(PA2VA((*pde) & PAGE_MASK));
+        }
+        else {
+            //pg_table = (pte_t *)boot_mem_alloc(PAGE_SIZE, 1);
+            pg_table = (pte_t *)alloc_pages(0);
+            memset(pg_table, 0, PAGE_SIZE);
+            *pde = (VA2PA(pg_table) | PTE_P | PTE_W | 0x04);
+        }
+
+        pde++;
+        for (uint32 i = PT_INDEX(v); i < NR_PTE_PER_PAGE && v < e; i++, v += PAGE_SIZE, pa += PAGE_SIZE) {
+            pte_t *pte = &pg_table[i];
+            if (v < e) {
+                *pte = pa | PTE_P | perm;
+            }
+        }
+    }
+}
+
 
 void mm_t::test_page_mapping()
 {
@@ -111,13 +156,13 @@ void mm_t::init_paging()
     memset(m_kernel_pg_dir, 0, PAGE_SIZE);
 
     // first 1MB: KERNEL_BASE ~ KERNEL_LOAD -> 0~1M
-    map_pages(m_kernel_pg_dir, (uint8 *)KERNEL_BASE, 0, EXTENED_MEM, PTE_W);
+    boot_map_pages(m_kernel_pg_dir, (uint8 *)KERNEL_BASE, 0, EXTENED_MEM, PTE_W);
 
     // kernel text + rodata: KERNEL_LOAD ~ data -> 1M ~ VA2PA(data)
-    map_pages(m_kernel_pg_dir, (uint8 *)KERNEL_LOAD, VA2PA(KERNEL_LOAD), VA2PA(data) - VA2PA(KERNEL_LOAD), 0);
+    boot_map_pages(m_kernel_pg_dir, (uint8 *)KERNEL_LOAD, VA2PA(KERNEL_LOAD), VA2PA(data) - VA2PA(KERNEL_LOAD), 0);
 
     // kernel data + memory: data ~ KERNEL_BASE+MAX_PHY_MEM -> VA2PA(data) ~ MAX_PHY_MEM
-    map_pages(m_kernel_pg_dir, data, VA2PA(data), VA2PA(m_mem_end) - VA2PA(data), PTE_W);
+    boot_map_pages(m_kernel_pg_dir, data, VA2PA(data), VA2PA(m_mem_end) - VA2PA(data), PTE_W);
 
     // map the video vram mem
     uint32 screen_vram = (uint32)os()->get_screen()->vram();
@@ -160,6 +205,20 @@ void mm_t::init_mem_range()
 
 void mm_t::init_free_area()
 {
+	uint32 mask = PAGE_MASK;
+	uint32 bitmap_size;
+	for (int i = 0; i <= MAX_ORDER; i++) {
+		m_free_area.free_list[i].prev = m_free_area.free_list[i].next = &m_free_area.free_list[i];
+		mask += mask;
+		m_mem_end = (uint8 *)(((uint32)m_mem_end) & mask);
+		bitmap_size = (uint32 (m_mem_end - m_mem_start)) >> (PAGE_SHIFT + i);
+		bitmap_size = (bitmap_size + 7) >> 3;
+		bitmap_size = (bitmap_size + sizeof(uint32) - 1) & ~(sizeof(uint32)-1);
+		m_free_area.free_list[i].map = (uint32 *) m_mem_start;
+		memset((void *) m_mem_start, 0, bitmap_size);
+		m_mem_start += bitmap_size;
+	}
+	m_free_area.base = (uint8*)(((uint32)m_mem_start + ~mask) & mask);
 }
 
 void mm_t::init()
@@ -167,5 +226,78 @@ void mm_t::init()
     init_mem_range();
     init_paging();
     init_free_area();
+    free_boot_mem();
+}
+
+uint32 mm_t::get_buddy(uint32 addr, uint32 mask)
+{
+	uint32 buddy = ((addr - (uint32)m_free_area.base) ^ (-mask)) + (uint32)m_free_area.base;
+	return buddy;
+}
+
+int mm_t::mark_used(uint32 addr, uint32 order)
+{
+	return change_bit(MAP_NR(addr - (uint32)m_free_area.base) >> (1+order), m_free_area.free_list[order].map);
+}
+
+void mm_t::free_pages(void* addr, uint32 order)
+{
+    uint32 address = (uint32) addr;
+	uint32 index = MAP_NR(address - (uint32)m_free_area.base) >> (1 + order);
+	uint32 mask = PAGE_MASK << order;
+
+	address &= mask;
+	while (order < MAX_ORDER) {
+		if (!change_bit(index, m_free_area.free_list[order].map)) {
+			break;
+		}
+
+		uint32 buddy = get_buddy(address, mask);
+		remove_head(m_free_area.free_list+order, (free_list_t *)buddy);
+		order++;
+		index >>= 1;
+		mask <<= 1;
+		address &= mask;
+	}
+	add_to_head(m_free_area.free_list+order, (free_list_t *) address);
+}
+
+void* mm_t::expand(free_list_t* addr, uint32 low, uint32 high)
+{
+	uint32 size = PAGE_SIZE << high;
+	while (low < high) {
+		high--;
+		size >>= 1;
+		add_to_head(m_free_area.free_list+high, addr);
+		mark_used((uint32) addr, high);
+		addr = (free_list_t *) (size + (uint32) addr);
+	}
+	return addr;
+}
+
+void* mm_t::alloc_pages(uint32 order)
+{
+	free_list_t* queue = m_free_area.free_list + order;
+	uint32 new_order = order;
+	do {
+		free_list_t* next = queue->next;
+		if (queue != next) {
+			queue->next = next->next;
+			next->next->prev = queue;
+			mark_used((uint32) next, new_order);
+			return expand(next, order, new_order);
+		}
+		new_order++;
+		queue++;
+	} while (new_order <= MAX_ORDER);
+
+    return NULL;
+}
+
+void mm_t::free_boot_mem()
+{
+	for (uint8 *p = m_free_area.base; p < m_mem_end; p += PAGE_SIZE) {
+		free_pages(p, 0);
+	}
 }
 

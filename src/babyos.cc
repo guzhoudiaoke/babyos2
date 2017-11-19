@@ -159,6 +159,8 @@ void test_syscall()
 
 void test_init()
 {
+    return;
+
     // 1. read init from hd
     clb.flags = 0;
     clb.read = 1;
@@ -169,17 +171,14 @@ void test_init()
     os()->get_ide()->request(&clb);
 
     // 2. allocate a page and map to va 0-4k,
-    void* mem = os()->get_mm()->boot_mem_alloc(4096, 1);
     pde_t* pg_dir = os()->get_mm()->get_pg_dir();
+
+    void* mem = os()->get_mm()->alloc_pages(1);
     uint32* p = (uint32 *) 0;
-    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), PAGE_SIZE, PTE_W | 0x04);
+    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), 2*PAGE_SIZE, PTE_W | 0x04);
 
     // 3. load init to 0x0
     memcpy(p, clb.buffer, 512);
-
-    mem = os()->get_mm()->boot_mem_alloc(4096, 1);
-    p = (uint32 *) (4096);
-    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), PAGE_SIZE, PTE_W | 0x04);
 }
 
 void babyos_t::run()

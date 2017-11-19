@@ -146,5 +146,15 @@ static inline uint32 xchg(volatile uint32 *addr, uint32 newval)
     return result;
 }
 
+static inline int change_bit(int nr, void* addr)
+{
+	int oldbit;
+
+	__asm__ __volatile__("btcl %2,%1\n\tsbbl %0,%0"
+		:"=r" (oldbit),"=m" (*((unsigned *)(addr)))
+		:"r" (nr));
+	return oldbit;
+}
+
 #endif
 
