@@ -79,8 +79,6 @@ void ide_t::wait()
 
 void ide_t::do_irq()
 {
-    console()->kprintf(WHITE, "ide_t::do_irq()\n");
-
     m_lock.lock();
 
     if (m_head == NULL) {
@@ -96,6 +94,10 @@ void ide_t::do_irq()
 
     clb->flags |= IO_STATE_DONE;
     // wakeup()
+
+    /* EOI */
+    outb(0x20, 0x20);
+    outb(0xa0, 0x20);
 
     if (m_head != NULL) {
         start(m_head);

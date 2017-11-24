@@ -1,0 +1,31 @@
+type:6,			off:34 vaddr:8048034 paddr:8048034 filesz:120 memsz:120 flags:5 align:4
+type:3,			off:154 vaddr:8048154 paddr:8048154 filesz:13 memsz:13 flags:4 align:1
+type:1,			off:0 vaddr:8048000 paddr:8048000 filesz:d24 memsz:d24 flags:5 align:1000
+type:1,			off:ef0 vaddr:8049ef0 paddr:8049ef0 filesz:164 memsz:168 flags:6 align:1000
+type:2,			off:efc vaddr:8049efc paddr:8049efc filesz:100 memsz:100 flags:6 align:4
+type:4,			off:168 vaddr:8048168 paddr:8048168 filesz:44 memsz:44 flags:4 align:4
+type:6474e550, off:b80 vaddr:8048b80 paddr:8048b80 filesz:44 memsz:44 flags:4 align:4
+type:6474e551, off:0 vaddr:0 paddr:0 filesz:0 memsz:0 flags:6 align:10
+type:6474e552, off:ef0 vaddr:8049ef0 paddr:8049ef0 filesz:110 memsz:110 flags:4 align:1
+
+#define PT_NULL    0
+#define PT_LOAD    1
+#define PT_DYNAMIC 2
+#define PT_INTERP  3
+#define PT_NOTE    4
+#define PT_SHLIB   5
+#define PT_PHDR    6
+#define PT_LOPROC  0x70000000
+#define PT_HIPROC  0x7fffffff
+#define PT_MIPS_REGINFO		0x70000000
+
+08048000-08049000 r-xp 00000000 fd:02 537174722                          /home/liuruyi/code/babyos2/algorithm/elf/elf
+08049000-0804a000 r--p 00000000 fd:02 537174722                          /home/liuruyi/code/babyos2/algorithm/elf/elf
+0804a000-0804b000 rw-p 00001000 fd:02 537174722                          /home/liuruyi/code/babyos2/algorithm/elf/elf
+
+
+
+vaddr:8048000 paddr:8048000 filesz:d24 memsz:d24 flags:5 align:1000
+vaddr:8049ef0 paddr:8049ef0 filesz:164 memsz:168 flags:6 align:1000
+
+8048000-8048d24

@@ -82,7 +82,7 @@ void test_ide()
     console()->kprintf(PINK, "\n");
 }
 
-void delay_print(char* s)
+inline void delay_print(char* s)
 {
     while (1) {
         for (int i = 0; i < 100000000; i++);
@@ -105,7 +105,7 @@ inline int32 fork()
     return ret;
 }
 
-void init()
+inline void init()
 {
     //delay_print("c,");
 
@@ -133,26 +133,28 @@ void test_syscall()
 
     if (ret == 0) {
         // child
-        init();
+        //init();
+        // exec
+        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x02));
     }
-    else {
-        // fork
-        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+    //else {
+    //    // fork
+    //    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
 
-        // child
-        if (ret == 0) {
-            delay_print("c1,");
-        }
-        else {
-            // fork
-            __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+    //    // child
+    //    if (ret == 0) {
+    //        delay_print("c1,");
+    //    }
+    //    else {
+    //        // fork
+    //        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
 
-            // child
-            if (ret == 0) {
-                delay_print("c2,");
-            }
-        }
-    }
+    //        // child
+    //        if (ret == 0) {
+    //            delay_print("c2,");
+    //        }
+    //    }
+    //}
 
     delay_print("P,");
 }

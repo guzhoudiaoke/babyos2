@@ -61,6 +61,8 @@
 #define KERNEL_LOAD         (KERNEL_BASE+EXTENED_MEM)
 #define MAX_PHY_MEM         0x10000000  // 256MB
 
+#define USER_STACK_TOP      0xc0000000
+
 
 /* page table, page directory entry flag */
 #define PTE_P               0x001		// present

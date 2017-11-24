@@ -7,6 +7,8 @@
 #include "babyos.h"
 #include "ide.h"
 #include "string.h"
+#include "elf.h"
+#include "x86.h"
 
 extern int32 sys_print(trap_frame_t* frame);
 extern int32 sys_fork(trap_frame_t* frame);
@@ -29,29 +31,60 @@ int32 sys_fork(trap_frame_t* frame)
     return proc->m_pid;
 }
 
-io_clb_t clb1;
+io_clb_t clb_elf;
 int32 sys_exec(trap_frame_t* frame)
 {
     // 1. read init from hd
-    clb1.flags = 0;
-    clb1.read = 1;
-    clb1.dev = 0;
-    clb1.lba = 512;
+    clb_elf.flags = 0;
+    clb_elf.read = 1;
+    clb_elf.dev = 0;
+    clb_elf.lba = 512;
 
-    memset(clb1.buffer, 0, 512);
-    os()->get_ide()->request(&clb1);
+    // 2. read elf from hard disk
+    uint8* buffer = (uint8*) os()->get_mm()->alloc_pages(3); // 8 pages, 32K
+    for (uint8* b = buffer; b < buffer + 8*PAGE_SIZE; b += 512) {
+        memset(clb_elf.buffer, 0, 512);
+        os()->get_ide()->request(&clb_elf);
+        memcpy(b, clb_elf.buffer, 512);
 
-    // 2. allocate a page and map to va 0-4k,
+        clb_elf.flags = 0;
+        clb_elf.lba++;
+    }
+
+    elf_hdr_t *elf = (elf_hdr_t *) (buffer);
+    uint8 *base = (uint8 *) elf;
+
+    // 3. check if it's a valid elf file
+    if (elf->magic != ELF_MAGIC) {
+        return -1;
+    }
+
     pde_t* pg_dir = os()->get_mm()->get_pg_dir();
 
-    void* mem = os()->get_mm()->alloc_pages(1);
-    uint32* p = (uint32 *) 0;
-    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), 2*PAGE_SIZE, PTE_W | 0x04);
+    // 4. load program segments
+    prog_hdr_t *ph = (prog_hdr_t *)(base + elf->phoff);
+    prog_hdr_t *end_ph = ph + elf->phnum;
+    for (; ph < end_ph; ph++) {
+        void* vaddr = (void*) (ph->vaddr & PAGE_MASK);
+        uint32 offset = ph->vaddr - (uint32)vaddr;
+        uint32 len = PAGE_ALIGN(ph->filesz + ((uint32)vaddr & (PAGE_SIZE-1)));
+        uint32 pagenum = len / PAGE_SIZE;
+        uint32 order = 0, num = 1;
+        while (num < pagenum) {
+            num *= 2;
+            order++;
+        }
 
-    // 3. load init to 0x0
-    memcpy(p, clb1.buffer, 512);
+        void* mem = os()->get_mm()->alloc_pages(order);
+        os()->get_mm()->map_pages(pg_dir, vaddr, VA2PA(mem), len, PTE_W | PTE_U);
+        memcpy(mem+offset, base+ph->off, ph->filesz);
+        if (ph->memsz > ph->filesz) {
+            memset(mem+offset+ph->filesz, 0, ph->memsz - ph->filesz);
+        }
+    }
 
-    // frame
+
+    // 5. frame
     frame->cs = (SEG_UCODE << 3 | 0x3);
     frame->ds = (SEG_UDATA << 3 | 0x3);
     frame->es = (SEG_UDATA << 3 | 0x3);
@@ -59,9 +92,13 @@ int32 sys_exec(trap_frame_t* frame)
     frame->fs = (SEG_UDATA << 3 | 0x3);
     frame->gs = (SEG_UDATA << 3 | 0x3);
 
-    // eip & esp
-    frame->eip = 0;         // need get eip by load elf and get address
-    frame->esp = PAGE_SIZE*2;
+    // 6. eip & esp
+    void* stack = os()->get_mm()->alloc_pages(1);
+    os()->get_mm()->map_pages(pg_dir, (void*) USER_STACK_TOP-PAGE_SIZE*2, VA2PA(stack), PAGE_SIZE*2, PTE_W | PTE_U);
+    frame->esp = USER_STACK_TOP;
+
+    void (*entry)(void) = (void(*)(void))(elf->entry);
+    frame->eip = (uint32)entry;         // need get eip by load elf and get address
 
     return 0;
 }
