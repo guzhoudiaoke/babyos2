@@ -155,6 +155,8 @@ void cpu_t::init_idle_process()
     m_idle_process->m_next = m_idle_process;
     m_idle_process->m_prev = m_idle_process;
 
+	m_idle_process->m_vmm.init();
+
 	console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
 		m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
 }
@@ -175,9 +177,12 @@ void cpu_t::do_exception(trap_frame_t* frame)
         console()->kprintf(RED, "current: %p, pid: %p\n", current, current->m_pid);
         console()->kprintf(RED, "errno: %x, eip: %x, cs: %x, esp: %x\n", frame->err, frame->eip, frame->cs, frame->esp);
 
-        uint32 cr2 = 0xffffffff;
-        __asm__ volatile("movl %%cr2, %%eax" : "=a" (cr2));
-        console()->kprintf(RED, "cr2: %x\n", cr2);
+		if (trapno == INT_PF) {
+			/* if success to process the page fault, just return, else halt forever... */
+			if (current->m_vmm.do_page_fault(frame) == 0) {
+				return;
+			}
+		}
     }
     else {
         console()->kprintf(RED, "Error Interrupt: %x, RESERVED!\n", trapno);
@@ -323,7 +328,6 @@ void schedule()
 process_t* cpu_t::fork(trap_frame_t* frame)
 {
     // alloc a process_t
-    //process_t* p = (process_t *)os()->get_mm()->boot_mem_alloc(PAGE_SIZE*2, 1);
     process_t* p = (process_t *)os()->get_mm()->alloc_pages(1);
     *p = *current;
 
@@ -333,6 +337,7 @@ process_t* cpu_t::fork(trap_frame_t* frame)
     child_frame->eax = 0;
 
     // pg_dir
+	memcpy(&p->m_vmm, &current->m_vmm, sizeof(vmm_t));
 
     // context
     p->m_context.esp = (uint32) child_frame;

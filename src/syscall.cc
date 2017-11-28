@@ -13,10 +13,12 @@
 extern int32 sys_print(trap_frame_t* frame);
 extern int32 sys_fork(trap_frame_t* frame);
 extern int32 sys_exec(trap_frame_t* frame);
+extern int32 sys_mmap(trap_frame_t* frame);
 static int32 (*system_call_table[])(trap_frame_t* frame) = {
     sys_print,
     sys_fork,
     sys_exec,
+	sys_mmap,
 };
 
 int32 sys_print(trap_frame_t* frame)
@@ -101,6 +103,13 @@ int32 sys_exec(trap_frame_t* frame)
     frame->eip = (uint32)entry;         // need get eip by load elf and get address
 
     return 0;
+}
+
+int32 sys_mmap(trap_frame_t* frame)
+{
+	uint32 addr = frame->ebx, len = frame->ecx, prot = frame->edx, flags = frame->esi;
+	addr = current->m_vmm.do_mmap(addr, len, prot, flags);
+	return addr;
 }
 
 syscall_t::syscall_t()

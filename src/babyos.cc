@@ -6,6 +6,7 @@
 #include "babyos.h"
 #include "string.h"
 #include "x86.h"
+#include "vm.h"
 
 extern babyos_t babyos;
 babyos_t* babyos_t::get_os()
@@ -44,6 +45,14 @@ arch_t* babyos_t::get_arch()
 ide_t* babyos_t::get_ide()
 {
     return &m_ide;
+}
+
+object_pool_t* babyos_t::get_obj_pool(uint32 type)
+{
+	if (type >= MAX_POOL) {
+		return NULL;
+	}
+	return &m_pools[type];
 }
 
 void draw_time()
@@ -177,10 +186,15 @@ void test_init()
 
     void* mem = os()->get_mm()->alloc_pages(1);
     uint32* p = (uint32 *) 0;
-    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), 2*PAGE_SIZE, PTE_W | 0x04);
+    os()->get_mm()->map_pages(pg_dir, p, VA2PA(mem), 2*PAGE_SIZE, PTE_W | PTE_U);
 
     // 3. load init to 0x0
     memcpy(p, clb.buffer, 512);
+}
+
+void babyos_t::init_pools()
+{
+	m_pools[VMA_POOL].init(sizeof(vm_area_t));
 }
 
 void babyos_t::run()
@@ -194,6 +208,7 @@ void babyos_t::run()
     m_mm.init();
     m_arch.init();
     m_ide.init();
+	init_pools();
 
     m_console.kprintf(WHITE, "sti()\n");
     sti();

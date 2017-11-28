@@ -8,13 +8,11 @@
 
 #include "types.h"
 
-//#define SYS_PRINT 0
-//#define MAX_SYSCALL 1
-
 enum {
     SYS_PRINT = 0,
     SYS_FORK,
     SYS_EXEC,
+	SYS_MMAP,
     MAX_SYSCALL,
 };
 

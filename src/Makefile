@@ -16,11 +16,13 @@ OBJS = \
 	syscall.o\
 	cpu.o\
 	i8259a.o\
+	vm.o\
+	pool.o\
 
 AS = as --32
 CC = gcc -m32
 CPP= g++
-LD = ld -m elf_i386
+LD = ld
 
 CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -Wall -ggdb -m32 -Werror -fno-omit-frame-pointer -nostdinc -fno-stack-protector
 LDFLAGS = -m elf_i386 -static
@@ -32,7 +34,7 @@ all: babyos
 babyos: boot loader kernel init
 	../tool/checksize loader 1
 	../tool/checksize kernel 502
-	../tool/checksize init 20
+	../tool/checksize init 32
 	dd if=boot   of=baby_hd.img ibs=512 count=1 conv=notrunc
 	dd if=loader of=baby_hd.img ibs=512 seek=1 count=1 conv=notrunc
 	dd if=kernel of=baby_hd.img ibs=512 seek=2 conv=notrunc
@@ -46,14 +48,14 @@ boot: boot.S
 loader: load.S loadmain.cc
 	${CPP} ${CFLAGS} -c load.S
 	${CPP} ${CFLAGS} -O -c loadmain.cc
-	${LD} --oformat binary -N -Ttext 0x0000 -o loader load.o loadmain.o
+	${LD} ${LDFLAGS} --oformat binary -N -Ttext 0x0000 -o loader load.o loadmain.o
 
 kernel: ${OBJS} entry.o kernel.ld
 	${LD} ${LDFLAGS} -T kernel.ld -o kernel entry.o ${OBJS}
 
 init: init.cc
 	${CPP} ${CFLAGS} -O -c init.cc
-	${LD} ${LDFLAGS} -Ttext 0x1000 -o init init.o
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o init init.o
 
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< -o  $@

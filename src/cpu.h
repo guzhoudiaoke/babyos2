@@ -9,6 +9,8 @@
 #include "kernel.h"
 #include "types.h"
 #include "syscall.h"
+#include "vm.h"
+
 
 #define TRAP_GATE_FLAG      (0x00008f0000000000ULL)
 #define INTERRUPT_GATE_FLAG (0x00008e0000000000ULL)
@@ -16,6 +18,10 @@
 
 #define IO_BITMAP_SIZE		(32)
 #define INVALID_IO_BITMAP	(0x8000)
+
+
+#define INT_PF				(14)
+
 
 struct process_s;
 typedef struct process_s process_t;
@@ -85,7 +91,7 @@ typedef struct process_s {
 	context_t	m_context;
 
 	pde_t*      m_pg_dir;
-    uint8*      m_kstack;
+	vmm_t		m_vmm;
 
 	process_t*	m_prev;
 	process_t*	m_next;

@@ -4,13 +4,42 @@
  */
 
 #include "types.h"
+#include "syscall.h"
 
 static char digits[] = "0123456789abcdef";
 static char buffer[64] = "This is printed by init, cs = 0x";
 static char buffer2[64];
 
-int fork();
-void print(char *str);
+int fork()
+{
+    int ret;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
+    return ret;
+}
+
+void print(char *str)
+{
+    __asm__ volatile("int $0x80" : : "b" (str), "a" (0x00));
+}
+
+void *mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags)
+{
+	uint32 ret = 0;
+
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_MMAP), "b" (addr), "c" (len), "d" (prot), "S" (flags));
+
+	return (void*) ret;
+}
+
+void test_fault()
+{
+	unsigned char* m = (unsigned char*) mmap(0, 4096, 0, 0);
+	m[0] = 0;
+
+	unsigned char* p = (unsigned char*) 0x50000000;
+	p[0] = 0;
+}
+
 int main()
 {
     uint32 cs = 0xffffffff;
@@ -47,25 +76,21 @@ int main()
             print(buffer2);
         }
     }
+	else {
+		// parent
 
-    buffer[0] = 'I';
-    buffer[1] = ',';
-    buffer[2] = '\0';
-    while (1) {
-        for (int i = 0; i < 100000000; i++) ;
-        print(buffer);
-    }
+		// test page fault
+		test_fault();
+
+		buffer[0] = 'I';
+		buffer[1] = ',';
+		buffer[2] = '\0';
+		while (1) {
+			for (int i = 0; i < 100000000; i++) ;
+			print(buffer);
+		}
+	}
 
     return 0;
 }
-int fork()
-{
-    int ret;
-    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
-    return ret;
-}
 
-void print(char *str)
-{
-    __asm__ volatile("int $0x80" : : "b" (str), "a" (0x00));
-}

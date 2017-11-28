@@ -11,6 +11,12 @@
 #include "mm.h"
 #include "arch.h"
 #include "ide.h"
+#include "pool.h"
+
+enum pool_type_e {
+	VMA_POOL = 0,
+	MAX_POOL,
+};
 
 class babyos_t {
 public:
@@ -25,15 +31,20 @@ public:
     mm_t*       get_mm();
     arch_t*     get_arch();
     ide_t*      get_ide();
+	object_pool_t* get_obj_pool(uint32 type);
 
     static babyos_t* get_os();
 
 private:
-    screen_t	m_screen;
-    console_t   m_console;
-    mm_t		m_mm;
-    arch_t      m_arch;
-    ide_t       m_ide;
+	void init_pools();
+
+private:
+    screen_t		m_screen;
+    console_t		m_console;
+    mm_t			m_mm;
+    arch_t			m_arch;
+    ide_t			m_ide;
+	object_pool_t	m_pools[MAX_POOL];
 };
 
 #define os()	    babyos_t::get_os()
