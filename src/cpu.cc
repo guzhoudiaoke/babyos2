@@ -147,7 +147,6 @@ void cpu_t::init_idle_process()
     memset(&m_idle_process->m_context, 0, sizeof(context_t));
     strcpy(m_idle_process->m_name, "idle");
 
-    m_idle_process->m_pg_dir = os()->get_mm()->get_pg_dir();
     m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + 2*KSTACK_SIZE);
     m_idle_process->m_need_resched = 1;
 
@@ -155,10 +154,11 @@ void cpu_t::init_idle_process()
     m_idle_process->m_next = m_idle_process;
     m_idle_process->m_prev = m_idle_process;
 
-	m_idle_process->m_vmm.init();
+    m_idle_process->m_vmm.init();
+    m_idle_process->m_vmm.set_pg_dir(os()->get_mm()->get_kernel_pg_dir());
 
-	console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
-		m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
+    console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
+            m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
 }
 
 void cpu_t::init()
@@ -173,16 +173,16 @@ void cpu_t::do_exception(trap_frame_t* frame)
 {
     uint32 trapno = frame->trapno;
     if (trapno <= 0x10) {
+        if (trapno == INT_PF) {
+            /* if success to process the page fault, just return, else halt forever... */
+            if (current->m_vmm.do_page_fault(frame) == 0) {
+                return;
+            }
+        }
+
         console()->kprintf(RED, "Exception: %s\n", exception_msg[trapno]);
         console()->kprintf(RED, "current: %p, pid: %p\n", current, current->m_pid);
         console()->kprintf(RED, "errno: %x, eip: %x, cs: %x, esp: %x\n", frame->err, frame->eip, frame->cs, frame->esp);
-
-		if (trapno == INT_PF) {
-			/* if success to process the page fault, just return, else halt forever... */
-			if (current->m_vmm.do_page_fault(frame) == 0) {
-				return;
-			}
-		}
     }
     else {
         console()->kprintf(RED, "Error Interrupt: %x, RESERVED!\n", trapno);
@@ -208,7 +208,7 @@ void cpu_t::do_interrupt(uint32 trapno)
             }
             break;
         case IRQ_0 + IRQ_TIMER:
-			os()->update(os()->get_arch()->get_timer()->get_tick());
+            os()->update(os()->get_arch()->get_timer()->get_tick());
             os()->get_arch()->get_timer()->do_irq();
             break;
         case IRQ_0 + IRQ_HARDDISK:
@@ -305,15 +305,17 @@ extern "C" void __switch_to(process_t* next)
 
 void cpu_t::schedule()
 {
-	if ((uint32)current % 8192 != 0) {
-		console()->kprintf(RED, "ERROR current: %p\n", current);
-	}
+    if ((uint32)current % 8192 != 0) {
+        console()->kprintf(RED, "ERROR current: %p\n", current);
+    }
 
     process_t* prev = current;
     process_t* next = current->m_next;
     if (prev == next) {
         return;
     }
+
+    set_cr3(VA2PA(next->m_vmm.get_pg_dir()));
 
     prev->m_need_resched = 0;
     switch_to(prev, next, prev);
@@ -336,8 +338,8 @@ process_t* cpu_t::fork(trap_frame_t* frame)
     memcpy(child_frame, frame, sizeof(trap_frame_t));
     child_frame->eax = 0;
 
-    // pg_dir
-	memcpy(&p->m_vmm, &current->m_vmm, sizeof(vmm_t));
+    // vmm
+    p->m_vmm.copy(current->m_vmm);
 
     // context
     p->m_context.esp = (uint32) child_frame;
@@ -362,6 +364,6 @@ process_t* cpu_t::fork(trap_frame_t* frame)
 
 void cpu_t::update()
 {
-	current->m_need_resched = 1;
+    current->m_need_resched = 1;
 }
 

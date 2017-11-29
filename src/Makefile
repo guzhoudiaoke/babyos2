@@ -42,12 +42,12 @@ babyos: boot loader kernel init
 	dd if=init of=baby_hd.img ibs=512 seek=512 conv=notrunc
 
 boot: boot.S
-	${CPP} ${CFLAGS} -c boot.S
+	${CPP} ${CPPFLAGS} -c boot.S
 	${LD} ${LDFLAGS} --oformat binary -N -Ttext 0x7c00 -o boot boot.o
 
 loader: load.S loadmain.cc
-	${CPP} ${CFLAGS} -c load.S
-	${CPP} ${CFLAGS} -O -c loadmain.cc
+	${CPP} ${CPPFLAGS} -c load.S
+	${CPP} ${CPPFLAGS} -O -c loadmain.cc
 	${LD} ${LDFLAGS} --oformat binary -N -Ttext 0x0000 -o loader load.o loadmain.o
 
 kernel: ${OBJS} entry.o kernel.ld

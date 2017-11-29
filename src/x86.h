@@ -17,9 +17,9 @@ static inline uint8 inb(uint16 port)
 static inline void insl(int port, void *addr, int cnt)
 {
     __asm__ volatile("cld; rep insl" :
-                     "=D" (addr), "=c" (cnt) :
-                     "d" (port), "0" (addr), "1" (cnt) :
-                     "memory", "cc");
+            "=D" (addr), "=c" (cnt) :
+            "d" (port), "0" (addr), "1" (cnt) :
+            "memory", "cc");
 }
 
 static inline void outb(uint16 port, uint8 data)
@@ -35,25 +35,25 @@ static inline void outw(uint16 port, uint16 data)
 static inline void outsl(int port, const void *addr, int cnt)
 {
     __asm__ volatile("cld; rep outsl" :
-                     "=S" (addr), "=c" (cnt) :
-                     "d" (port), "0" (addr), "1" (cnt) :
-                     "cc");
+            "=S" (addr), "=c" (cnt) :
+            "d" (port), "0" (addr), "1" (cnt) :
+            "cc");
 }
 
 static inline void stosb(void *addr, int32 data, int32 cnt)
 {
     __asm__ volatile("cld; rep stosb" :
-                     "=D" (addr), "=c" (cnt) :
-                     "0" (addr), "1" (cnt), "a" (data) :    /* di=addr, cx=cnt, ax=data */
-                     "memory", "cc");
+            "=D" (addr), "=c" (cnt) :
+            "0" (addr), "1" (cnt), "a" (data) :    /* di=addr, cx=cnt, ax=data */
+            "memory", "cc");
 }
 
 static inline void movsb(void *dst, void *src, int32 cnt)
 {
     __asm__ volatile("cld; rep movsb" :
-                     :
-                     "D" (dst), "S" (src), "c" (cnt) :      /* di=dst, si=src, cx=cnt */
-                     "memory", "cc");
+            :
+            "D" (dst), "S" (src), "c" (cnt) :      /* di=dst, si=src, cx=cnt */
+            "memory", "cc");
 }
 
 static inline uint32 get_cr0(void)
@@ -76,20 +76,15 @@ static inline void set_cr3(uint32 val)
 #define CMOS_ADDR_PORT		0x70
 #define CMOS_DATA_PORT		0x71
 
-#define NVRAM_BASELOW		(0x15)
-#define NVRAM_BASEHIGH		(0x16)
-#define NVRAM_EXTLOW		(0x17)
-#define NVRAM_EXTHIGH		(0x18)
-
 static inline uint32 cmos_read(uint32 reg)
 {
-	outb(CMOS_ADDR_PORT, reg);
-	return inb(CMOS_DATA_PORT);
+    outb(CMOS_ADDR_PORT, reg);
+    return inb(CMOS_DATA_PORT);
 }
 
 static inline uint32 nvram_read(uint32 reg)
 {
-	return cmos_read(reg) | cmos_read(reg+1) << 8;
+    return cmos_read(reg) | cmos_read(reg+1) << 8;
 }
 
 static inline void lgdt(void* gdt, uint32 size)
@@ -116,7 +111,7 @@ static inline void lidt(void* idt, uint32 size)
 
 static inline void ltr(uint16 sel)
 {
-	__asm__ volatile("ltr %0" : : "r" (sel));
+    __asm__ volatile("ltr %0" : : "r" (sel));
 }
 
 static inline void sti(void)
@@ -148,12 +143,12 @@ static inline uint32 xchg(volatile uint32 *addr, uint32 newval)
 
 static inline int change_bit(int nr, void* addr)
 {
-	int oldbit;
+    int oldbit;
 
-	__asm__ __volatile__("btcl %2,%1\n\tsbbl %0,%0"
-		:"=r" (oldbit),"=m" (*((unsigned *)(addr)))
-		:"r" (nr));
-	return oldbit;
+    __asm__ __volatile__("btcl %2,%1\n\tsbbl %0,%0"
+            :"=r" (oldbit),"=m" (*((unsigned *)(addr)))
+            :"r" (nr));
+    return oldbit;
 }
 
 #endif

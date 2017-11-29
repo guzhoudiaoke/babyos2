@@ -3,6 +3,7 @@
  * 2017-10-30
  */
 
+#include "kernel.h"
 #include "syscall.h"
 #include "babyos.h"
 #include "ide.h"
@@ -18,12 +19,12 @@ static int32 (*system_call_table[])(trap_frame_t* frame) = {
     sys_print,
     sys_fork,
     sys_exec,
-	sys_mmap,
+    sys_mmap,
 };
 
 int32 sys_print(trap_frame_t* frame)
 {
-	// FIXME: need copy from user
+    // FIXME: need copy from user
     console()->kprintf(GREEN, "%s", frame->ebx);
 }
 
@@ -36,18 +37,21 @@ int32 sys_fork(trap_frame_t* frame)
 io_clb_t clb_elf;
 int32 sys_exec(trap_frame_t* frame)
 {
+    uint32 lba = frame->ebx;
+    uint32 sector_num = frame->ecx;
+
     // 1. read init from hd
     clb_elf.flags = 0;
     clb_elf.read = 1;
     clb_elf.dev = 0;
-    clb_elf.lba = 512;
+    clb_elf.lba = lba;
 
     // 2. read elf from hard disk
     uint8* buffer = (uint8*) os()->get_mm()->alloc_pages(3); // 8 pages, 32K
-    for (uint8* b = buffer; b < buffer + 8*PAGE_SIZE; b += 512) {
-        memset(clb_elf.buffer, 0, 512);
+    for (uint8* b = buffer; b < buffer + SECT_SIZE*sector_num; b += SECT_SIZE) {
+        memset(clb_elf.buffer, 0, SECT_SIZE);
         os()->get_ide()->request(&clb_elf);
-        memcpy(b, clb_elf.buffer, 512);
+        memcpy(b, clb_elf.buffer, SECT_SIZE);
 
         clb_elf.flags = 0;
         clb_elf.lba++;
@@ -61,12 +65,15 @@ int32 sys_exec(trap_frame_t* frame)
         return -1;
     }
 
-    pde_t* pg_dir = os()->get_mm()->get_pg_dir();
+    pde_t* pg_dir = current->m_vmm.get_pg_dir();
 
     // 4. load program segments
     prog_hdr_t *ph = (prog_hdr_t *)(base + elf->phoff);
     prog_hdr_t *end_ph = ph + elf->phnum;
     for (; ph < end_ph; ph++) {
+        if (ph->type != PT_LOAD || ph->filesz == 0) {
+            continue;
+        }
         void* vaddr = (void*) (ph->vaddr & PAGE_MASK);
         uint32 offset = ph->vaddr - (uint32)vaddr;
         uint32 len = PAGE_ALIGN(ph->filesz + ((uint32)vaddr & (PAGE_SIZE-1)));
@@ -77,6 +84,7 @@ int32 sys_exec(trap_frame_t* frame)
             order++;
         }
 
+        current->m_vmm.do_mmap((uint32) vaddr, len, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_FIXED);
         void* mem = os()->get_mm()->alloc_pages(order);
         os()->get_mm()->map_pages(pg_dir, vaddr, VA2PA(mem), len, PTE_W | PTE_U);
         memcpy(mem+offset, base+ph->off, ph->filesz);
@@ -84,7 +92,6 @@ int32 sys_exec(trap_frame_t* frame)
             memset(mem+offset+ph->filesz, 0, ph->memsz - ph->filesz);
         }
     }
-
 
     // 5. frame
     frame->cs = (SEG_UCODE << 3 | 0x3);
@@ -94,11 +101,23 @@ int32 sys_exec(trap_frame_t* frame)
     frame->fs = (SEG_UDATA << 3 | 0x3);
     frame->gs = (SEG_UDATA << 3 | 0x3);
 
-    // 6. eip & esp
-    void* stack = os()->get_mm()->alloc_pages(1);
-    os()->get_mm()->map_pages(pg_dir, (void*) USER_STACK_TOP-PAGE_SIZE*2, VA2PA(stack), PAGE_SIZE*2, PTE_W | PTE_U);
+    // 6. stack, esp
+    vm_area_t* vma = (vm_area_t *) os()->get_obj_pool(VMA_POOL)->alloc_from_pool();
+    if (vma == NULL) {
+        return -1;
+    }
+    vma->m_end   = USER_STACK_TOP;
+    vma->m_start = USER_STACK_TOP - PAGE_SIZE;
+    vma->m_page_prot = PROT_READ | PROT_WRITE;
+    vma->m_flags = VM_STACK;
+    vma->m_next = NULL;
+    current->m_vmm.insert_vma(vma);
+
+    void* stack = os()->get_mm()->alloc_pages(0);
+    os()->get_mm()->map_pages(pg_dir, (void*) USER_STACK_TOP-PAGE_SIZE, VA2PA(stack), PAGE_SIZE, PTE_W | PTE_U);
     frame->esp = USER_STACK_TOP;
 
+    // 7. eip
     void (*entry)(void) = (void(*)(void))(elf->entry);
     frame->eip = (uint32)entry;         // need get eip by load elf and get address
 
@@ -107,9 +126,9 @@ int32 sys_exec(trap_frame_t* frame)
 
 int32 sys_mmap(trap_frame_t* frame)
 {
-	uint32 addr = frame->ebx, len = frame->ecx, prot = frame->edx, flags = frame->esi;
-	addr = current->m_vmm.do_mmap(addr, len, prot, flags);
-	return addr;
+    uint32 addr = frame->ebx, len = frame->ecx, prot = frame->edx, flags = frame->esi;
+    addr = current->m_vmm.do_mmap(addr, len, prot, flags);
+    return addr;
 }
 
 syscall_t::syscall_t()

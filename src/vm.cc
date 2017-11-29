@@ -5,101 +5,178 @@
 
 #include "babyos.h"
 #include "vm.h"
-#include "mm.h"
 #include "x86.h"
+#include "string.h"
 
 void vmm_t::init()
 {
-	m_mmap = NULL;
+    m_mmap = NULL;
+    m_pg_dir = NULL;
+}
+
+uint32 vmm_t::copy(const vmm_t& vmm)
+{
+    if (copy_page_table(vmm.m_pg_dir)) {
+        return -1;
+    }
+
+    if (copy_vma(vmm.m_mmap)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+uint32 vmm_t::copy_page_table(pde_t* pg_dir)
+{
+    m_pg_dir = (pde_t *) os()->get_mm()->alloc_pages(0);
+    if (m_pg_dir == NULL) {
+        return -1;
+    }
+
+    memcpy(m_pg_dir, pg_dir, PAGE_SIZE);
+    for (uint32 i = 0; i < KERNEL_BASE/(4*MB); i++) {
+        pde_t *pde = &pg_dir[i];
+        if (!(*pde & PTE_P)) {
+            continue;
+        }
+
+        pte_t* table = (pte_t *) PA2VA((*pde) & PAGE_MASK);
+        pte_t* new_table = (pte_t *) os()->get_mm()->alloc_pages(0);
+        if (new_table == NULL) {
+            return -1;
+        }
+
+        /* inc page ref count and set write protected */
+        for (uint32 j = 0; j < NR_PTE_PER_PAGE; j++) {
+            if (table[j] & PTE_P) {
+                os()->get_mm()->inc_page_ref((table[j] & PAGE_MASK));
+                table[j] &= (~PTE_W);
+            }
+        }
+
+        /* copy table and set to pg_dir */
+        memcpy(new_table, table, PAGE_SIZE);
+        m_pg_dir[i] = (VA2PA(new_table) | (*pde & (~PAGE_MASK)));
+    }
+
+    return 0;
+}
+
+uint32 vmm_t::copy_vma(vm_area_t* mmap)
+{
+    vm_area_t* tail = NULL;
+    vm_area_t* p = mmap;
+    while (p != NULL) {
+        vm_area_t* vma = (vm_area_t *) os()->get_obj_pool(VMA_POOL)->alloc_from_pool();
+        if (vma == NULL) {
+            return -1;
+        }
+
+        *vma = *p;
+        vma->m_next = NULL;
+
+        if (tail == NULL) {
+            m_mmap = vma;
+        }
+        else {
+            tail->m_next = vma;
+        }
+        tail = vma;
+
+        p = p->m_next;
+    }
+
+    return 0;
 }
 
 /* Look up the first VMA which satisfies  addr < vm_end,  NULL if none. */
 vm_area_t* vmm_t::find_vma(uint32 addr)
 {
-	vm_area_t* vma = m_mmap;
-	while (vma != NULL) {
-		if (addr < vma->m_end) {
-			return vma;
-		}
-		vma = vma->m_next;
-	}
-	return NULL;
+    vm_area_t* vma = m_mmap;
+    while (vma != NULL) {
+        if (addr < vma->m_end) {
+            return vma;
+        }
+        vma = vma->m_next;
+    }
+    return NULL;
 }
 
 vm_area_t* vmm_t::find_vma(uint32 addr, vm_area_t*& prev)
 {
-	prev = NULL;
-	vm_area_t* vma = m_mmap;
-	while (vma != NULL) {
-		if (addr < vma->m_end) {
-			return vma;
-		}
-		prev = vma;
-		vma = vma->m_next;
-	}
-	return NULL;
+    prev = NULL;
+    vm_area_t* vma = m_mmap;
+    while (vma != NULL) {
+        if (addr < vma->m_end) {
+            return vma;
+        }
+        prev = vma;
+        vma = vma->m_next;
+    }
+    return NULL;
 }
 
 uint32 vmm_t::insert_vma(vm_area_t* vma)
 {
-	vm_area_t* prev = NULL;
-	vm_area_t* p = m_mmap;
-	while (p != NULL) {
-		if (p->m_start >= vma->m_end) {
-			break;
-		}
-		prev = p;
-		p = p->m_next;
-	}
+    vm_area_t* prev = NULL;
+    vm_area_t* p = m_mmap;
+    while (p != NULL) {
+        if (p->m_start >= vma->m_end) {
+            break;
+        }
+        prev = p;
+        p = p->m_next;
+    }
 
-	vma->m_next = p;
-	if (prev != NULL) {
-		prev->m_next = vma;
-	}
-	else {
-		m_mmap = vma;
-	}
+    vma->m_next = p;
+    if (prev != NULL) {
+        prev->m_next = vma;
+    }
+    else {
+        m_mmap = vma;
+    }
 
-	/* merge prev and vma */
-	if (prev != NULL && prev->m_end == vma->m_start) {
-		if (prev->m_page_prot == vma->m_page_prot && prev->m_flags == vma->m_flags) {
-			prev->m_end = vma->m_end;
-			prev->m_next = p;
-			os()->get_obj_pool(VMA_POOL)->free_object(vma);
-			vma = prev;
-		}
-	}
+    /* merge prev and vma */
+    if (prev != NULL && prev->m_end == vma->m_start) {
+        if (prev->m_page_prot == vma->m_page_prot && prev->m_flags == vma->m_flags) {
+            prev->m_end = vma->m_end;
+            prev->m_next = p;
+            os()->get_obj_pool(VMA_POOL)->free_object(vma);
+            vma = prev;
+        }
+    }
 
-	/* merge vma and p */
-	if (p != NULL && vma->m_end == p->m_start) {
-		if (vma->m_page_prot == p->m_page_prot && vma->m_flags == p->m_flags) {
-			vma->m_end = p->m_end;
-			vma->m_next = p->m_next;
-			os()->get_obj_pool(VMA_POOL)->free_object(p);
-		}
-	}
+    /* merge vma and p */
+    if (p != NULL && vma->m_end == p->m_start) {
+        if (vma->m_page_prot == p->m_page_prot && vma->m_flags == p->m_flags) {
+            vma->m_end = p->m_end;
+            vma->m_next = p->m_next;
+            os()->get_obj_pool(VMA_POOL)->free_object(p);
+        }
+    }
 
-	return 0;
+    return 0;
 }
 
 uint32 vmm_t::get_unmapped_area(uint32 len)
 {
-	uint32 addr = VM_UNMAPPED_BASE;
+    uint32 addr = VM_UNMAPPED_BASE;
 
-	vm_area_t* vma = find_vma(addr);
-	while (vma != NULL) {
-		if (USER_VM_SIZE - len > addr) {
-			return 0;
-		}
+    vm_area_t* vma = find_vma(addr);
+    while (vma != NULL) {
+        if (USER_VM_SIZE - len < addr) {
+            return 0;
+        }
 
-		if (addr + len <= vma->m_start) {
-			return addr;
-		}
-		addr = vma->m_end;
-		vma = vma->m_next;
-	}
+        if (addr + len <= vma->m_start) {
+            return addr;
+        }
+        addr = vma->m_end;
+        vma = vma->m_next;
+    }
 
-	return addr;
+    return addr;
 }
 
 /*
@@ -109,155 +186,223 @@ uint32 vmm_t::get_unmapped_area(uint32 len)
  */
 uint32 vmm_t::do_mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags)
 {
-	console()->kprintf(YELLOW, "do_mmap: 0x%x, 0x%x, 0x%x, 0x%x\n", addr, len, prot, flags);
+    /* make len align with PAGE_SIZE */
+    len = PAGE_ALIGN(len);
 
-	/* make len align with PAGE_SIZE */
-	len = PAGE_ALIGN(len);
+    /* len is 0, nothing to do */
+    if (len == 0) {
+        return addr;
+    }
 
-	/* len is 0, nothing to do */
-	if (len == 0) {
-		return addr;
-	}
+    /* out of range */
+    if (len > USER_VM_SIZE || addr > USER_VM_SIZE || addr > USER_VM_SIZE - len) {
+        return -1;
+    }
 
-	/* out of range */
-	if (len > USER_VM_SIZE || addr > USER_VM_SIZE || addr > USER_VM_SIZE - len) {
-		return -1;
-	}
+    /* if MAP_FIXED, the addr should align with PAGE_SIZE */
+    if (flags & MAP_FIXED) {
+        if (addr & ~PAGE_MASK) {
+            return -1;
+        }
 
-	/* if MAP_FIXED, the addr should align with PAGE_SIZE */
-	if (flags & MAP_FIXED) {
-		if (addr & ~PAGE_MASK) {
-			return -1;
-		}
+        /* check [addr, addr+len] not in a vm_area */
+        vm_area_t* p = find_vma(addr);
+        if (p != NULL && addr + len > p->m_start) {
+            return -1;
+        }
+    }
+    else {
+        addr = get_unmapped_area(len);
+        if (addr == 0) {
+            console()->kprintf(RED, "do_mmap: failed to get_unmaped_area\n");
+            return -1;
+        }
+    }
 
-		/* check [addr, addr+len] not in a vm_area */
-		vm_area_t* p = find_vma(addr);
-		if (p != NULL && addr + len > p->m_start) {
-			return -1;
-		}
-	}
-	else {
-		addr = get_unmapped_area(len);
-		if (addr == 0) {
-			return -1;
-		}
-	}
+    /* alloc a vma from pool */
+    vm_area_t* vma = (vm_area_t*) os()->get_obj_pool(VMA_POOL)->alloc_from_pool();
+    if (vma == NULL) {
+        console()->kprintf(RED, "do_mmap: failed to alloc vma\n");
+        return -1;
+    }
 
-	/* alloc a vma from pool */
-	vm_area_t* vma = (vm_area_t*) os()->get_obj_pool(VMA_POOL)->alloc_from_pool();
-	if (vma == NULL) {
-		return -1;
-	}
+    /* setup vma */
+    vma->m_start = addr;
+    vma->m_end = addr + len;
+    vma->m_flags = (prot & (VM_READ | VM_WRITE | VM_EXEC));
+    vma->m_page_prot = prot;
+    vma->m_next = NULL;
 
-	/* setup vma */
-	vma->m_start = addr;
-	vma->m_end = addr + len;
-	vma->m_flags = 0;
-	vma->m_page_prot = prot;
+    /* insert vma into list, and do merge */
+    if (insert_vma(vma)) {
+        console()->kprintf(RED, "do_mmap: failed to insert vma\n");
+        return -1;
+    }
 
-	/* insert vma into list, and do merge */
-	if (insert_vma(vma)) {
-		return -1;
-	}
-
-	return addr;
+    return addr;
 }
 
-void vmm_t::remove_vma(vm_area_t* vma, vm_area_t* prev)
+uint32 vmm_t::remove_vma(vm_area_t* vma, vm_area_t* prev)
 {
-	if (prev != NULL) {
-		prev->m_next = vma->m_next;
-	}
-	else {
-		m_mmap = vma->m_next;
-	}
-	os()->get_obj_pool(VMA_POOL)->free_object(vma);
+    if (prev != NULL) {
+        prev->m_next = vma->m_next;
+    }
+    else {
+        m_mmap = vma->m_next;
+    }
+    os()->get_obj_pool(VMA_POOL)->free_object(vma);
+
+    return 0;
 }
 
 uint32 vmm_t::do_munmap(uint32 addr, uint32 len)
 {
-	/* addr should align with PAGE_SIZE */
-	if ((addr & ~PAGE_MASK) || addr > USER_VM_SIZE || len > USER_VM_SIZE-addr) {
-		return -1;
-	}
-
-	/* len is 0, nothing to do */
-	if ((len = PAGE_ALIGN(len)) == 0) {
-		return 0;
-	}
-
-	/* find the vma, addr < vma->m_end */
-	vm_area_t* prev = NULL;
-	vm_area_t* vma = find_vma(addr, prev);
-	if (vma == NULL) {
-		return -1;
-	}
-
-	/* make sure m_start <= addr< addr+len <= m_end */
-	if (addr < vma->m_start || addr+len > vma->m_end) {
-		return -1;
-	}
-
-	/* alloc a new vma, because the vma may split to 2 vma, such as:
-	 * [start, addr, addr+len, end] => [start, addr], [addr+len, end] */
-	vm_area_t* vma_new = (vm_area_t*) os()->get_obj_pool(VMA_POOL)->alloc_from_pool();
-	if (vma_new == NULL) {
-		return -1;
-	}
-
-	/* set up the new vma and link to list */
-	vma_new->m_start = addr+len;
-	vma_new->m_end = vma->m_end;
-	vma->m_end = addr;
-	vma_new->m_next = vma->m_next;
-	vma->m_next = vma_new;
-
-	/* check if first part need to remove */
-	if (vma->m_start == vma->m_end) {
-		remove_vma(vma, prev);
-		vma = prev;
-	}
-
-	/* check if second part need to remove */
-	if (vma_new->m_start == vma_new->m_end) {
-		remove_vma(vma_new, vma);
-	}
-
-	/* need to unmap the physical page */
-	//unmap_page_range(addr, len);
-
-	return 0;
-}
-
-uint32 vmm_t::do_page_fault(trap_frame_t* frame)
-{
-	uint32 addr = 0xffffffff;
-	__asm__ volatile("movl %%cr2, %%eax" : "=a" (addr));
-	console()->kprintf(RED, "do_page_fault, addr: %x\n", addr);
-
-	addr = (addr & PAGE_MASK);
-
-	vm_area_t* vma = find_vma(addr);
-	if (vma == NULL) {
-		if (frame->err & 0x4) {
-			console()->kprintf(RED, "segment fault!\n");
-		}
-		return -1;
-	}
-
-	if (vma->m_start <= addr) {
-        void* mem = os()->get_mm()->alloc_pages(0);
-        pde_t* pg_dir = os()->get_mm()->get_pg_dir();
-        os()->get_mm()->map_pages(pg_dir, (void*) addr, VA2PA(mem), PAGE_SIZE, PTE_W | PTE_U);
-        console()->kprintf(GREEN, "alloc and map pages\n");
-	}
-    else {
-		if (frame->err & 0x4) {
-			console()->kprintf(RED, "segment fault!\n");
-		}
-		return -1;
+    /* addr should align with PAGE_SIZE */
+    if ((addr & ~PAGE_MASK) || addr > USER_VM_SIZE || len > USER_VM_SIZE-addr) {
+        return -1;
     }
 
-	return 0;
+    /* len is 0, nothing to do */
+    if ((len = PAGE_ALIGN(len)) == 0) {
+        return 0;
+    }
+
+    /* find the vma, addr < vma->m_end */
+    vm_area_t* prev = NULL;
+    vm_area_t* vma = find_vma(addr, prev);
+    if (vma == NULL) { return -1;
+    }
+
+    /* make sure m_start <= addr< addr+len <= m_end */
+    if (addr < vma->m_start || addr+len > vma->m_end) {
+        return -1;
+    }
+
+    /* alloc a new vma, because the vma may split to 2 vma, such as:
+     * [start, addr, addr+len, end] => [start, addr], [addr+len, end] */
+    vm_area_t* vma_new = (vm_area_t*) os()->get_obj_pool(VMA_POOL)->alloc_from_pool();
+    if (vma_new == NULL) {
+        return -1;
+    }
+
+    /* set up the new vma and link to list */
+    vma_new->m_start = addr+len;
+    vma_new->m_end = vma->m_end;
+    vma->m_end = addr;
+    vma_new->m_next = vma->m_next;
+    vma->m_next = vma_new;
+
+    /* check if first part need to remove */
+    if (vma->m_start == vma->m_end) {
+        remove_vma(vma, prev);
+        vma = prev;
+    }
+
+    /* check if second part need to remove */
+    if (vma_new->m_start == vma_new->m_end) {
+        remove_vma(vma_new, vma);
+    }
+
+    /* need to unmap the physical page */
+    //unmap_page_range(addr, len);
+
+    return 0;
+}
+
+uint32 vmm_t::do_protection_fault(vm_area_t* vma, uint32 addr, uint32 write)
+{
+    console()->kprintf(YELLOW, "handle protection fault, addr: %x, ref count: %u\n", 
+        addr, os()->get_mm()->get_page_ref(os()->get_mm()->va_2_pa((void *) addr)));
+
+    if (write && !(vma->m_flags & VM_WRITE)) {
+        console()->kprintf(RED, "protection fault, ref count: %u!\n", 
+                os()->get_mm()->get_page_ref(os()->get_mm()->va_2_pa((void *) addr)));
+        return -1;
+    }
+
+    /* not shared */
+    if (os()->get_mm()->get_page_ref(os()->get_mm()->va_2_pa((void *) addr)) == 1) {
+        make_pte_write((void *) addr);
+        return 0;
+    }
+
+    /* this page is shared, now only COW can share page */
+    void* mem = os()->get_mm()->alloc_pages(0);
+    os()->get_mm()->copy_page(mem, (void *) addr);
+    os()->get_mm()->free_pages((void *) (PA2VA(os()->get_mm()->va_2_pa((void *) addr))), 0);
+
+    os()->get_mm()->map_pages(m_pg_dir, (void*) addr, VA2PA(mem), PAGE_SIZE, PTE_W | PTE_U);
+    console()->kprintf(GREEN, "alloc, copy and map page\n");
+
+    return 0;
+}
+
+/*
+ * bit 0: 0 no page found, 1 protection fault
+ * bit 1: 0 read, 1 write
+ * bit 2: 0 kernel, 1 user
+ */
+uint32 vmm_t::do_page_fault(trap_frame_t* frame)
+{
+    uint32 addr = 0xffffffff;
+    __asm__ volatile("movl %%cr2, %%eax" : "=a" (addr));
+
+    addr = (addr & PAGE_MASK);
+    vm_area_t* vma = find_vma(addr);
+
+    /* find a vma and the addr in this vma */
+    if (vma != NULL && vma->m_start <= addr) {
+        if (frame->err & 0x1) {
+            return do_protection_fault(vma, addr, (uint32) (frame->err & 2));
+        }
+
+        console()->kprintf(YELLOW, "handle no page, addr: %x\n", addr);
+
+        /* no page found */
+        void* mem = os()->get_mm()->alloc_pages(0);
+
+        console()->kprintf(YELLOW, "addr: %x, map page: %x\n", addr, os()->get_mm()->va_2_pa(mem));
+
+        os()->get_mm()->map_pages(m_pg_dir, (void*) addr, VA2PA(mem), PAGE_SIZE, PTE_W | PTE_U);
+        console()->kprintf(GREEN, "alloc and map pages\n");
+    }
+    else {
+        /* not find the vma or out of range */
+        if (frame->err & 0x4) {
+            console()->kprintf(RED, "segment fault, addr: %x!\n", addr);
+        }
+        return -1;
+    }
+
+    return 0;
+}
+
+pde_t* vmm_t::get_pg_dir()
+{
+    return m_pg_dir;
+}
+
+void vmm_t::set_pg_dir(pde_t* pg_dir)
+{
+    m_pg_dir = pg_dir;
+}
+
+void vmm_t::make_pte_write(void* va)
+{
+    if ((uint32) va >= KERNEL_BASE) {
+        return;
+    }
+
+    pde_t *pde = &m_pg_dir[PD_INDEX(va)];
+    if (!(*pde & PTE_P)) {
+        return;
+    }
+
+    pte_t* table = (pte_t *) PA2VA((*pde) & PAGE_MASK);
+    if (!table[PT_INDEX(va)] & PTE_P) {
+        return;
+    }
+
+    table[PT_INDEX(va)] |= PTE_W;
 }
 

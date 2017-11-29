@@ -8,6 +8,9 @@
 
 #include "types.h"
 
+
+#define PT_LOAD    1
+
 enum {
     SYS_PRINT = 0,
     SYS_FORK,
