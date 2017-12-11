@@ -61,11 +61,17 @@ public:
 	pde_t* get_pg_dir();
 	void   set_pg_dir(pde_t* pg_dir);
 
+    void   release();
+
 private:
 	uint32 copy_page_table(pde_t* pg_dir);
 	uint32 copy_vma(vm_area_t* mmap);
 	uint32 do_protection_fault(vm_area_t* vma, uint32 addr, uint32 write);
     void   make_pte_write(void* va);
+    uint32 expand_stack(vm_area_t* vma, uint32 addr);
+
+    void   free_page_range(uint32 start, uint32 end);
+    void   free_page_table();
 
 private:
 	vm_area_t*	m_mmap;

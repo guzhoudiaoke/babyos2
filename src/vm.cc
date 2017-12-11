@@ -129,6 +129,12 @@ uint32 vmm_t::insert_vma(vm_area_t* vma)
         p = p->m_next;
     }
 
+    if (prev != NULL && prev->m_end > vma->m_start) {
+        console()->kprintf(RED, "insert_vma: inserting: [%x, %x], overlaped with [%x, %x]\n", 
+                vma->m_start, vma->m_end, prev->m_start, prev->m_end);
+        return -1;
+    }
+
     vma->m_next = p;
     if (prev != NULL) {
         prev->m_next = vma;
@@ -208,6 +214,8 @@ uint32 vmm_t::do_mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags)
         /* check [addr, addr+len] not in a vm_area */
         vm_area_t* p = find_vma(addr);
         if (p != NULL && addr + len > p->m_start) {
+            console()->kprintf(RED, "do_mmap: addr: %p is overlaped with vma: [%p, %p]\n", 
+                    addr, p->m_start, p->m_end);
             return -1;
         }
     }
@@ -235,7 +243,7 @@ uint32 vmm_t::do_mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags)
 
     /* insert vma into list, and do merge */
     if (insert_vma(vma)) {
-        console()->kprintf(RED, "do_mmap: failed to insert vma\n");
+        console()->kprintf(RED, "do_mmap: failed to insert vma: [%x, %x]\n", vma->m_start, vma->m_end);
         return -1;
     }
 
@@ -304,24 +312,31 @@ uint32 vmm_t::do_munmap(uint32 addr, uint32 len)
     }
 
     /* need to unmap the physical page */
-    //unmap_page_range(addr, len);
+    free_page_range(addr, addr+len);
 
     return 0;
 }
 
 uint32 vmm_t::do_protection_fault(vm_area_t* vma, uint32 addr, uint32 write)
 {
-    console()->kprintf(YELLOW, "handle protection fault, addr: %x, ref count: %u\n", 
-        addr, os()->get_mm()->get_page_ref(os()->get_mm()->va_2_pa((void *) addr)));
+    uint32 pa = os()->get_mm()->va_2_pa((void *) addr);
+    if (pa == -1) {
+        console()->kprintf(RED, "protection fault, no physical page found\n");
+        return -1;
+    }
 
+    console()->kprintf(YELLOW, "handle protection fault, addr: %x, ref count: %u\n", 
+        addr, os()->get_mm()->get_page_ref(pa));
+
+    // this is a write protection fault, but this vma can't write
     if (write && !(vma->m_flags & VM_WRITE)) {
         console()->kprintf(RED, "protection fault, ref count: %u!\n", 
-                os()->get_mm()->get_page_ref(os()->get_mm()->va_2_pa((void *) addr)));
+                os()->get_mm()->get_page_ref(pa));
         return -1;
     }
 
     /* not shared */
-    if (os()->get_mm()->get_page_ref(os()->get_mm()->va_2_pa((void *) addr)) == 1) {
+    if (os()->get_mm()->get_page_ref(pa) == 1) {
         make_pte_write((void *) addr);
         return 0;
     }
@@ -329,8 +344,7 @@ uint32 vmm_t::do_protection_fault(vm_area_t* vma, uint32 addr, uint32 write)
     /* this page is shared, now only COW can share page */
     void* mem = os()->get_mm()->alloc_pages(0);
     os()->get_mm()->copy_page(mem, (void *) addr);
-    os()->get_mm()->free_pages((void *) (PA2VA(os()->get_mm()->va_2_pa((void *) addr))), 0);
-
+    os()->get_mm()->free_pages((void *) (PA2VA(pa)), 0);
     os()->get_mm()->map_pages(m_pg_dir, (void*) addr, VA2PA(mem), PAGE_SIZE, PTE_W | PTE_U);
     console()->kprintf(GREEN, "alloc, copy and map page\n");
 
@@ -347,8 +361,26 @@ uint32 vmm_t::do_page_fault(trap_frame_t* frame)
     uint32 addr = 0xffffffff;
     __asm__ volatile("movl %%cr2, %%eax" : "=a" (addr));
 
-    addr = (addr & PAGE_MASK);
     vm_area_t* vma = find_vma(addr);
+
+    /* not find the vma or out of range */
+    if (vma == NULL || vma->m_start > addr) {
+        uint32 expand_stk = 0;
+        if (frame->err & 0x4) {
+            if (vma != NULL && (vma->m_flags & VM_STACK) && addr + 32 >= frame->esp) {
+                console()->kprintf(YELLOW, "expand stack\n");
+                expand_stack(vma, addr);
+                expand_stk = 1;
+            }
+            else {
+                console()->kprintf(RED, "segment fault, addr: %x!\n", addr);
+            }
+        }
+
+        if (!expand_stk) {
+            return -1;
+        }
+    }
 
     /* find a vma and the addr in this vma */
     if (vma != NULL && vma->m_start <= addr) {
@@ -360,18 +392,11 @@ uint32 vmm_t::do_page_fault(trap_frame_t* frame)
 
         /* no page found */
         void* mem = os()->get_mm()->alloc_pages(0);
-
         console()->kprintf(YELLOW, "addr: %x, map page: %x\n", addr, os()->get_mm()->va_2_pa(mem));
 
+        addr = (addr & PAGE_MASK);
         os()->get_mm()->map_pages(m_pg_dir, (void*) addr, VA2PA(mem), PAGE_SIZE, PTE_W | PTE_U);
         console()->kprintf(GREEN, "alloc and map pages\n");
-    }
-    else {
-        /* not find the vma or out of range */
-        if (frame->err & 0x4) {
-            console()->kprintf(RED, "segment fault, addr: %x!\n", addr);
-        }
-        return -1;
     }
 
     return 0;
@@ -404,5 +429,66 @@ void vmm_t::make_pte_write(void* va)
     }
 
     table[PT_INDEX(va)] |= PTE_W;
+}
+
+uint32 vmm_t::expand_stack(vm_area_t* vma, uint32 addr)
+{
+    addr &= PAGE_MASK;
+    uint32 grow = (vma->m_start - addr) >> PAGE_SHIFT;
+    vma->m_start = addr;
+
+    return 0;
+}
+
+void vmm_t::free_page_range(uint32 start, uint32 end)
+{
+    uint32 addr = start & PAGE_MASK;
+    while (addr < end) {
+        uint32 pa = os()->get_mm()->va_2_pa((void *) addr);
+        if (pa != -1) {
+            os()->get_mm()->free_pages((void *) (PA2VA(pa)), 0);
+        }
+
+        addr += PAGE_SIZE;
+    }
+}
+
+void vmm_t::free_page_table()
+{
+    for (uint32 i = 0; i < KERNEL_BASE/(4*MB); i++) {
+        pde_t *pde = &m_pg_dir[i];
+        if (!(*pde & PTE_P)) {
+            continue;
+        }
+
+        pte_t* table = (pte_t *) PA2VA((*pde) & PAGE_MASK);
+        os()->get_mm()->free_pages(table, 0);
+        *pde = 0;
+    }
+}
+
+void vmm_t::release()
+{
+    // 1. pages
+    vm_area_t* vma = m_mmap;
+    while (vma != NULL) {
+        console()->kprintf(YELLOW, "free page range: [%x, %x]\n", vma->m_start, vma->m_end);
+        free_page_range(vma->m_start, vma->m_end);
+        vma = vma->m_next;
+    }
+
+    // 2. page table
+    free_page_table();
+
+    // 3. vmas
+    vma = m_mmap;
+    while (vma != NULL) {
+        vm_area_t* del = vma;
+        vma = vma->m_next;
+         
+        console()->kprintf(YELLOW, "removing vma: [%x, %x]\n", del->m_start, del->m_end);
+        os()->get_obj_pool(VMA_POOL)->free_object(del);
+    }
+    m_mmap = NULL;
 }
 

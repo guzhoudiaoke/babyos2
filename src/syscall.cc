@@ -67,6 +67,9 @@ int32 sys_exec(trap_frame_t* frame)
 
     pde_t* pg_dir = current->m_vmm.get_pg_dir();
 
+    // flush old mmap
+    current->m_vmm.release();
+
     // 4. load program segments
     prog_hdr_t *ph = (prog_hdr_t *)(base + elf->phoff);
     prog_hdr_t *end_ph = ph + elf->phnum;
@@ -84,7 +87,10 @@ int32 sys_exec(trap_frame_t* frame)
             order++;
         }
 
-        current->m_vmm.do_mmap((uint32) vaddr, len, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_FIXED);
+        int32 ret = current->m_vmm.do_mmap((uint32) vaddr, len, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_FIXED);
+        if (ret < 0) {
+            return -1;
+        }
         void* mem = os()->get_mm()->alloc_pages(order);
         os()->get_mm()->map_pages(pg_dir, vaddr, VA2PA(mem), len, PTE_W | PTE_U);
         memcpy(mem+offset, base+ph->off, ph->filesz);
@@ -111,11 +117,13 @@ int32 sys_exec(trap_frame_t* frame)
     vma->m_page_prot = PROT_READ | PROT_WRITE;
     vma->m_flags = VM_STACK;
     vma->m_next = NULL;
-    current->m_vmm.insert_vma(vma);
+    if (current->m_vmm.insert_vma(vma) != 0) {
+        return -1;
+    }
 
     void* stack = os()->get_mm()->alloc_pages(0);
     os()->get_mm()->map_pages(pg_dir, (void*) USER_STACK_TOP-PAGE_SIZE, VA2PA(stack), PAGE_SIZE, PTE_W | PTE_U);
-    frame->esp = USER_STACK_TOP;
+    frame->esp = USER_STACK_TOP-PAGE_SIZE;
 
     // 7. eip
     void (*entry)(void) = (void(*)(void))(elf->entry);

@@ -31,15 +31,17 @@ CPPFLAGS = -g -w -trigraphs -fno-builtin -fno-exceptions -fno-stack-protector -m
 
 all: babyos
 
-babyos: boot loader kernel init
+babyos: boot loader kernel init shell
 	../tool/checksize loader 1
 	../tool/checksize kernel 502
 	../tool/checksize init 32
+	../tool/checksize shell 32
 	dd if=boot   of=baby_hd.img ibs=512 count=1 conv=notrunc
 	dd if=loader of=baby_hd.img ibs=512 seek=1 count=1 conv=notrunc
 	dd if=kernel of=baby_hd.img ibs=512 seek=2 conv=notrunc
 	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=504 conv=notrunc
 	dd if=init of=baby_hd.img ibs=512 seek=512 conv=notrunc
+	dd if=shell of=baby_hd.img ibs=512 seek=544 conv=notrunc
 
 boot: boot.S
 	${CPP} ${CPPFLAGS} -c boot.S
@@ -53,9 +55,16 @@ loader: load.S loadmain.cc
 kernel: ${OBJS} entry.o kernel.ld
 	${LD} ${LDFLAGS} -T kernel.ld -o kernel entry.o ${OBJS}
 
-init: init.cc
+userlib.o: userlib.cc
+	${CPP} ${CFLAGS} -O -c userlib.cc
+
+init: init.cc userlib.o
 	${CPP} ${CFLAGS} -O -c init.cc
-	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o init init.o
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o init init.o userlib.o
+
+shell: shell.cc userlib.o
+	${CPP} ${CFLAGS} -O -c shell.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o shell shell.o userlib.o
 
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< -o  $@
@@ -65,5 +74,5 @@ init: init.cc
 
 
 clean:
-	rm -f boot loader kernel *.o  trace* init
+	rm -f boot loader kernel *.o  trace* init shell
 
