@@ -16,16 +16,15 @@ enum {
     SYS_FORK,
     SYS_EXEC,
 	SYS_MMAP,
+	SYS_EXIT,
+	SYS_WAIT_PID,
     MAX_SYSCALL,
 };
 
 
 class syscall_t {
 public:
-    syscall_t();
-    ~syscall_t();
-
-    void do_syscall(trap_frame_t* frame);
+    static void do_syscall(trap_frame_t* frame);
 
 private:
 };

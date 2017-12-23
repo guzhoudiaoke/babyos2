@@ -10,6 +10,7 @@
 #include "types.h"
 #include "syscall.h"
 #include "vm.h"
+#include "spinlock.h"
 
 
 #define TRAP_GATE_FLAG      (0x00008f0000000000ULL)
@@ -81,6 +82,7 @@ enum {
     PROCESS_ST_RUNABLE,
     PROCESS_ST_RUNNING,
     PROCESS_ST_SLEEP,
+    PROCESS_ST_ZOMBIE,
 };
 
 typedef struct process_s {
@@ -90,6 +92,7 @@ typedef struct process_s {
     uint32		m_state;
     context_t	m_context;
     vmm_t		m_vmm;
+    uint32      m_timeslice;
 
     process_t*	m_prev;
     process_t*	m_next;
@@ -124,13 +127,15 @@ private:
     void do_interrupt(uint32 trapno);
     void do_syscall(trap_frame_t* frame);
 
+    void add_process(process_t* proc);
+
 private:
     uint64			m_gdt[GDT_LEN];
     uint64			m_idt[IDT_LEN];
     tss_t			m_tss;
-    syscall_t	    m_syscall;
     process_t*		m_idle_process;
     uint32          m_next_pid;
+    spinlock_t      m_proc_list_lock;
 };
 
 #endif

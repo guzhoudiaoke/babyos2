@@ -19,11 +19,14 @@
 class userlib_t {
 public:
     static int fork();
-    static int exec(uint32 lba, uint32 sector_num);
+    static int exec(uint32 lba, uint32 sector_num, const char* name);
     static void *mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags);
+    static void exit(int val);
 
     static void print(const char *str);
     static void print_int(int32 n, int32 base, int32 sign);
+
+    static void loop_delay(uint32 loop);
 };
 
 #endif

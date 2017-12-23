@@ -76,49 +76,16 @@ inline void delay_print(char* s)
     }
 }
 
-inline int32 fork()
-{
-    int32 ret = 0;
-    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
-
-    if (ret == 0) {
-        console()->kprintf(WHITE, "int 0x80, return from child\n");
-    }
-    else {
-        console()->kprintf(WHITE, "int 0x80, return from parent\n");
-    }
-
-    return ret;
-}
-
-inline void init()
-{
-    //delay_print("c,");
-
-    int32 ret = 0;
-
-    // fork
-    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x01));
-
-    // child
-    if (ret == 0) {
-        delay_print("cc,");
-    }
-
-    // parent
-    // exec
-    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (0x02));
-    console()->kprintf(RED, "ERROR, should not reach here!!\n");
-}
-
 void test_syscall()
 {
     int32 ret = 0;
+
+    // fork
     __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_FORK));
 
     if (ret == 0) {
         // exec
-        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (512), "c" (32));
+        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (512), "c" (32), "d" ("init"));
     }
 
     delay_print("P,");

@@ -148,7 +148,8 @@ void cpu_t::init_idle_process()
     strcpy(m_idle_process->m_name, "idle");
 
     m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + 2*KSTACK_SIZE);
-    m_idle_process->m_need_resched = 1;
+    m_idle_process->m_timeslice = 10;
+    m_idle_process->m_need_resched = 0;
 
     // make link
     m_idle_process->m_next = m_idle_process;
@@ -156,6 +157,8 @@ void cpu_t::init_idle_process()
 
     m_idle_process->m_vmm.init();
     m_idle_process->m_vmm.set_pg_dir(os()->get_mm()->get_kernel_pg_dir());
+
+    m_proc_list_lock.init();
 
     console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
             m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
@@ -222,7 +225,7 @@ void cpu_t::do_interrupt(uint32 trapno)
 
 void cpu_t::do_syscall(trap_frame_t* frame)
 {
-    m_syscall.do_syscall(frame);
+    syscall_t::do_syscall(frame);
 }
 
 void cpu_t::do_common_isr(trap_frame_t* frame)
@@ -297,7 +300,8 @@ extern "C" void FASTCALL(__switch_to(process_t* prev));
             );													\
 } while (0)
 
-extern "C" void __switch_to(process_t* next)
+extern "C"
+void __switch_to(process_t* next)
 {
     tss_t* tss = os()->get_arch()->get_cpu()->get_tss();
     tss->esp0 = next->m_context.esp0;
@@ -305,12 +309,11 @@ extern "C" void __switch_to(process_t* next)
 
 void cpu_t::schedule()
 {
-    if ((uint32)current % 8192 != 0) {
-        console()->kprintf(RED, "ERROR current: %p\n", current);
-    }
-
     process_t* prev = current;
     process_t* next = current->m_next;
+    //while (next != prev && next->m_state != PROCESS_ST_RUNABLE) {
+    //    next = next->m_next;
+    //}
     if (prev == next) {
         return;
     }
@@ -321,10 +324,20 @@ void cpu_t::schedule()
     switch_to(prev, next, prev);
 }
 
-    extern "C"
+extern "C"
 void schedule()
 {
     os()->get_arch()->get_cpu()->schedule();
+}
+
+void cpu_t::add_process(process_t* proc)
+{
+    m_proc_list_lock.lock();
+    proc->m_next = m_idle_process;
+    proc->m_prev = m_idle_process->m_prev;
+    m_idle_process->m_prev->m_next = proc;
+    m_idle_process->m_prev = proc;
+    m_proc_list_lock.unlock();
 }
 
 process_t* cpu_t::fork(trap_frame_t* frame)
@@ -333,7 +346,7 @@ process_t* cpu_t::fork(trap_frame_t* frame)
     process_t* p = (process_t *)os()->get_mm()->alloc_pages(1);
     *p = *current;
 
-    // kstack
+    // frame
     trap_frame_t* child_frame = ((trap_frame_t *) ((uint32(p) + PAGE_SIZE*2))) - 1;
     memcpy(child_frame, frame, sizeof(trap_frame_t));
     child_frame->eax = 0;
@@ -351,19 +364,21 @@ process_t* cpu_t::fork(trap_frame_t* frame)
 
     // change state
     p->m_state = PROCESS_ST_RUNABLE;
-    p->m_need_resched = 1;
+    p->m_need_resched = 0;
+    p->m_timeslice = 10;
 
     // link to list
-    p->m_next = m_idle_process;
-    p->m_prev = m_idle_process->m_prev;
-    m_idle_process->m_prev->m_next = p;
-    m_idle_process->m_prev = p;
+    add_process(p);
 
     return p;
 }
 
 void cpu_t::update()
 {
-    current->m_need_resched = 1;
+    if (--current->m_timeslice == 0) {
+        current->m_need_resched = 1;
+        current->m_timeslice = 10;
+        //console()->kprintf(PINK, "process %u no time slice left\n", current->m_pid);
+    }
 }
 

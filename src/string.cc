@@ -41,10 +41,10 @@ void* memset(void *dst, uint32 c, uint32 n)
     return dst;
 }
 
-char* strcpy(char* dst, char* src)
+char* strcpy(char* dst, const char* src)
 {
 	char* d = dst;
-	while (*d) {
+	while (*src) {
 		*d++ = *src++;
 	}
 

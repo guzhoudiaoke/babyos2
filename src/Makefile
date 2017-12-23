@@ -18,6 +18,7 @@ OBJS = \
 	i8259a.o\
 	vm.o\
 	pool.o\
+	elf.o\
 
 AS = as --32
 CC = gcc -m32
@@ -56,15 +57,15 @@ kernel: ${OBJS} entry.o kernel.ld
 	${LD} ${LDFLAGS} -T kernel.ld -o kernel entry.o ${OBJS}
 
 userlib.o: userlib.cc
-	${CPP} ${CFLAGS} -O -c userlib.cc
+	${CPP} ${CPPFLAGS} -O -c userlib.cc
 
 init: init.cc userlib.o
-	${CPP} ${CFLAGS} -O -c init.cc
-	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o init init.o userlib.o
+	${CPP} ${CPPFLAGS} -O -c init.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x0000 -o init init.o userlib.o
 
 shell: shell.cc userlib.o
-	${CPP} ${CFLAGS} -O -c shell.cc
-	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o shell shell.o userlib.o
+	${CPP} ${CPPFLAGS} -O -c shell.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x0000 -o shell shell.o userlib.o
 
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< -o  $@

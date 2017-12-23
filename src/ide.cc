@@ -16,6 +16,8 @@ ide_t::~ide_t()
 
 void ide_t::init()
 {
+    m_lock.init();
+
     os()->get_arch()->get_8259a()->enable_irq(IRQ_HARDDISK);
     wait();
     outb(0x1f6, 0xe0 | (0 << 4));

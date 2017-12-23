@@ -121,6 +121,7 @@ void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 per
             }
         }
     }
+    asm volatile("movl %0, %%cr3": :"r" (VA2PA(pg_dir)));
 }
 
 

@@ -41,5 +41,11 @@ typedef struct prog_hdr_s {
     uint32 align;
 } prog_hdr_t;
 
+
+class elf_t {
+public:
+    static int32 load(trap_frame_t* frame);
+};
+
 #endif
 

@@ -14,10 +14,10 @@ int userlib_t::fork()
     return ret;
 }
 
-int userlib_t::exec(uint32 lba, uint32 sector_num)
+int userlib_t::exec(uint32 lba, uint32 sector_num, const char* name)
 {
     int ret = 0;
-    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (lba), "c" (sector_num));
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (lba), "c" (sector_num), "d" (name));
     return ret;
 }
 
@@ -32,6 +32,12 @@ void *userlib_t::mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags)
     __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_MMAP), "b" (addr), "c" (len), "d" (prot), "S" (flags));
 
     return (void*) ret;
+}
+
+
+void userlib_t::exit(int val)
+{
+    __asm__ volatile("int $0x80" : : "b" (val), "a" (SYS_EXIT));
 }
 
 char buffer_int[16] = {1};
@@ -68,6 +74,14 @@ void userlib_t::print_int(int32 n, int32 base, int32 sign)
     }
 
     buffer_int_r[j++] = ',';
+    buffer_int_r[j++] = '\0';
     print(buffer_int_r);
+}
+
+void userlib_t::loop_delay(uint32 loop)
+{
+    while (--loop) {
+        __asm__("nop");
+    }
 }
 
