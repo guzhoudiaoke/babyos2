@@ -17,7 +17,7 @@ int main()
     userlib_t::print("This is printed by init, cs = ");
     userlib_t::print_int(cs, 16, 0);
     userlib_t::print("\n");
-    
+
     // fork
     int32 ret = userlib_t::fork();
     if (ret == 0) {

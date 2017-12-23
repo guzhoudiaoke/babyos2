@@ -17,7 +17,7 @@ enum {
     SYS_EXEC,
 	SYS_MMAP,
 	SYS_EXIT,
-	SYS_WAIT_PID,
+	SYS_WAIT,
     MAX_SYSCALL,
 };
 

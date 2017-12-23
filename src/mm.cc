@@ -360,7 +360,8 @@ uint32 mm_t::va_2_pa(void* va)
         return -1;
     }
 
-    return (table[PT_INDEX(va)] & PAGE_MASK);
+    uint32 offset = (uint32) va - ((uint32) va & PAGE_MASK);
+    return (table[PT_INDEX(va)] & PAGE_MASK) + offset;
 }
 
 void mm_t::copy_page(void* dst, void* src)

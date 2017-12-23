@@ -29,16 +29,17 @@ void spinlock_t::lock()
     while (xchg(&m_locked, 1) != 0)
         ;
 
-    __sync_synchronize();
+    //__sync_synchronize();
 }
 
 void spinlock_t::unlock()
 {
     if (!holding()) {
         console()->kprintf(RED, "Not holding the lock when try to unlock\n");
+        return;
     }
 
-    __sync_synchronize();
+    //__sync_synchronize();
 
     //xchg(&m_locked, 0);
     //m_locked = 0;

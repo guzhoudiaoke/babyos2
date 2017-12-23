@@ -23,7 +23,8 @@ int userlib_t::exec(uint32 lba, uint32 sector_num, const char* name)
 
 void userlib_t::print(const char *str)
 {
-    __asm__ volatile("int $0x80" : : "b" (str), "a" (SYS_PRINT));
+    int ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "b" (str), "a" (SYS_PRINT));
 }
 
 void *userlib_t::mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags)
@@ -40,10 +41,22 @@ void userlib_t::exit(int val)
     __asm__ volatile("int $0x80" : : "b" (val), "a" (SYS_EXIT));
 }
 
-char buffer_int[16] = {1};
-char buffer_int_r[16] = {1};
+char* userlib_t::strrev(char* str, int len)
+{
+    char* s = str;
+    char* e = str + len -1;
+    while (s < e) {
+        char c = *s;
+        *s++ = *e;
+        *e-- = c;
+    }
+
+    return str;
+}
+
 void userlib_t::print_int(int32 n, int32 base, int32 sign)
 {
+    char buffer[16] = {0};
 
     uint32 num = (uint32)n;
     if (sign && (sign = (n < 0))) {
@@ -52,35 +65,29 @@ void userlib_t::print_int(int32 n, int32 base, int32 sign)
 
     int i = 0;
     do {
-        buffer_int[i++] = digits[num % base];
+        buffer[i++] = digits[num % base];
         num /= base;
     } while (num != 0);
 
     if (base == 16) {
         while (i < 8) {
-            buffer_int[i++] = '0';
+            buffer[i++] = '0';
         }
-        buffer_int[i++] = 'x';
-        buffer_int[i++] = '0';
+        buffer[i++] = 'x';
+        buffer[i++] = '0';
     }
 
     if (sign) {
-        buffer_int[i++] = '-';
+        buffer[i++] = '-';
     }
 
-    int j = 0;
-    while (i-- > 0) {
-        buffer_int_r[j++] = buffer_int[i];
-    }
-
-    buffer_int_r[j++] = ',';
-    buffer_int_r[j++] = '\0';
-    print(buffer_int_r);
+    strrev(buffer, i);
+    print(buffer);
 }
 
-void userlib_t::loop_delay(uint32 loop)
+void userlib_t::loop_delay(int32 loop)
 {
-    while (--loop) {
+    while (--loop > 0) {
         __asm__("nop");
     }
 }

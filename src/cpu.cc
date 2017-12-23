@@ -311,9 +311,9 @@ void cpu_t::schedule()
 {
     process_t* prev = current;
     process_t* next = current->m_next;
-    //while (next != prev && next->m_state != PROCESS_ST_RUNABLE) {
-    //    next = next->m_next;
-    //}
+    while (next != prev && next->m_state != PROCESS_ST_RUNABLE) {
+        next = next->m_next;
+    }
     if (prev == next) {
         return;
     }

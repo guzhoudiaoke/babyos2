@@ -16,25 +16,26 @@ extern int32 sys_fork(trap_frame_t* frame);
 extern int32 sys_exec(trap_frame_t* frame);
 extern int32 sys_mmap(trap_frame_t* frame);
 extern int32 sys_exit(trap_frame_t* frame);
-extern int32 sys_wait_pid(trap_frame_t* frame);
+extern int32 sys_wait(trap_frame_t* frame);
 static int32 (*system_call_table[])(trap_frame_t* frame) = {
     sys_print,
     sys_fork,
     sys_exec,
     sys_mmap,
     sys_exit,
-    sys_wait_pid,
+    sys_wait,
 };
 
 
 int32 sys_print(trap_frame_t* frame)
 {
-    // FIXME: need copy from user
     static char buffer[1024];
     memset(buffer, 0, 1024);
-    strcpy(buffer, (char *) frame->ebx);
+
+    uint32 pa = os()->get_mm()->va_2_pa((void *) frame->ebx);
+    char* b = (char *) PA2VA(pa);
+    strcpy(buffer, b);
     console()->kprintf(GREEN, "%s", buffer);
-    //console()->kprintf(GREEN, "%s", frame->ebx);
 }
 
 int32 sys_fork(trap_frame_t* frame)
@@ -60,14 +61,14 @@ int32 sys_mmap(trap_frame_t* frame)
 
 int32 sys_exit(trap_frame_t* frame)
 {
-    //console()->kprintf(RED, "current: %p, pid: %x is exiting\n", current, current->m_pid);
-    //current->m_state = PROCESS_ST_ZOMBIE;
-    //current->m_vmm.release();
-    //os()->get_arch()->get_cpu()->schedule();
+    console()->kprintf(YELLOW, "\ncurrent: %p(%s), pid: %x is exiting\n", current, current->m_name, current->m_pid);
+    current->m_state = PROCESS_ST_ZOMBIE;
+    current->m_vmm.release();
+    os()->get_arch()->get_cpu()->schedule();
     return 0;
 }
 
-int32 sys_wait_pid(trap_frame_t* frame)
+int32 sys_wait(trap_frame_t* frame)
 {
     return 0;
 }
