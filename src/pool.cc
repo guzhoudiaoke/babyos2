@@ -13,9 +13,10 @@ void object_pool_t::init(uint32 obj_size)
 	m_obj_size = obj_size;
 	m_available = 0;
 	m_free_list = NULL;
+    m_lock.init();
 }
 
-void object_pool_t::free_object(void* obj)
+void object_pool_t::free_object_nolock(void* obj)
 {
 	object_pool_obj_t* o = (object_pool_obj_t*) obj;
 	o->m_next = NULL;
@@ -28,14 +29,20 @@ void object_pool_t::free_object(void* obj)
 	}
 	m_available++;
 }
+void object_pool_t::free_object(void* obj)
+{
+    locker_t locker(m_lock);
+    free_object_nolock(obj);
+}
 
 void* object_pool_t::alloc_from_pool()
 {
+    locker_t locker(m_lock);
 	if (m_free_list == NULL) {
 		uint8* mem = (uint8 *) os()->get_mm()->alloc_pages(0);
 		uint8* end = mem + PAGE_SIZE;
 		while (mem + m_obj_size <= end) {
-			free_object(mem);
+			free_object_nolock(mem);
 			mem += m_obj_size;
 		}
 	}

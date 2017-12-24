@@ -7,6 +7,7 @@
 #include "string.h"
 #include "x86.h"
 #include "vm.h"
+#include "list.h"
 
 extern babyos_t babyos;
 babyos_t* babyos_t::get_os()
@@ -94,6 +95,68 @@ void test_syscall()
 void babyos_t::init_pools()
 {
     m_pools[VMA_POOL].init(sizeof(vm_area_t));
+    m_pools[LIST_POOL].init(sizeof(list_node_t));
+}
+
+void print_list(list_t<int>& list) {
+    list_t<int>::iterator it = list.begin();
+    while (it != list.end()) {
+        console()->kprintf(WHITE, "%u, ", *it);
+        it++;
+    }
+    console()->kprintf(WHITE, "\n");
+}
+
+int data[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+void test_list()
+{
+    list_t<int> list;
+    list.init();
+
+    if (list.empty()) {
+        console()->kprintf(WHITE, "list is empty.\n");
+    }
+    else {
+        console()->kprintf(WHITE, "list is not empty.\n");
+    }
+
+    for (int i = 2; i < 8; i++) {
+        list.push_back(&data[i]);
+    }
+
+    print_list(list);
+
+    list_t<int>::iterator it = list.begin();
+    list.insert(it, &data[0]);
+    print_list(list);
+
+    it = list.end();
+    list.insert(it, &data[1]);
+    print_list(list);
+
+    it = list.begin();
+    it++;
+    it++;
+    list.insert(it, &data[9]);
+    print_list(list);
+
+    it = list.begin();
+    list.erase(it);
+    print_list(list);
+
+    it = list.begin();
+    for (int i = 0; i < 7; i++) {
+        it++;
+    }
+    list.erase(it);
+    print_list(list);
+
+    it = list.begin();
+    it++;
+    it++;
+    it++;
+    list.erase(it);
+    print_list(list);
 }
 
 void babyos_t::run()
@@ -108,6 +171,9 @@ void babyos_t::run()
     m_arch.init();
     m_ide.init();
     init_pools();
+
+    // test list
+    test_list();
 
     m_console.kprintf(WHITE, "sti()\n");
     sti();

@@ -22,4 +22,13 @@ private:
     uint32  m_locked;
 };
 
+class locker_t {
+public:
+    locker_t(spinlock_t& lock);
+    ~locker_t();
+
+private:
+    spinlock_t& m_lock;
+};
+
 #endif

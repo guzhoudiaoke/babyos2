@@ -46,3 +46,13 @@ void spinlock_t::unlock()
     __asm__ volatile("movl $0, %0" : "+m" (m_locked));
 }
 
+locker_t::locker_t(spinlock_t& lock) : m_lock(lock)
+{
+    m_lock.lock();
+}
+
+locker_t::~locker_t()
+{
+    m_lock.unlock();
+}
+
