@@ -18,6 +18,7 @@ enum {
 	SYS_MMAP,
 	SYS_EXIT,
 	SYS_WAIT,
+    SYS_SLEEP,
     MAX_SYSCALL,
 };
 

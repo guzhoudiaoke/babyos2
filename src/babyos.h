@@ -15,7 +15,6 @@
 
 enum pool_type_e {
 	VMA_POOL = 0,
-    LIST_POOL,
 	MAX_POOL,
 };
 

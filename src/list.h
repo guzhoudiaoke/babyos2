@@ -8,34 +8,34 @@
 
 #include "types.h"
 #include "spinlock.h"
-#include "babyos.h"
+#include "pool.h"
 
-/*
- * NOTE: this list class 'DO NOT' alloc any memory,
- * just make m_data point to the added data
- */ 
+template<typename T>
 class list_node_t {
 public:
-    void init(void* data) {
+    void init(const T& data) {
         m_data = data;
         m_prev = NULL;
         m_next = NULL;
     }
 
 public:
-    void       * m_data;
+    T            m_data;
 	list_node_t* m_next;
     list_node_t* m_prev;
 };
 
-template<typename T> class list_t {
+template<typename T>
+class list_t {
 public:
     class iterator {
+        friend class list_t;
+
     public:
         iterator() {
             m_ptr = NULL;
         }
-        iterator(list_node_t* ptr) {
+        iterator(list_node_t<T>* ptr) {
             m_ptr = ptr;
         }
 
@@ -67,12 +67,11 @@ public:
             return *this;
         }
         T operator * () {
-            return * ((T *)m_ptr->m_data);
+            return m_ptr->m_data;
         }
 
-        friend class list_t;
     private:
-        list_node_t* m_ptr;
+        list_node_t<T>* m_ptr;
     };
 
     void init() {
@@ -80,24 +79,25 @@ public:
         m_tail = NULL;
         m_size = 0;
         m_lock.init();
+        m_pool.init(sizeof(list_node_t<T>));
     }
 
-    list_node_t* alloc_node(T* data) {
-        list_node_t* node = (list_node_t *) os()->get_obj_pool(LIST_POOL)->alloc_from_pool();
+    list_node_t<T>* alloc_node(const T& data) {
+        list_node_t<T>* node = (list_node_t<T> *) m_pool.alloc_from_pool();
         node->init(data);
         return node;
     }
 
-    void free_node(list_node_t* node) {
-        os()->get_obj_pool(LIST_POOL)->free_object((void *) node);
+    void free_node(list_node_t<T>* node) {
+        m_pool.free_object((void *) node);
     }
 
     bool empty() {
         return m_size == 0;
     }
 
-    bool push_front_nolock(T* data) {
-        list_node_t* node = alloc_node(data);
+    bool push_front_nolock(const T& data) {
+        list_node_t<T>* node = alloc_node(data);
         if (node == NULL) {
             return false;
         }
@@ -112,13 +112,13 @@ public:
         m_size++;
         return true;
     }
-    bool push_front(T* data) {
+    bool push_front(const T& data) {
         locker_t locker(m_lock);
         return push_front_nolock(data);
     }
 
-    bool push_back_nolock(T* data) {
-        list_node_t* node = alloc_node(data);
+    bool push_back_nolock(const T& data) {
+        list_node_t<T>* node = alloc_node(data);
         if (node == NULL) {
             return false;
         }
@@ -133,12 +133,43 @@ public:
         m_size++;
         return true;
     }
-    bool push_back(T* data) {
+    bool push_back(const T& data) {
         locker_t locker(m_lock);
         return push_back_nolock(data);
     }
 
-    list_t<T>::iterator insert(list_t<T>::iterator &it, T* data) {
+    bool pop_back_nolock() {
+        if (m_size == 0) {
+            return false;
+        }
+        list_node_t<T> *del = m_tail;
+        m_tail = m_tail->m_prev;
+        m_tail->m_next = NULL;
+        m_pool.free_object((void *) del);
+        return true;
+    }
+    bool pop_back() {
+        locker_t locker(m_lock);
+        return pop_back_nolock();
+    }
+
+    bool pop_front_nolock() {
+        if (m_size == 0) {
+            return false;
+        }
+
+        list_node_t<T> *del = m_head;
+        m_head = m_head->m_next;
+        m_head->m_prev = NULL;
+        m_pool.free_object((void *) del);
+        return true;
+    }
+    bool pop_front() {
+        locker_t locker(m_lock);
+        return pop_front_nolock();
+    }
+
+    list_t<T>::iterator insert(list_t<T>::iterator &it, const T& data) {
         locker_t locker(m_lock);
 
         // insert before end, just push back
@@ -154,7 +185,7 @@ public:
         }
 
         // insert middle
-        list_node_t* node = alloc_node(data);
+        list_node_t<T>* node = alloc_node(data);
         if (node == NULL) {
             return list_t::iterator(NULL);
         }
@@ -223,10 +254,11 @@ public:
     }
 
 private:
-    list_node_t* m_head;
-    list_node_t* m_tail;
-    uint32       m_size;
-    spinlock_t   m_lock;
+    list_node_t<T>*     m_head;
+    list_node_t<T>*     m_tail;
+    uint32              m_size;
+    spinlock_t          m_lock;
+    object_pool_t       m_pool;
 };
 
 #endif

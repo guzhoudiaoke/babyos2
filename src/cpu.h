@@ -11,6 +11,8 @@
 #include "syscall.h"
 #include "vm.h"
 #include "spinlock.h"
+#include "timer.h"
+#include "list.h"
 
 
 #define TRAP_GATE_FLAG      (0x00008f0000000000ULL)
@@ -110,6 +112,9 @@ public:
     tss_t* get_tss() { return &m_tss; }
     process_t* fork(trap_frame_t* frame);
     void update();
+    void add_timer(timer_t* timer);
+    void remove_timer(timer_t* timer);
+    void wake_up_process(process_t* proc);
 
 private:
     void init_gdt();
@@ -130,12 +135,15 @@ private:
     void add_process(process_t* proc);
 
 private:
-    uint64			m_gdt[GDT_LEN];
-    uint64			m_idt[IDT_LEN];
-    tss_t			m_tss;
-    process_t*		m_idle_process;
-    uint32          m_next_pid;
-    spinlock_t      m_proc_list_lock;
+    uint64			 m_gdt[GDT_LEN];
+    uint64			 m_idt[IDT_LEN];
+    tss_t			 m_tss;
+    process_t*		 m_idle_process;
+    uint32           m_next_pid;
+    spinlock_t       m_proc_list_lock;
+
+    list_t<timer_t*> m_timer_list;
+    spinlock_t       m_timer_list_lock;
 };
 
 #endif

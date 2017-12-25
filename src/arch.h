@@ -23,14 +23,14 @@ public:
     cpu_t*      get_cpu();
     i8259a_t*   get_8259a();
     keyboard_t* get_keyboard();
-    timer_t*    get_timer();
+    i8254_t*    get_8254();
     rtc_t*      get_rtc();
 
 private:
     cpu_t		m_cpu;
     i8259a_t	m_8259a;
     keyboard_t  m_keyboard;
-    timer_t     m_timer;
+    i8254_t     m_8254;
     rtc_t       m_rtc;
 };
 

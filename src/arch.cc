@@ -21,7 +21,7 @@ void arch_t::init()
     m_cpu.init();
     m_8259a.init();
     m_keyboard.init();
-    m_timer.init();
+    m_8254.init();
     m_rtc.init();
 }
 
@@ -46,9 +46,9 @@ keyboard_t* arch_t::get_keyboard()
     return &m_keyboard;
 }
 
-timer_t* arch_t::get_timer()
+i8254_t* arch_t::get_8254()
 {
-    return &m_timer;
+    return &m_8254;
 }
 
 rtc_t* arch_t::get_rtc()

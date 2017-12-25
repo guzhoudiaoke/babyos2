@@ -27,6 +27,7 @@ public:
     static void print_int(int32 n, int32 base, int32 sign);
 
     static void loop_delay(int32 loop);
+    static void sleep(uint32 second);
 
     static char* strrev(char* str, int len);
 };

@@ -8,14 +8,14 @@
 #include "arch.h"
 #include "x86.h"
 
-timer_t::timer_t()
+i8254_t::i8254_t()
 {
 }
-timer_t::~timer_t()
+i8254_t::~i8254_t()
 {
 }
 
-void timer_t::init()
+void i8254_t::init()
 {
     m_tick = 0;
 
@@ -31,7 +31,7 @@ void timer_t::init()
 	os()->get_arch()->get_8259a()->enable_irq(IRQ_TIMER);		/* enable keyboard interrupt */
 }
 
-void timer_t::do_irq()
+void i8254_t::do_irq()
 {
     m_tick++;
 
@@ -39,9 +39,35 @@ void timer_t::do_irq()
     outb(0x20, 0x20);
 }
 
-uint64 timer_t::get_tick()
+uint64 i8254_t::get_tick()
 {
     return m_tick;
+}
+
+/***************************************** timer_t ********************************************/
+timer_t::timer_t()
+{
+}
+
+timer_t::~timer_t()
+{
+}
+
+void timer_t::init(uint64 expires, uint32 data, void (*func)(uint32))
+{
+    m_expires = expires;
+    m_data = data;
+    m_function = func;
+}
+
+bool timer_t::update()
+{
+    --m_expires;
+    if (m_expires == 0) {
+        m_function(m_data);
+        return true;
+    }
+    return false;
 }
 
 /***************************************** rtc_t **********************************************/

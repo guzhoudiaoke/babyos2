@@ -11,10 +11,10 @@
 #define HZ              (100)
 #define CLOCK_TICK_RATE (1193180)
 
-class timer_t {
+class i8254_t {
 public:
-    timer_t();
-    ~timer_t();
+    i8254_t();
+    ~i8254_t();
 
     void init();
     void do_irq();
@@ -23,6 +23,20 @@ public:
 
 private:
     uint64 m_tick;
+};
+
+class timer_t {
+public:
+    timer_t();
+    ~timer_t();
+
+    void init(uint64 expires, uint32 data, void (*func)(uint32));
+    bool update();
+
+private:
+	uint64 m_expires;
+	uint32 m_data;
+	void (*m_function)(uint32);
 };
 
 class rtc_t {

@@ -35,7 +35,6 @@ void *userlib_t::mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags)
     return (void*) ret;
 }
 
-
 void userlib_t::exit(int val)
 {
     __asm__ volatile("int $0x80" : : "b" (val), "a" (SYS_EXIT));
@@ -90,5 +89,10 @@ void userlib_t::loop_delay(int32 loop)
     while (--loop > 0) {
         __asm__("nop");
     }
+}
+
+void userlib_t::sleep(uint32 second)
+{
+    __asm__ volatile("int $0x80" : : "b" (second), "a" (SYS_SLEEP));
 }
 

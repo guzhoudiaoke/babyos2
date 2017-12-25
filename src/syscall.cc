@@ -10,6 +10,7 @@
 #include "string.h"
 #include "elf.h"
 #include "x86.h"
+#include "timer.h"
 
 extern int32 sys_print(trap_frame_t* frame);
 extern int32 sys_fork(trap_frame_t* frame);
@@ -17,6 +18,7 @@ extern int32 sys_exec(trap_frame_t* frame);
 extern int32 sys_mmap(trap_frame_t* frame);
 extern int32 sys_exit(trap_frame_t* frame);
 extern int32 sys_wait(trap_frame_t* frame);
+extern int32 sys_sleep(trap_frame_t* frame);
 static int32 (*system_call_table[])(trap_frame_t* frame) = {
     sys_print,
     sys_fork,
@@ -24,6 +26,7 @@ static int32 (*system_call_table[])(trap_frame_t* frame) = {
     sys_mmap,
     sys_exit,
     sys_wait,
+    sys_sleep,
 };
 
 
@@ -70,6 +73,24 @@ int32 sys_exit(trap_frame_t* frame)
 
 int32 sys_wait(trap_frame_t* frame)
 {
+    return 0;
+}
+
+static void process_timeout(uint32 data)
+{
+    os()->get_arch()->get_cpu()->wake_up_process((process_t *) data);
+}
+
+int32 sys_sleep(trap_frame_t* frame)
+{
+    uint32 timeout = frame->ebx * HZ;
+    current->m_state = PROCESS_ST_SLEEP;
+    timer_t timer;
+    timer.init(timeout, (uint32) current, process_timeout);
+    os()->get_arch()->get_cpu()->add_timer(&timer);
+    os()->get_arch()->get_cpu()->schedule();
+    os()->get_arch()->get_cpu()->remove_timer(&timer);
+
     return 0;
 }
 

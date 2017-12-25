@@ -158,8 +158,6 @@ void cpu_t::init_idle_process()
     m_idle_process->m_vmm.init();
     m_idle_process->m_vmm.set_pg_dir(os()->get_mm()->get_kernel_pg_dir());
 
-    m_proc_list_lock.init();
-
     console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
             m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
 }
@@ -170,6 +168,11 @@ void cpu_t::init()
     init_idt();
     init_tss();
     init_idle_process();
+
+    m_proc_list_lock.init();
+
+    m_timer_list_lock.init();
+    m_timer_list.init();
 }
 
 void cpu_t::do_exception(trap_frame_t* frame)
@@ -211,8 +214,8 @@ void cpu_t::do_interrupt(uint32 trapno)
             }
             break;
         case IRQ_0 + IRQ_TIMER:
-            os()->update(os()->get_arch()->get_timer()->get_tick());
-            os()->get_arch()->get_timer()->do_irq();
+            os()->update(os()->get_arch()->get_8254()->get_tick());
+            os()->get_arch()->get_8254()->do_irq();
             break;
         case IRQ_0 + IRQ_HARDDISK:
             os()->get_ide()->do_irq();
@@ -380,5 +383,41 @@ void cpu_t::update()
         current->m_timeslice = 10;
         //console()->kprintf(PINK, "process %u no time slice left\n", current->m_pid);
     }
+
+    m_timer_list_lock.lock();
+    list_t<timer_t*>::iterator it = m_timer_list.begin();
+    while (it != m_timer_list.end()) {
+        if ((*it)->update()) {
+            it = m_timer_list.erase(it);
+            continue;
+        }
+        it++;
+    }
+    m_timer_list_lock.unlock();
+}
+
+void cpu_t::add_timer(timer_t* timer)
+{
+    m_timer_list_lock.lock();
+    m_timer_list.push_back(timer);
+    m_timer_list_lock.unlock();
+}
+
+void cpu_t::remove_timer(timer_t* timer)
+{
+    m_timer_list_lock.lock();
+    list_t<timer_t*>::iterator it = m_timer_list.begin();
+    while (it != m_timer_list.end()) {
+        if (timer == *it) {
+            m_timer_list.erase(it);
+            break;
+        }
+    }
+    m_timer_list_lock.unlock();
+}
+
+void cpu_t::wake_up_process(process_t* proc)
+{
+    proc->m_state = PROCESS_ST_RUNABLE;
 }
 

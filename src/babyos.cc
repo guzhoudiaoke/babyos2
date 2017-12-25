@@ -95,7 +95,6 @@ void test_syscall()
 void babyos_t::init_pools()
 {
     m_pools[VMA_POOL].init(sizeof(vm_area_t));
-    m_pools[LIST_POOL].init(sizeof(list_node_t));
 }
 
 void print_list(list_t<int>& list) {
@@ -113,6 +112,7 @@ void test_list()
     list_t<int> list;
     list.init();
 
+    console()->kprintf(WHITE, "test list...\n");
     if (list.empty()) {
         console()->kprintf(WHITE, "list is empty.\n");
     }
@@ -121,23 +121,23 @@ void test_list()
     }
 
     for (int i = 2; i < 8; i++) {
-        list.push_back(&data[i]);
+        list.push_back(data[i]);
     }
 
     print_list(list);
 
     list_t<int>::iterator it = list.begin();
-    list.insert(it, &data[0]);
+    list.insert(it, data[0]);
     print_list(list);
 
     it = list.end();
-    list.insert(it, &data[1]);
+    list.insert(it, data[1]);
     print_list(list);
 
     it = list.begin();
     it++;
     it++;
-    list.insert(it, &data[9]);
+    list.insert(it, data[9]);
     print_list(list);
 
     it = list.begin();
@@ -156,6 +156,20 @@ void test_list()
     it++;
     it++;
     list.erase(it);
+    print_list(list);
+
+    list.push_front(123);
+    list.push_front(234);
+    list.push_back(345);
+    list.push_back(456);
+    print_list(list);
+
+    list.pop_front();
+    print_list(list);
+    list.pop_front();
+    print_list(list);
+
+    list.pop_back();
     print_list(list);
 }
 

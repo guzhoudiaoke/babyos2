@@ -10,15 +10,12 @@ int main()
 {
     userlib_t::print("This is printed by shell.\n");
 
-    int time = 10;
-    while (time--) {
-        for (int i = 0; i < 100000000; i++) {
-        }
-        userlib_t::loop_delay(100000000);
+    while (true) {
+        userlib_t::sleep(2);
         userlib_t::print("S,");
     }
 
-    userlib_t::exit(0);
+    //userlib_t::exit(0);
     return 1;
 }
 
