@@ -19,11 +19,11 @@ int main()
     userlib_t::print("\n");
 
     // fork
-    int32 ret = userlib_t::fork();
-    if (ret == 0) {
+    int32 pid = userlib_t::fork();
+    if (pid == 0) {
         // child
-        ret = userlib_t::exec(SHELL_LBA, SHELL_SECT_NUM, "shell");
-        if (ret != 0) {
+        pid = userlib_t::exec(SHELL_LBA, SHELL_SECT_NUM, "shell");
+        if (pid != 0) {
             userlib_t::print("BUG exec failed!!!\n");
         }
         while (1) {
@@ -32,6 +32,8 @@ int main()
         }
     }
     else {
+        userlib_t::wait(pid);
+
         // parent
         while (1) {
             userlib_t::loop_delay(100000000);

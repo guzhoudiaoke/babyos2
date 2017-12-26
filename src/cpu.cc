@@ -157,6 +157,7 @@ void cpu_t::init_idle_process()
 
     m_idle_process->m_vmm.init();
     m_idle_process->m_vmm.set_pg_dir(os()->get_mm()->get_kernel_pg_dir());
+    m_idle_process->m_children.init();
 
     console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
             m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
@@ -169,6 +170,7 @@ void cpu_t::init()
     init_tss();
     init_idle_process();
 
+    m_init_process = NULL;
     m_proc_list_lock.init();
 
     m_timer_list_lock.init();
@@ -333,13 +335,21 @@ void schedule()
     os()->get_arch()->get_cpu()->schedule();
 }
 
-void cpu_t::add_process(process_t* proc)
+void cpu_t::add_process_to_list(process_t* proc)
 {
     m_proc_list_lock.lock();
     proc->m_next = m_idle_process;
     proc->m_prev = m_idle_process->m_prev;
     m_idle_process->m_prev->m_next = proc;
     m_idle_process->m_prev = proc;
+    m_proc_list_lock.unlock();
+}
+
+void cpu_t::remove_process_from_list(process_t* proc)
+{
+    m_proc_list_lock.lock();
+    proc->m_prev->m_next = proc->m_next;
+    proc->m_next->m_prev = proc->m_prev;
     m_proc_list_lock.unlock();
 }
 
@@ -371,7 +381,10 @@ process_t* cpu_t::fork(trap_frame_t* frame)
     p->m_timeslice = 10;
 
     // link to list
-    add_process(p);
+    add_process_to_list(p);
+    p->m_parent = current;
+    p->m_children.init();
+    current->m_children.push_back(p);
 
     return p;
 }
@@ -419,5 +432,69 @@ void cpu_t::remove_timer(timer_t* timer)
 void cpu_t::wake_up_process(process_t* proc)
 {
     proc->m_state = PROCESS_ST_RUNABLE;
+}
+
+void cpu_t::adope_children(process_t* proc)
+{
+    m_proc_list_lock.lock();
+
+    // if have not set init process, set it by idle process's child
+    if (m_init_process == NULL) {
+        m_init_process = *m_idle_process->m_children.begin();
+    }
+
+    list_t<process_t *>::iterator it = proc->m_children.begin();
+    while (it != proc->m_children.end()) {
+        (*it)->m_parent = m_init_process;
+        it++;
+    }
+
+    m_proc_list_lock.unlock();
+}
+
+void cpu_t::notify_parent(process_t* parent)
+{
+    // SIGCHLD is needed, but now not support signal
+    // so just wake up parent
+    wake_up_process(parent);
+}
+
+void cpu_t::wait_children(int32 pid)
+{
+repeat:
+    current->m_state = PROCESS_ST_SLEEP;
+    list_t<process_t *>::iterator it = current->m_children.begin();
+
+    for (it; it != current->m_children.end(); it++) {
+        process_t* p = *it;
+        if (pid != -1 && pid != p->m_pid) {
+            continue;
+        }
+
+        if (p->m_state != PROCESS_ST_ZOMBIE) {
+            continue;
+        }
+
+        os()->get_mm()->free_pages(p, 1);
+        goto end_wait;
+    }
+
+    schedule();
+    goto repeat;
+
+end_wait:
+    current->m_state = PROCESS_ST_RUNABLE;
+}
+
+void cpu_t::do_exit()
+{
+    current->m_vmm.release();
+    adope_children(current);
+
+    current->m_state = PROCESS_ST_ZOMBIE;
+    remove_process_from_list(current);
+    notify_parent(current->m_parent);
+
+    schedule();
 }
 

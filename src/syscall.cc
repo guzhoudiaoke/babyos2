@@ -65,14 +65,15 @@ int32 sys_mmap(trap_frame_t* frame)
 int32 sys_exit(trap_frame_t* frame)
 {
     console()->kprintf(YELLOW, "\ncurrent: %p(%s), pid: %x is exiting\n", current, current->m_name, current->m_pid);
-    current->m_state = PROCESS_ST_ZOMBIE;
-    current->m_vmm.release();
-    os()->get_arch()->get_cpu()->schedule();
+    os()->get_arch()->get_cpu()->do_exit();
     return 0;
 }
 
 int32 sys_wait(trap_frame_t* frame)
 {
+    int32 pid = frame->ebx;
+    os()->get_arch()->get_cpu()->wait_children(pid);
+
     return 0;
 }
 

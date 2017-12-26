@@ -88,16 +88,19 @@ enum {
 };
 
 typedef struct process_s {
-    uint32      m_need_resched;
-    char		m_name[32];
-    pid_t		m_pid;
-    uint32		m_state;
-    context_t	m_context;
-    vmm_t		m_vmm;
-    uint32      m_timeslice;
+    uint32              m_need_resched;
+    char		        m_name[32];
+    pid_t		        m_pid;
+    uint32		        m_state;
+    context_t	        m_context;
+    vmm_t		        m_vmm;
+    uint32              m_timeslice;
 
-    process_t*	m_prev;
-    process_t*	m_next;
+    process_t*          m_parent;
+    list_t<process_t *> m_children;
+
+    process_t*	        m_prev;
+    process_t*	        m_next;
 } process_t;
 
 class cpu_t {
@@ -115,6 +118,8 @@ public:
     void add_timer(timer_t* timer);
     void remove_timer(timer_t* timer);
     void wake_up_process(process_t* proc);
+    void do_exit();
+    void wait_children(int32 pid);
 
 private:
     void init_gdt();
@@ -132,13 +137,17 @@ private:
     void do_interrupt(uint32 trapno);
     void do_syscall(trap_frame_t* frame);
 
-    void add_process(process_t* proc);
+    void add_process_to_list(process_t* proc);
+    void remove_process_from_list(process_t* proc);
+    void adope_children(process_t* proc);
+    void notify_parent(process_t* parent);
 
 private:
     uint64			 m_gdt[GDT_LEN];
     uint64			 m_idt[IDT_LEN];
     tss_t			 m_tss;
     process_t*		 m_idle_process;
+    process_t*		 m_init_process;
     uint32           m_next_pid;
     spinlock_t       m_proc_list_lock;
 

@@ -40,6 +40,11 @@ void userlib_t::exit(int val)
     __asm__ volatile("int $0x80" : : "b" (val), "a" (SYS_EXIT));
 }
 
+void userlib_t::wait(uint32 pid)
+{
+    __asm__ volatile("int $0x80" : : "b" (pid), "a" (SYS_WAIT));
+}
+
 char* userlib_t::strrev(char* str, int len)
 {
     char* s = str;
