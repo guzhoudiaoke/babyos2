@@ -12,6 +12,7 @@
 #include "arch.h"
 #include "ide.h"
 #include "pool.h"
+#include "atomic.h"
 
 enum pool_type_e {
 	VMA_POOL = 0,
@@ -32,6 +33,7 @@ public:
     arch_t*     get_arch();
     ide_t*      get_ide();
 	object_pool_t* get_obj_pool(uint32 type);
+    uint32      get_next_pid();
 
     static babyos_t* get_os();
 
@@ -45,6 +47,7 @@ private:
     arch_t			m_arch;
     ide_t			m_ide;
 	object_pool_t	m_pools[MAX_POOL];
+	atomic_t	    m_next_pid;
 };
 
 #define os()	    babyos_t::get_os()

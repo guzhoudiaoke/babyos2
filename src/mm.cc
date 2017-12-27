@@ -9,6 +9,7 @@
 #include "x86.h"
 #include "console.h"
 #include "string.h"
+#include "process.h"
 
 __attribute__ ((__aligned__(2*PAGE_SIZE)))
 uint8 kernel_stack[KSTACK_SIZE*2] = {
@@ -339,7 +340,7 @@ uint32 mm_t::dec_page_ref(uint32 phy_addr)
 uint32 mm_t::get_page_ref(uint32 phy_addr)
 {
     page_t* page = &m_pages[phy_addr >> PAGE_SHIFT];
-    return page->ref.counter;
+    return atomic_read(&page->ref);
 }
 
 uint32 mm_t::va_2_pa(void* va)

@@ -8,7 +8,8 @@
 
 #include "types.h"
 
-#define ELF_MAGIC 0x464c457FU   // "\x7FELF"
+#define ELF_MAGIC   0x464c457FU   // "\x7FELF"
+#define PT_LOAD     1
 
 // File header
 typedef struct elf_hdr_s {

@@ -62,11 +62,16 @@ void timer_t::init(uint64 expires, uint32 data, void (*func)(uint32))
 
 bool timer_t::update()
 {
+    if (m_expires == 0) {
+        return false;
+    }
+
     --m_expires;
     if (m_expires == 0) {
         m_function(m_data);
         return true;
     }
+
     return false;
 }
 

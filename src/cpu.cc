@@ -11,7 +11,6 @@
 
 extern uint32 isr_vector[];
 extern uint8  kernel_stack[];
-extern void ret_from_isr(void) __asm__("ret_from_isr");
 
 static const char* exception_msg[] = {
     "int0  #DE divide error",
@@ -139,10 +138,12 @@ void cpu_t::init_tss()
 
 void cpu_t::init_idle_process()
 {
-    m_next_pid = 0;
+    //m_next_pid = 0;
     m_idle_process = (process_t *) kernel_stack;
 
-    m_idle_process->m_pid = m_next_pid++;
+    //m_idle_process->m_pid = m_next_pid++;
+    m_idle_process->m_pid = os()->get_next_pid();
+
     m_idle_process->m_state = PROCESS_ST_RUNABLE;
     memset(&m_idle_process->m_context, 0, sizeof(context_t));
     strcpy(m_idle_process->m_name, "idle");
@@ -172,8 +173,6 @@ void cpu_t::init()
 
     m_init_process = NULL;
     m_proc_list_lock.init();
-
-    m_timer_list_lock.init();
     m_timer_list.init();
 }
 
@@ -198,10 +197,6 @@ void cpu_t::do_exception(trap_frame_t* frame)
     while (1) {
         halt();
     }
-}
-
-void test()
-{
 }
 
 void cpu_t::do_interrupt(uint32 trapno)
@@ -250,38 +245,9 @@ void cpu_t::do_common_isr(trap_frame_t* frame)
     }
 }
 
-void cpu_t::sleep()
-{
-    // FIXME: only test
-    __asm__("nop");
-}
-
 // pass args by: eax, edx, ecx
 #define FASTCALL(x)	x __attribute__((regparm(1)))
 extern "C" void FASTCALL(__switch_to(process_t* prev));
-
-//#define switch_to(prev,next,last) do {					\
-//	__asm__ volatile(									\
-//			 "pushl %%esi\n\t"							\
-//		     "pushl %%edi\n\t"							\
-//		     "pushl %%ebp\n\t"							\
-//		     "movl  %%esp,%0\n\t"	/* save ESP */		\
-//		     "movl  %3,%%esp\n\t"	/* restore ESP */	\
-//		     "movl  $1f,%1\n\t"		/* save EIP */		\
-//		     "pushl %4\n\t"			/* restore EIP */	\
-//		     "jmp __switch_to\n"						\
-//		     "1:\t"										\
-//		     "popl %%ebp\n\t"							\
-//		     "popl %%edi\n\t"							\
-//		     "popl %%esi\n\t"							\
-//		     :"=m" (prev->m_context.esp),				\
-//			  "=m" (prev->m_context.eip),				\
-//		      "=b" (last)								\
-//		     :"m" (next->m_context.esp),				\
-//			  "m" (next->m_context.eip),				\
-//		      "a" (prev), "d" (next)					\
-//	);													\
-//} while (0)
 
 #define switch_to(prev,next,last) do {					\
     __asm__ volatile(									\
@@ -314,11 +280,17 @@ void __switch_to(process_t* next)
 
 void cpu_t::schedule()
 {
+    cli();
     process_t* prev = current;
     process_t* next = current->m_next;
     while (next != prev && next->m_state != PROCESS_ST_RUNABLE) {
         next = next->m_next;
     }
+    if (prev->m_state != PROCESS_ST_RUNABLE) {
+        remove_process_from_list(prev);
+    }
+    sti();
+
     if (prev == next) {
         return;
     }
@@ -333,6 +305,22 @@ extern "C"
 void schedule()
 {
     os()->get_arch()->get_cpu()->schedule();
+}
+
+bool cpu_t::is_in_process_list(process_t* proc)
+{
+    bool find = false;
+    m_proc_list_lock.lock();
+    process_t* p = m_idle_process->m_next;
+    while (p != m_idle_process) {
+        if (p == proc) {
+            find = true;
+            break;
+        }
+        p = p->m_next;
+    }
+    m_proc_list_lock.unlock();
+    return find;
 }
 
 void cpu_t::add_process_to_list(process_t* proc)
@@ -355,36 +343,20 @@ void cpu_t::remove_process_from_list(process_t* proc)
 
 process_t* cpu_t::fork(trap_frame_t* frame)
 {
-    // alloc a process_t
-    process_t* p = (process_t *)os()->get_mm()->alloc_pages(1);
-    *p = *current;
+    // fork a new process
+    process_t*p = current->fork(frame);
 
-    // frame
-    trap_frame_t* child_frame = ((trap_frame_t *) ((uint32(p) + PAGE_SIZE*2))) - 1;
-    memcpy(child_frame, frame, sizeof(trap_frame_t));
-    child_frame->eax = 0;
-
-    // vmm
-    p->m_vmm.copy(current->m_vmm);
-
-    // context
-    p->m_context.esp = (uint32) child_frame;
-    p->m_context.esp0 = (uint32) (child_frame + 1);
-    p->m_context.eip = (uint32) ret_from_isr;
-
-    // pid, need check if same with other process
-    p->m_pid = m_next_pid++;
-
-    // change state
-    p->m_state = PROCESS_ST_RUNABLE;
-    p->m_need_resched = 0;
-    p->m_timeslice = 10;
+    // close interrupt
+    cli();
 
     // link to list
     add_process_to_list(p);
-    p->m_parent = current;
-    p->m_children.init();
+
+    // add a child for current
     current->m_children.push_back(p);
+
+    // start interrupt
+    sti();
 
     return p;
 }
@@ -394,31 +366,25 @@ void cpu_t::update()
     if (--current->m_timeslice == 0) {
         current->m_need_resched = 1;
         current->m_timeslice = 10;
-        //console()->kprintf(PINK, "process %u no time slice left\n", current->m_pid);
     }
 
-    m_timer_list_lock.lock();
     list_t<timer_t*>::iterator it = m_timer_list.begin();
     while (it != m_timer_list.end()) {
-        if ((*it)->update()) {
-            it = m_timer_list.erase(it);
-            continue;
-        }
+        (*it)->update();
         it++;
     }
-    m_timer_list_lock.unlock();
 }
 
 void cpu_t::add_timer(timer_t* timer)
 {
-    m_timer_list_lock.lock();
+    cli();
     m_timer_list.push_back(timer);
-    m_timer_list_lock.unlock();
+    sti();
 }
 
 void cpu_t::remove_timer(timer_t* timer)
 {
-    m_timer_list_lock.lock();
+    cli();
     list_t<timer_t*>::iterator it = m_timer_list.begin();
     while (it != m_timer_list.end()) {
         if (timer == *it) {
@@ -426,75 +392,26 @@ void cpu_t::remove_timer(timer_t* timer)
             break;
         }
     }
-    m_timer_list_lock.unlock();
+    sti();
 }
 
 void cpu_t::wake_up_process(process_t* proc)
 {
-    proc->m_state = PROCESS_ST_RUNABLE;
+    cli();
+    proc->wake_up();
+    if (!is_in_process_list(proc)) {
+        add_process_to_list(proc);
+    }
+    sti();
 }
 
-void cpu_t::adope_children(process_t* proc)
+process_t* cpu_t::get_child_reaper()
 {
-    m_proc_list_lock.lock();
-
     // if have not set init process, set it by idle process's child
     if (m_init_process == NULL) {
         m_init_process = *m_idle_process->m_children.begin();
     }
 
-    list_t<process_t *>::iterator it = proc->m_children.begin();
-    while (it != proc->m_children.end()) {
-        (*it)->m_parent = m_init_process;
-        it++;
-    }
-
-    m_proc_list_lock.unlock();
-}
-
-void cpu_t::notify_parent(process_t* parent)
-{
-    // SIGCHLD is needed, but now not support signal
-    // so just wake up parent
-    wake_up_process(parent);
-}
-
-void cpu_t::wait_children(int32 pid)
-{
-repeat:
-    current->m_state = PROCESS_ST_SLEEP;
-    list_t<process_t *>::iterator it = current->m_children.begin();
-
-    for (it; it != current->m_children.end(); it++) {
-        process_t* p = *it;
-        if (pid != -1 && pid != p->m_pid) {
-            continue;
-        }
-
-        if (p->m_state != PROCESS_ST_ZOMBIE) {
-            continue;
-        }
-
-        os()->get_mm()->free_pages(p, 1);
-        goto end_wait;
-    }
-
-    schedule();
-    goto repeat;
-
-end_wait:
-    current->m_state = PROCESS_ST_RUNABLE;
-}
-
-void cpu_t::do_exit()
-{
-    current->m_vmm.release();
-    adope_children(current);
-
-    current->m_state = PROCESS_ST_ZOMBIE;
-    remove_process_from_list(current);
-    notify_parent(current->m_parent);
-
-    schedule();
+    return m_init_process;
 }
 

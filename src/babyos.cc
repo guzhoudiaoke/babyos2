@@ -72,7 +72,7 @@ void test_draw_time()
 inline void delay_print(char* s)
 {
     while (1) {
-        for (int i = 0; i < 100000000; i++);
+        for (int i = 0; i < 300000000; i++);
         console()->kprintf(YELLOW, s);
     }
 }
@@ -175,6 +175,8 @@ void test_list()
 
 void babyos_t::run()
 {
+    atomic_set(&m_next_pid, 0);
+
     m_screen.init();
     m_console.init();
 
@@ -207,5 +209,12 @@ void babyos_t::update(uint32 tick)
 
     // console
     m_console.update();
+}
+
+uint32 babyos_t::get_next_pid()
+{
+    uint32 pid = atomic_read(&m_next_pid);
+    atomic_inc(&m_next_pid);
+    return pid;
 }
 

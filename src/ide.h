@@ -9,6 +9,8 @@
 #include "types.h"
 #include "spinlock.h"
 #include "kernel.h"
+#include "list.h"
+#include "process.h"
 
 #define HD_STATE_READY  0x40
 #define HD_STATE_BUSY   0x80
@@ -21,11 +23,20 @@
 /* io control block */
 typedef struct io_clb_s {
     uint32            flags;
-    uint32            read;
     uint32            dev;
+    uint32            read;
     uint32            lba;
     struct io_clb_s*  next;
+    process_t*        wait;
     uint8             buffer[SECT_SIZE];
+
+    void init(uint32 dev, uint32 read, uint32 lba) {
+        this->flags = 0;
+        this->dev = dev;
+        this->read = read;
+        this->lba = lba;
+        this->wait = NULL;
+    }
 } io_clb_t;
 
 class ide_t {

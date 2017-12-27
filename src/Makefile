@@ -19,6 +19,7 @@ OBJS = \
 	vm.o\
 	pool.o\
 	elf.o\
+    process.o\
 
 AS = as --32
 CC = gcc -m32

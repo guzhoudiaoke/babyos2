@@ -45,9 +45,8 @@ void ide_t::request(io_clb_t *clb)
     }
 
     while ((clb->flags & IO_STATE_DONE) != IO_STATE_DONE) {
-        os()->get_arch()->get_cpu()->sleep();
+        current->sleep();
     }
-
 }
 
 void ide_t::start(io_clb_t *clb)
@@ -95,7 +94,9 @@ void ide_t::do_irq()
     insl(0x1f0, clb->buffer, SECT_SIZE/4);
 
     clb->flags |= IO_STATE_DONE;
-    // wakeup()
+    if (clb->wait != NULL) {
+        os()->get_arch()->get_cpu()->wake_up_process(clb->wait);
+    }
 
     /* EOI */
     outb(0x20, 0x20);

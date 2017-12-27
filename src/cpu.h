@@ -13,6 +13,7 @@
 #include "spinlock.h"
 #include "timer.h"
 #include "list.h"
+#include "process.h"
 
 
 #define TRAP_GATE_FLAG      (0x00008f0000000000ULL)
@@ -24,19 +25,6 @@
 
 
 #define INT_PF				(14)
-
-
-struct process_s;
-typedef struct process_s process_t;
-static inline process_t* get_current(void)
-{
-    process_t* current;
-    __asm__("andl %%esp,%0; ":"=r" (current) : "0" (~8191UL));
-
-    return current;
-}
-
-#define current get_current()
 
 
 /* tss struct defined in linux */
@@ -71,38 +59,6 @@ typedef struct tss_s {
     uint32 __cacheline_filler[5];
 } tss_t;
 
-typedef struct context_s {
-    uint32	esp0;
-    uint32	eip;
-    uint32	esp;
-    uint32	fs;
-    uint32	gs;
-} context_t;
-
-enum {
-    PROCESS_ST_PREPARE = 0,
-    PROCESS_ST_RUNABLE,
-    PROCESS_ST_RUNNING,
-    PROCESS_ST_SLEEP,
-    PROCESS_ST_ZOMBIE,
-};
-
-typedef struct process_s {
-    uint32              m_need_resched;
-    char		        m_name[32];
-    pid_t		        m_pid;
-    uint32		        m_state;
-    context_t	        m_context;
-    vmm_t		        m_vmm;
-    uint32              m_timeslice;
-
-    process_t*          m_parent;
-    list_t<process_t *> m_children;
-
-    process_t*	        m_prev;
-    process_t*	        m_next;
-} process_t;
-
 class cpu_t {
 public:
     cpu_t();
@@ -110,7 +66,6 @@ public:
 
     void init();
     void do_common_isr(trap_frame_t* frame);
-    void sleep();
     void schedule();
     tss_t* get_tss() { return &m_tss; }
     process_t* fork(trap_frame_t* frame);
@@ -118,8 +73,8 @@ public:
     void add_timer(timer_t* timer);
     void remove_timer(timer_t* timer);
     void wake_up_process(process_t* proc);
-    void do_exit();
-    void wait_children(int32 pid);
+
+    process_t* get_child_reaper();
 
 private:
     void init_gdt();
@@ -137,10 +92,9 @@ private:
     void do_interrupt(uint32 trapno);
     void do_syscall(trap_frame_t* frame);
 
+    bool is_in_process_list(process_t* proc);
     void add_process_to_list(process_t* proc);
     void remove_process_from_list(process_t* proc);
-    void adope_children(process_t* proc);
-    void notify_parent(process_t* parent);
 
 private:
     uint64			 m_gdt[GDT_LEN];
@@ -148,11 +102,8 @@ private:
     tss_t			 m_tss;
     process_t*		 m_idle_process;
     process_t*		 m_init_process;
-    uint32           m_next_pid;
     spinlock_t       m_proc_list_lock;
-
     list_t<timer_t*> m_timer_list;
-    spinlock_t       m_timer_list_lock;
 };
 
 #endif

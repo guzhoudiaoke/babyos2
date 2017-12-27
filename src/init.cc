@@ -36,7 +36,7 @@ int main()
 
         // parent
         while (1) {
-            userlib_t::loop_delay(100000000);
+            userlib_t::sleep(2);
             userlib_t::print("I,");
         }
     }
