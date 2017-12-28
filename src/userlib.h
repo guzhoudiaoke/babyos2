@@ -8,7 +8,7 @@
 
 #include "types.h"
 #include "syscall.h"
-
+#include "signal.h"
 
 #define PROT_NONE           0x0       /* page can not be accessed */
 #define PROT_READ           0x1       /* page can be read */
@@ -23,6 +23,8 @@ public:
     static void *mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags);
     static void exit(int val);
     static void wait(uint32 pid);
+    static void kill(uint32 pid, uint32 sig);
+    static void signal(uint32 sig, sighandler_t handler);
 
     static void print(const char *str);
     static void print_int(int32 n, int32 base, int32 sign);

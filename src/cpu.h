@@ -73,8 +73,11 @@ public:
     void add_timer(timer_t* timer);
     void remove_timer(timer_t* timer);
     void wake_up_process(process_t* proc);
-
     process_t* get_child_reaper();
+    void release_process(process_t* proc);
+
+    int32 send_signal_to(const siginfo_t& si, uint32 pid);
+    void do_signal(trap_frame_t* frame);
 
 private:
     void init_gdt();
@@ -96,14 +99,17 @@ private:
     void add_process_to_list(process_t* proc);
     void remove_process_from_list(process_t* proc);
 
+    process_t* find_process(uint32 pid);
+
 private:
     uint64			 m_gdt[GDT_LEN];
     uint64			 m_idt[IDT_LEN];
     tss_t			 m_tss;
     process_t*		 m_idle_process;
     process_t*		 m_init_process;
-    spinlock_t       m_proc_list_lock;
+    spinlock_t       m_proc_run_queue_lock;
     list_t<timer_t*> m_timer_list;
+    list_t<process_t*> m_proc_list;
 };
 
 #endif

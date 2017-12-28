@@ -9,6 +9,7 @@
 #include "types.h"
 #include "list.h"
 #include "vm.h"
+#include "signal.h"
 
 /* get current by kernel stack */
 class process_t;
@@ -48,6 +49,7 @@ public:
     void wake_up();
     int32 exit();
     int32 wait_children(int32 pid);
+    void calc_sig_pending();
 
 private:
     void notify_parent();
@@ -55,6 +57,7 @@ private:
 
 public:
     uint32              m_need_resched;
+    uint32              m_sig_pending;
     char		        m_name[32];
     pid_t		        m_pid;
     uint32		        m_state;
@@ -65,8 +68,14 @@ public:
     process_t*          m_parent;
     list_t<process_t *> m_children;
 
+    signal_t            m_signals;
+    list_t<siginfo_t>   m_sig_queue;
+    sigset_t            m_sig_blocked;
+    spinlock_t          m_sig_mask_lock;
+
     process_t*	        m_prev;
     process_t*	        m_next;
 };
 
 #endif
+

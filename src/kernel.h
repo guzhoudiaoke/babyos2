@@ -19,7 +19,7 @@
 
 #define	SECT_SIZE			(512)
 #define LOADER_SECT_NUM     (1)
-#define KERNEL_SECT_NUM	    (512)
+#define KERNEL_SECT_NUM	    (1024)
 
 /* address of temp kernel */
 #define TMP_KERNEL_ADDR	    (0x10000)

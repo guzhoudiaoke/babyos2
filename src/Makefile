@@ -20,6 +20,7 @@ OBJS = \
 	pool.o\
 	elf.o\
     process.o\
+    signal.o\
 
 AS = as --32
 CC = gcc -m32
@@ -34,16 +35,17 @@ CPPFLAGS = -g -w -trigraphs -fno-builtin -fno-exceptions -fno-stack-protector -m
 all: babyos
 
 babyos: boot loader kernel init shell
+	../tool/checksize boot 1
 	../tool/checksize loader 1
-	../tool/checksize kernel 502
+	../tool/checksize kernel 1014
 	../tool/checksize init 32
 	../tool/checksize shell 32
-	dd if=boot   of=baby_hd.img ibs=512 count=1 conv=notrunc
-	dd if=loader of=baby_hd.img ibs=512 seek=1 count=1 conv=notrunc
-	dd if=kernel of=baby_hd.img ibs=512 seek=2 conv=notrunc
-	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=504 conv=notrunc
-	dd if=init of=baby_hd.img ibs=512 seek=512 conv=notrunc
-	dd if=shell of=baby_hd.img ibs=512 seek=544 conv=notrunc
+	dd if=boot              of=baby_hd.img ibs=512 seek=0   count=1 conv=notrunc
+	dd if=loader            of=baby_hd.img ibs=512 seek=1   count=1 conv=notrunc
+	dd if=kernel            of=baby_hd.img ibs=512 seek=2           conv=notrunc
+	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=1016        conv=notrunc
+	dd if=init              of=baby_hd.img ibs=512 seek=1024        conv=notrunc
+	dd if=shell             of=baby_hd.img ibs=512 seek=1056        conv=notrunc
 
 boot: boot.S
 	${CPP} ${CPPFLAGS} -c boot.S

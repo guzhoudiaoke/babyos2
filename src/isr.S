@@ -35,6 +35,9 @@
 .global isr_vector
 .global ret_from_isr
 
+need_resched = 0
+sig_pending  = 4
+
 
 #define SAVE_ALL \
 	cld; \
@@ -67,11 +70,15 @@
 	movl $-8192, reg; \
 	andl %esp, reg
 
-	need_resched = 0
-
 reschedule:
 	call schedule
 	jmp	 restore_all
+
+dosignal:
+	pushl   %esp
+	call do_signal
+	addl    $4,             %esp
+	jmp  restore_all
 
 common_isr:
 	SAVE_ALL
@@ -89,6 +96,8 @@ ret_from_isr:
 	cli
 	cmpl	$0,				need_resched(%ebx)
 	jne		reschedule
+	cmpl    $0,             sig_pending(%ebx)
+	jne     dosignal
 restore_all:
 	RESTORE_ALL
 	addl    $8,             %esp

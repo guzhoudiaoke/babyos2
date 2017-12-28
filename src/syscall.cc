@@ -21,6 +21,9 @@ int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
     syscall_t::sys_exit,
     syscall_t::sys_wait,
     syscall_t::sys_sleep,
+    syscall_t::sys_signal,
+    syscall_t::sys_sigret,
+    syscall_t::sys_kill,
 };
 
 int32 syscall_t::sys_print(trap_frame_t* frame)
@@ -68,6 +71,25 @@ int32 syscall_t::sys_sleep(trap_frame_t* frame)
     uint32 ticks = frame->ebx * HZ;
     current->sleep(ticks);
     return 0;
+}
+
+int32 syscall_t::sys_signal(trap_frame_t* frame)
+{
+    uint32 sig = frame->ebx;
+    sighandler_t sig_handler = (sighandler_t) frame->ecx;
+    return signal_t::do_sigaction(sig, sig_handler);
+}
+
+int32 syscall_t::sys_sigret(trap_frame_t* frame)
+{
+    return signal_t::do_sigreturn(frame);
+}
+
+int32 syscall_t::sys_kill(trap_frame_t* frame)
+{
+    uint32 pid = frame->ebx;
+    uint32 sig = frame->ecx;
+    return signal_t::do_send_signal(pid, sig);
 }
 
 void syscall_t::do_syscall(trap_frame_t* frame)

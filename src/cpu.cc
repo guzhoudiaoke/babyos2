@@ -151,6 +151,7 @@ void cpu_t::init_idle_process()
     m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + 2*KSTACK_SIZE);
     m_idle_process->m_timeslice = 10;
     m_idle_process->m_need_resched = 0;
+    m_idle_process->m_sig_queue.init();
 
     // make link
     m_idle_process->m_next = m_idle_process;
@@ -159,6 +160,7 @@ void cpu_t::init_idle_process()
     m_idle_process->m_vmm.init();
     m_idle_process->m_vmm.set_pg_dir(os()->get_mm()->get_kernel_pg_dir());
     m_idle_process->m_children.init();
+    m_proc_list.push_back(m_idle_process);
 
     console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
             m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
@@ -169,11 +171,13 @@ void cpu_t::init()
     init_gdt();
     init_idt();
     init_tss();
-    init_idle_process();
 
     m_init_process = NULL;
-    m_proc_list_lock.init();
+    m_proc_run_queue_lock.init();
     m_timer_list.init();
+    m_proc_list.init();
+
+    init_idle_process();
 }
 
 void cpu_t::do_exception(trap_frame_t* frame)
@@ -310,7 +314,7 @@ void schedule()
 bool cpu_t::is_in_process_list(process_t* proc)
 {
     bool find = false;
-    m_proc_list_lock.lock();
+    m_proc_run_queue_lock.lock();
     process_t* p = m_idle_process->m_next;
     while (p != m_idle_process) {
         if (p == proc) {
@@ -319,26 +323,26 @@ bool cpu_t::is_in_process_list(process_t* proc)
         }
         p = p->m_next;
     }
-    m_proc_list_lock.unlock();
+    m_proc_run_queue_lock.unlock();
     return find;
 }
 
 void cpu_t::add_process_to_list(process_t* proc)
 {
-    m_proc_list_lock.lock();
+    m_proc_run_queue_lock.lock();
     proc->m_next = m_idle_process;
     proc->m_prev = m_idle_process->m_prev;
     m_idle_process->m_prev->m_next = proc;
     m_idle_process->m_prev = proc;
-    m_proc_list_lock.unlock();
+    m_proc_run_queue_lock.unlock();
 }
 
 void cpu_t::remove_process_from_list(process_t* proc)
 {
-    m_proc_list_lock.lock();
+    m_proc_run_queue_lock.lock();
     proc->m_prev->m_next = proc->m_next;
     proc->m_next->m_prev = proc->m_prev;
-    m_proc_list_lock.unlock();
+    m_proc_run_queue_lock.unlock();
 }
 
 process_t* cpu_t::fork(trap_frame_t* frame)
@@ -354,6 +358,8 @@ process_t* cpu_t::fork(trap_frame_t* frame)
 
     // add a child for current
     current->m_children.push_back(p);
+
+    m_proc_list.push_back(p);
 
     // start interrupt
     sti();
@@ -413,5 +419,64 @@ process_t* cpu_t::get_child_reaper()
     }
 
     return m_init_process;
+}
+
+void cpu_t::release_process(process_t* proc)
+{
+    list_t<process_t*>::iterator it = m_proc_list.begin();
+    while (it != m_proc_list.end()) {
+        if (*it == proc) {
+            m_proc_list.erase(it);
+            break;
+        }
+        it++;
+    }
+
+    os()->get_mm()->free_pages(proc, 1);
+}
+
+process_t* cpu_t::find_process(uint32 pid)
+{
+    process_t* p = NULL;
+    list_t<process_t*>::iterator it = m_proc_list.begin();
+    while (it != m_proc_list.end()) {
+        if ((*it)->m_pid == pid) {
+            p = *it;
+            break;
+        }
+        it++;
+    }
+
+    return p;
+}
+
+int32 cpu_t::send_signal_to(const siginfo_t& si, uint32 pid)
+{
+    console()->kprintf(WHITE, "send_signal, ");
+
+    cli();
+    process_t* p = find_process(pid);
+    if (p != NULL) {
+        p->m_sig_queue.push_back(si);
+        p->calc_sig_pending();
+    }
+    sti();
+
+    return 0;
+}
+
+extern "C"
+void do_signal(trap_frame_t* frame)
+{
+    os()->get_arch()->get_cpu()->do_signal(frame);
+}
+
+void cpu_t::do_signal(trap_frame_t* frame)
+{
+    if (!current->m_sig_queue.empty()) {
+        siginfo_t si = *current->m_sig_queue.begin();
+        current->m_sig_queue.pop_front();
+        signal_t::handle_signal(frame, si);
+    }
 }
 

@@ -25,6 +25,11 @@ process_t* process_t::fork(trap_frame_t* frame)
     // vmm
     p->m_vmm.copy(m_vmm);
 
+    // signal
+    p->m_signals.copy(m_signals);
+    m_sig_queue.init();
+    m_sig_mask_lock.init();
+
     // context
     p->m_context.esp = (uint32) child_frame;
     p->m_context.esp0 = (uint32) (child_frame + 1);
@@ -160,7 +165,7 @@ repeat:
         }
 
         // this child has be ZOMBIE, free it
-        os()->get_mm()->free_pages(p, 1);
+        os()->get_arch()->get_cpu()->release_process(p);
         goto end_wait;
     }
     sti();
@@ -201,5 +206,10 @@ int32 process_t::exit()
     os()->get_arch()->get_cpu()->schedule();
 
     return 0;
+}
+
+void process_t::calc_sig_pending()
+{
+    m_sig_pending = !m_sig_queue.empty();
 }
 

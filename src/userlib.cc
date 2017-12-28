@@ -101,3 +101,13 @@ void userlib_t::sleep(uint32 second)
     __asm__ volatile("int $0x80" : : "b" (second), "a" (SYS_SLEEP));
 }
 
+void userlib_t::kill(uint32 pid, uint32 sig)
+{
+    __asm__ volatile("int $0x80" : : "b" (pid), "c"(sig), "a" (SYS_KILL));
+}
+
+void userlib_t::signal(uint32 sig, sighandler_t handler)
+{
+    __asm__ volatile("int $0x80" : : "b" (sig), "c"(handler), "a" (SYS_SIGNAL));
+}
+

@@ -5,7 +5,7 @@
 
 #include "userlib.h"
 
-#define SHELL_LBA       544
+#define SHELL_LBA       1056
 #define SHELL_SECT_NUM  32
 
 int main()
@@ -32,12 +32,13 @@ int main()
         }
     }
     else {
-        userlib_t::wait(pid);
+        //userlib_t::wait(pid);
 
         // parent
         while (1) {
             userlib_t::sleep(2);
             userlib_t::print("I,");
+            userlib_t::kill(pid, 4);
         }
     }
 

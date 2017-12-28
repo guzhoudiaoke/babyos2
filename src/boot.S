@@ -122,7 +122,7 @@ load_kernel:
     movl    %eax,               (disk_addr_packet + 6)
 
 	incw	%cx
-	cmpw	$KERNEL_SECT_NUM+1,	%cx
+	cmpw	$KERNEL_SECT_NUM,	%cx
 	jne		1b
 
 	# move first sector(the loader) to 0x0000

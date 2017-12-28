@@ -17,6 +17,9 @@ enum {
 	SYS_EXIT,
 	SYS_WAIT,
     SYS_SLEEP,
+    SYS_SIGNAL,
+    SYS_SIGRET,
+    SYS_KILL,
     MAX_SYSCALL,
 };
 
@@ -31,6 +34,9 @@ public:
     static int32 sys_exit(trap_frame_t* frame);
     static int32 sys_wait(trap_frame_t* frame);
     static int32 sys_sleep(trap_frame_t* frame);
+    static int32 sys_signal(trap_frame_t* frame);
+    static int32 sys_sigret(trap_frame_t* frame);
+    static int32 sys_kill(trap_frame_t* frame);
 
 private:
     static char s_print_buffer[1024];

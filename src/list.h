@@ -143,8 +143,14 @@ public:
             return false;
         }
         list_node_t<T> *del = m_tail;
-        m_tail = m_tail->m_prev;
-        m_tail->m_next = NULL;
+        m_size--;
+        if (m_size == 0) {
+            m_head = m_tail = NULL;
+        }
+        else {
+            m_tail = m_tail->m_prev;
+            m_tail->m_next = NULL;
+        }
         m_pool.free_object((void *) del);
         return true;
     }
@@ -159,8 +165,14 @@ public:
         }
 
         list_node_t<T> *del = m_head;
-        m_head = m_head->m_next;
-        m_head->m_prev = NULL;
+        m_size--;
+        if (m_size == 0) {
+            m_head = m_tail = NULL;
+        }
+        else {
+            m_head = m_head->m_next;
+            m_head->m_prev = NULL;
+        }
         m_pool.free_object((void *) del);
         return true;
     }
