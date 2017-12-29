@@ -138,10 +138,7 @@ void cpu_t::init_tss()
 
 void cpu_t::init_idle_process()
 {
-    //m_next_pid = 0;
     m_idle_process = (process_t *) kernel_stack;
-
-    //m_idle_process->m_pid = m_next_pid++;
     m_idle_process->m_pid = os()->get_next_pid();
 
     m_idle_process->m_state = PROCESS_ST_RUNABLE;
@@ -151,7 +148,11 @@ void cpu_t::init_idle_process()
     m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + 2*KSTACK_SIZE);
     m_idle_process->m_timeslice = 10;
     m_idle_process->m_need_resched = 0;
+
+    // signal
     m_idle_process->m_sig_queue.init();
+    m_idle_process->m_sig_pending = 0;
+    m_idle_process->m_signal.init();
 
     // make link
     m_idle_process->m_next = m_idle_process;
@@ -185,10 +186,8 @@ void cpu_t::do_exception(trap_frame_t* frame)
     uint32 trapno = frame->trapno;
     if (trapno <= 0x10) {
         if (trapno == INT_PF) {
-            /* if success to process the page fault, just return, else halt forever... */
-            if (current->m_vmm.do_page_fault(frame) == 0) {
-                return;
-            }
+            current->m_vmm.do_page_fault(frame);
+            return;
         }
 
         console()->kprintf(RED, "Exception: %s\n", exception_msg[trapno]);
@@ -476,7 +475,8 @@ void cpu_t::do_signal(trap_frame_t* frame)
     if (!current->m_sig_queue.empty()) {
         siginfo_t si = *current->m_sig_queue.begin();
         current->m_sig_queue.pop_front();
-        signal_t::handle_signal(frame, si);
+        current->calc_sig_pending();
+        current->m_signal.handle_signal(frame, si);
     }
 }
 

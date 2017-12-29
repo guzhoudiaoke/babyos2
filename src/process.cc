@@ -26,7 +26,7 @@ process_t* process_t::fork(trap_frame_t* frame)
     p->m_vmm.copy(m_vmm);
 
     // signal
-    p->m_signals.copy(m_signals);
+    p->m_signal.copy(m_signal);
     m_sig_queue.init();
     m_sig_mask_lock.init();
 
@@ -187,6 +187,8 @@ end_wait:
 
 int32 process_t::exit()
 {
+    console()->kprintf(YELLOW, "\ncurrent: %p(%s), pid: %x is exiting\n", current, current->m_name, current->m_pid);
+
     // remove the resource, now only memory 
     m_vmm.release();
 

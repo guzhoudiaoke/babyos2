@@ -7,6 +7,7 @@
 #include "vm.h"
 #include "x86.h"
 #include "string.h"
+#include "signal.h"
 
 void vmm_t::init()
 {
@@ -348,9 +349,16 @@ uint32 vmm_t::do_protection_fault(vm_area_t* vma, uint32 addr, uint32 write)
     os()->get_mm()->copy_page(mem, (void *) addr);
     os()->get_mm()->free_pages((void *) (PA2VA(pa)), 0);
     os()->get_mm()->map_pages(m_pg_dir, (void*) addr, VA2PA(mem), PAGE_SIZE, PTE_W | PTE_U);
-    //console()->kprintf(GREEN, "alloc, copy and map page\n");
 
     return 0;
+}
+
+void vmm_t::send_sig_segv()
+{
+    siginfo_t si;
+    si.m_sig = SIG_SEGV;
+    si.m_pid = -1;
+    os()->get_arch()->get_cpu()->send_signal_to(si, current->m_pid);
 }
 
 /*
@@ -376,12 +384,14 @@ uint32 vmm_t::do_page_fault(trap_frame_t* frame)
             }
             else {
                 console()->kprintf(RED, "segment fault, addr: %x!\n", addr);
+                send_sig_segv();
                 return -1;
             }
         }
 
         if (!expand_stk) {
             console()->kprintf(RED, "segment fault, addr: %x!\n", addr);
+            send_sig_segv();
             return -1;
         }
     }
@@ -392,15 +402,10 @@ uint32 vmm_t::do_page_fault(trap_frame_t* frame)
             return do_protection_fault(vma, addr, (uint32) (frame->err & 2));
         }
 
-        //console()->kprintf(YELLOW, "handle no page, addr: %x\n", addr);
-
         /* no page found */
         void* mem = os()->get_mm()->alloc_pages(0);
-        //console()->kprintf(YELLOW, "addr: %x, map page: %x\n", addr, os()->get_mm()->va_2_pa(mem));
-
         addr = (addr & PAGE_MASK);
         os()->get_mm()->map_pages(m_pg_dir, (void*) addr, VA2PA(mem), PAGE_SIZE, PTE_W | PTE_U);
-        //console()->kprintf(GREEN, "alloc and map pages\n");
     }
 
     return 0;
@@ -479,7 +484,6 @@ void vmm_t::release()
     // 1. pages
     vm_area_t* vma = m_mmap;
     while (vma != NULL) {
-        //console()->kprintf(YELLOW, "free page range: [%x, %x]\n", vma->m_start, vma->m_end);
         free_page_range(vma->m_start, vma->m_end);
         vma = vma->m_next;
     }
@@ -492,8 +496,6 @@ void vmm_t::release()
     while (vma != NULL) {
         vm_area_t* del = vma;
         vma = vma->m_next;
-         
-        //console()->kprintf(YELLOW, "removing vma: [%x, %x]\n", del->m_start, del->m_end);
         os()->get_obj_pool(VMA_POOL)->free_object(del);
     }
     m_mmap = NULL;

@@ -16,6 +16,11 @@ typedef uint64 sigset_t;
 #define NSIG    32
 #define SIG_DFL  (sighandler_t)(-1)
 
+enum sig_no_e {
+    SIG_KILL = 0,
+    SIG_SEGV,
+};
+
 typedef struct sigaction_s {
     sighandler_t    m_handler;
     uint64          m_flags;
@@ -44,11 +49,13 @@ public:
     void lock();
     void unlock();
     void set_sigaction(uint32 sig, const sigaction_t& sa);
+    int32 do_sigaction(uint32 sig, sighandler_t sig_handler);
+    int32 handle_signal(trap_frame_t* frame, const siginfo_t& si);
+    int32 handle_signal_default(uint32 sig);
 
-    static int32 do_sigaction(uint32 sig, sighandler_t sig_handler);
     static int32 do_send_signal(uint32 pid, uint32 sig);
     static int32 do_sigreturn(trap_frame_t* frame);
-    static int32 handle_signal(trap_frame_t* frame, const siginfo_t& si);
+
 
 public:
 

@@ -19,9 +19,18 @@ int main()
     userlib_t::signal(4, handler);
     userlib_t::print("This is printed by shell.\n");
 
-    while (1) {
+    int times = 0;
+    while (times++ < 5) {
         userlib_t::sleep(2);
         userlib_t::print("S,");
+    }
+
+    int* p = (int *) 0xa0000000;
+    *p = 0x1234;
+
+    while (1) {
+        userlib_t::sleep(2);
+        userlib_t::print("s,");
     }
 
     userlib_t::exit(0);

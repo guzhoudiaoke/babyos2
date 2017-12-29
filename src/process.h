@@ -68,7 +68,7 @@ public:
     process_t*          m_parent;
     list_t<process_t *> m_children;
 
-    signal_t            m_signals;
+    signal_t            m_signal;
     list_t<siginfo_t>   m_sig_queue;
     sigset_t            m_sig_blocked;
     spinlock_t          m_sig_mask_lock;

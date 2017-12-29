@@ -72,6 +72,7 @@ private:
 
     void   free_page_range(uint32 start, uint32 end);
     void   free_page_table();
+    void   send_sig_segv();
 
 private:
 	vm_area_t*	m_mmap;

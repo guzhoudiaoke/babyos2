@@ -47,9 +47,9 @@ void signal_t::unlock()
 
 void signal_t::set_sigaction(uint32 sig, const sigaction_t& sa)
 {
-    m_action[sig].m_handler = sa.m_handler;
-    m_action[sig].m_flags   = sa.m_flags;
-    m_action[sig].m_mask    = sa.m_mask;
+    m_action[sig - 1].m_handler = sa.m_handler;
+    m_action[sig - 1].m_flags   = sa.m_flags;
+    m_action[sig - 1].m_mask    = sa.m_mask;
 }
 
 int32 signal_t::do_sigaction(uint32 sig, sighandler_t sig_handler)
@@ -61,9 +61,9 @@ int32 signal_t::do_sigaction(uint32 sig, sighandler_t sig_handler)
     sigaction_t sa;
     sa.m_handler = sig_handler;
 
-    current->m_signals.lock();
-    current->m_signals.set_sigaction(sig, sa);
-    current->m_signals.unlock();
+    lock();
+    set_sigaction(sig, sa);
+    unlock();
 
     return 0;
 }
@@ -77,12 +77,20 @@ int32 signal_t::do_send_signal(uint32 pid, uint32 sig)
     return os()->get_arch()->get_cpu()->send_signal_to(si, pid);
 }
 
+int32 signal_t::handle_signal_default(uint32 sig)
+{
+    if (sig == SIG_SEGV) {
+        current->exit();
+    }
+    return 0;
+}
+
 int32 signal_t::handle_signal(trap_frame_t* frame, const siginfo_t& si)
 {
     uint32 sig = si.m_sig;
-    sigaction_t* action = &current->m_signals.m_action[sig];
+    sigaction_t* action = &m_action[sig - 1];
     if (action->m_handler == SIG_DFL) {
-        return -1;
+        return handle_signal_default(sig);
     }
 
     /* get sig frame */

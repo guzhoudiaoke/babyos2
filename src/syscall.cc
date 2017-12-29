@@ -56,7 +56,6 @@ int32 syscall_t::sys_mmap(trap_frame_t* frame)
 
 int32 syscall_t::sys_exit(trap_frame_t* frame)
 {
-    console()->kprintf(YELLOW, "\ncurrent: %p(%s), pid: %x is exiting\n", current, current->m_name, current->m_pid);
     return current->exit();
 }
 
@@ -77,7 +76,7 @@ int32 syscall_t::sys_signal(trap_frame_t* frame)
 {
     uint32 sig = frame->ebx;
     sighandler_t sig_handler = (sighandler_t) frame->ecx;
-    return signal_t::do_sigaction(sig, sig_handler);
+    return current->m_signal.do_sigaction(sig, sig_handler);
 }
 
 int32 syscall_t::sys_sigret(trap_frame_t* frame)
