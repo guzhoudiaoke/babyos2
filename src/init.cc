@@ -32,7 +32,7 @@ int main()
         }
     }
     else {
-        //userlib_t::wait(pid);
+        userlib_t::wait(pid);
 
         // parent
         while (1) {

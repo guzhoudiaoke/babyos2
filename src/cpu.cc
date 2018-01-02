@@ -161,6 +161,7 @@ void cpu_t::init_idle_process()
     m_idle_process->m_vmm.init();
     m_idle_process->m_vmm.set_pg_dir(os()->get_mm()->get_kernel_pg_dir());
     m_idle_process->m_children.init();
+    m_idle_process->m_wait_child.init();
     m_proc_list.push_back(m_idle_process);
 
     console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
@@ -449,9 +450,13 @@ process_t* cpu_t::find_process(uint32 pid)
     return p;
 }
 
-int32 cpu_t::send_signal_to(const siginfo_t& si, uint32 pid)
+int32 cpu_t::send_signal_to(uint32 pid, uint32 sig)
 {
     console()->kprintf(WHITE, "send_signal, ");
+
+    siginfo_t si;
+    si.m_sig = sig;
+    si.m_pid = current->m_pid;
 
     cli();
     process_t* p = find_process(pid);

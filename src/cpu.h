@@ -76,7 +76,7 @@ public:
     process_t* get_child_reaper();
     void release_process(process_t* proc);
 
-    int32 send_signal_to(const siginfo_t& si, uint32 pid);
+    int32 send_signal_to(uint32 pid, uint32 sig);
     void do_signal(trap_frame_t* frame);
 
 private:

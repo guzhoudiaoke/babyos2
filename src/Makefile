@@ -21,6 +21,7 @@ OBJS = \
 	elf.o\
     process.o\
     signal.o\
+    waitqueue.o\
 
 AS = as --32
 CC = gcc -m32

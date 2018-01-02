@@ -41,10 +41,22 @@ void spinlock_t::unlock()
 
     //__sync_synchronize();
 
-    //xchg(&m_locked, 0);
-    //m_locked = 0;
     __asm__ volatile("movl $0, %0" : "+m" (m_locked));
 }
+
+void spinlock_t::lock_irqsave()
+{
+    local_irq_save(m_flags);
+    lock();
+}
+
+void spinlock_t::unlock_irqrestore()
+{
+    unlock();
+    local_irq_restore(m_flags);
+}
+
+/********************************************************************************************/
 
 locker_t::locker_t(spinlock_t& lock) : m_lock(lock)
 {
@@ -56,3 +68,4 @@ locker_t::~locker_t()
     m_lock.unlock();
 }
 
+/********************************************************************************************/

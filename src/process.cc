@@ -42,7 +42,9 @@ process_t* process_t::fork(trap_frame_t* frame)
     p->m_state = PROCESS_ST_RUNABLE;
     p->m_need_resched = 0;
     p->m_timeslice = 10;
+
     p->m_children.init();
+    p->m_wait_child.init();
     p->m_parent = this;
 
     return p;
@@ -140,11 +142,12 @@ void process_t::notify_parent()
 {
     // SIGCHLD is needed, but now not support signal
     // so just wake up parent
-    os()->get_arch()->get_cpu()->wake_up_process(m_parent);
+    m_parent->m_wait_child.wake_up();
 }
 
 int32 process_t::wait_children(int32 pid)
 {
+    current->m_wait_child.add(current);
 repeat:
     cli();
     m_state = PROCESS_ST_SLEEP;
@@ -182,6 +185,7 @@ repeat:
 end_wait:
     // continue to run
     m_state = PROCESS_ST_RUNABLE;
+    current->m_wait_child.remove(current);
     return 0;
 }
 

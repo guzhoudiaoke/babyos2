@@ -8,6 +8,11 @@
 
 #include "types.h"
 
+
+#define local_irq_save(x)	    __asm__ __volatile__("pushfl ; popl %0 ; cli":"=g" (x): /* no input */ :"memory")
+#define restore_flags(x) 	    __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory", "cc")
+#define local_irq_restore(x)	restore_flags(x)
+
 class spinlock_t {
 public:
     spinlock_t();
@@ -18,8 +23,12 @@ public:
     void lock();
     void unlock();
 
+    void lock_irqsave();
+    void unlock_irqrestore();
+
 private:
     uint32  m_locked;
+    uint32  m_flags;
 };
 
 class locker_t {

@@ -68,15 +68,6 @@ int32 signal_t::do_sigaction(uint32 sig, sighandler_t sig_handler)
     return 0;
 }
 
-int32 signal_t::do_send_signal(uint32 pid, uint32 sig)
-{
-    siginfo_t si;
-    si.m_sig = sig;
-    si.m_pid = current->m_pid;
-
-    return os()->get_arch()->get_cpu()->send_signal_to(si, pid);
-}
-
 int32 signal_t::handle_signal_default(uint32 sig)
 {
     if (sig == SIG_SEGV) {

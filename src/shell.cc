@@ -25,6 +25,8 @@ int main()
         userlib_t::print("S,");
     }
 
+    userlib_t::exit(0);
+
     int* p = (int *) 0xa0000000;
     *p = 0x1234;
 

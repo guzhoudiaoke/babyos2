@@ -81,14 +81,14 @@ int32 syscall_t::sys_signal(trap_frame_t* frame)
 
 int32 syscall_t::sys_sigret(trap_frame_t* frame)
 {
-    return signal_t::do_sigreturn(frame);
+    return current->m_signal.do_sigreturn(frame);
 }
 
 int32 syscall_t::sys_kill(trap_frame_t* frame)
 {
     uint32 pid = frame->ebx;
     uint32 sig = frame->ecx;
-    return signal_t::do_send_signal(pid, sig);
+    return os()->get_arch()->get_cpu()->send_signal_to(pid, sig);
 }
 
 void syscall_t::do_syscall(trap_frame_t* frame)

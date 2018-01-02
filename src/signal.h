@@ -52,9 +52,7 @@ public:
     int32 do_sigaction(uint32 sig, sighandler_t sig_handler);
     int32 handle_signal(trap_frame_t* frame, const siginfo_t& si);
     int32 handle_signal_default(uint32 sig);
-
-    static int32 do_send_signal(uint32 pid, uint32 sig);
-    static int32 do_sigreturn(trap_frame_t* frame);
+    int32 do_sigreturn(trap_frame_t* frame);
 
 
 public:

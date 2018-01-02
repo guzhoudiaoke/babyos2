@@ -10,6 +10,7 @@
 #include "list.h"
 #include "vm.h"
 #include "signal.h"
+#include "waitqueue.h"
 
 /* get current by kernel stack */
 class process_t;
@@ -67,6 +68,7 @@ public:
 
     process_t*          m_parent;
     list_t<process_t *> m_children;
+    wait_queue_t        m_wait_child;
 
     signal_t            m_signal;
     list_t<siginfo_t>   m_sig_queue;

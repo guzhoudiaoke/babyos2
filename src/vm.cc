@@ -355,10 +355,7 @@ uint32 vmm_t::do_protection_fault(vm_area_t* vma, uint32 addr, uint32 write)
 
 void vmm_t::send_sig_segv()
 {
-    siginfo_t si;
-    si.m_sig = SIG_SEGV;
-    si.m_pid = -1;
-    os()->get_arch()->get_cpu()->send_signal_to(si, current->m_pid);
+    os()->get_arch()->get_cpu()->send_signal_to(current->m_pid, SIG_SEGV);
 }
 
 /*
