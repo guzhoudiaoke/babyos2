@@ -89,7 +89,11 @@ void test_syscall()
         __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (1024), "c" (32), "d" ("init"));
     }
 
-    delay_print("P,");
+    //delay_print("P,");
+
+    while (true) {
+        os()->get_arch()->get_cpu()->schedule();
+    }
 }
 
 void babyos_t::init_pools()
@@ -173,6 +177,25 @@ void test_list()
     print_list(list);
 }
 
+void babyos_t::test_fs()
+{
+    //m_console.kprintf(PINK, "**************** test fs ****************\n");
+    //m_fs.dump_super_block();
+    //m_fs.test_read_inode();
+    //m_fs.test_ls("/");
+    //m_fs.test_read_bitmap();
+    //m_fs.test_read_dir_entry();
+    //m_fs.test_namei();
+    //m_fs.test_create();
+    //m_fs.test_read();
+    //m_fs.test_write();
+    //m_fs.test_mkdir();
+    //m_fs.test_link();
+    //m_fs.test_unlink();
+    //m_fs.test_ls("/");
+    //m_console.kprintf(PINK, "**************** test fs ****************\n");
+}
+
 void babyos_t::run()
 {
     atomic_set(&m_next_pid, 0);
@@ -180,8 +203,8 @@ void babyos_t::run()
     m_screen.init();
     m_console.init();
 
-    m_console.kprintf(WHITE, "Welcome to babyos\n");
-    m_console.kprintf(WHITE,   "Author:\tguzhoudiaoke@126.com\n");
+    m_console.kprintf(YELLOW, "Welcome to babyos\n");
+    m_console.kprintf(YELLOW,   "Author:\tguzhoudiaoke@126.com\n");
 
     m_mm.init();
     m_arch.init();
@@ -189,12 +212,15 @@ void babyos_t::run()
     init_pools();
 
     // test list
-    test_list();
+    //test_list();
 
     m_console.kprintf(WHITE, "sti()\n");
     sti();
 
-    test_draw_time();
+    m_fs.init();
+    test_fs();
+
+    //test_draw_time();
     test_syscall();
 
     while (1) {
@@ -216,5 +242,10 @@ uint32 babyos_t::get_next_pid()
     uint32 pid = atomic_read(&m_next_pid);
     atomic_inc(&m_next_pid);
     return pid;
+}
+
+file_system_t* babyos_t::get_fs()
+{
+    return &m_fs;
 }
 

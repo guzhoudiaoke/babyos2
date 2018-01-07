@@ -111,3 +111,52 @@ void userlib_t::signal(uint32 sig, sighandler_t handler)
     __asm__ volatile("int $0x80" : : "b" (sig), "c"(handler), "a" (SYS_SIGNAL));
 }
 
+
+// file
+int userlib_t::open(const char* path, int mode)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_OPEN), "b" (path), "c" (mode));
+    return ret;
+}
+
+int userlib_t::close(int fd)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_CLOSE), "b" (fd));
+    return ret;
+}
+
+int userlib_t::read(int fd, char* buf, uint32 size)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_READ), "b" (fd), "c" ((uint32) buf), "d" (size));
+    return ret;
+}
+
+int userlib_t::write(int fd, char* buf, uint32 size)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_WRITE), "b" (fd), "c" ((uint32) buf), "d" (size));
+    return ret;
+}
+
+int userlib_t::mkdir(const char* path)
+{
+    return 0;
+}
+
+int userlib_t::link(const char* path_old, const char* path_new)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_LINK), "b" ((uint32) path_old), "c" ((uint32) path_new));
+    return ret;
+}
+
+int userlib_t::unlink(const char* path)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_UNLINK), "b" (path));
+    return ret;
+}
+

@@ -80,3 +80,8 @@ void screen_t::fill_rectangle(rect_t rect, color_ref_t color)
     }
 }
 
+void screen_t::scroll()
+{
+    memmov(m_base, m_base + m_width*m_bytes_pp*ASC16_HEIGHT, m_width*m_bytes_pp*(m_height-ASC16_HEIGHT));
+}
+

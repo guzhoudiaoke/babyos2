@@ -10,6 +10,32 @@
 #include "timer.h"
 #include "x86.h"
 
+
+void input_buffer_t::init()
+{
+    m_index = 0;
+    memset(m_buffer, 0, BUFFER_SIZE);
+}
+
+void input_buffer_t::input(char ch)
+{
+    if (ch == '\b') {
+        m_buffer[0][m_index] = '\0';
+        m_index--;
+    }
+    else if (ch == '\n') {
+        memcpy(m_buffer[1], m_buffer[0], BUFFER_SIZE);
+        memset(m_buffer[0], 0, BUFFER_SIZE);
+        m_index = 0;
+    }
+    else {
+        m_buffer[0][m_index] = ch;
+        m_index++;
+    }
+}
+
+/****************************************************************/
+
 console_t::console_t()
 {
 }
@@ -26,7 +52,7 @@ void console_t::draw_background()
 void console_t::draw_cursor()
 {
     rect_t rc = { m_col*ASC16_WIDTH, m_row*ASC16_HEIGHT, ASC16_WIDTH, ASC16_HEIGHT };
-    os()->get_screen()->fill_rectangle(rc, CURSOR_COLOR);
+    os()->get_screen()->fill_rectangle(rc, m_show_cursor ? CURSOR_COLOR : BACKGROUND_COLOR);
 }
 
 void console_t::init()
@@ -36,8 +62,9 @@ void console_t::init()
     m_row     = 0;
     m_col     = 0;
     m_tick_to_update = HZ;
+    m_show_cursor = true;
     m_lock.init();
-    memset(m_text, 0, MAX_ROW * MAX_COL);
+    m_input_buffer.init();
 
     draw_background();
     draw_cursor();
@@ -45,25 +72,22 @@ void console_t::init()
 
 void console_t::scroll()
 {
-    if (m_row < m_row_num-1) {
+    if (m_row < m_row_num) {
         return;
     }
 
-    for (int i = 1; i < m_row; i++) {
-        memcpy(m_text[i-1], m_text[i], sizeof(color_text_t) * m_col_num);
-    }
-    memset(m_text[m_row-1], 0, sizeof(color_text_t) * m_col_num);
+    //for (int i = 1; i < m_row; i++) {
+    //    memcpy(m_text[i-1], m_text[i], sizeof(color_text_t) * m_col_num);
+    //}
+    //memset(m_text[m_row-1], 0, sizeof(color_text_t) * m_col_num);
 
-    draw_background();
+    // scroll screen
+    os()->get_screen()->scroll();
 
-    for (int i = 0; i < m_row; i++) {
-        for (int j = 0; j < m_col_num; j++) {
-            if (m_text[i][j].ch != '\0') {
-                rect_t rc = { j*ASC16_WIDTH, i*ASC16_HEIGHT, ASC16_WIDTH, ASC16_HEIGHT };
-                os()->get_screen()->draw_asc16((char) m_text[i][j].ch, j*ASC16_WIDTH, i*ASC16_HEIGHT, m_text[i][j].color);
-            }
-        }
-    }
+    // clear last line
+    rect_t rc = { 0, (m_row-1)*ASC16_HEIGHT, ASC16_WIDTH*m_col_num, ASC16_HEIGHT };
+    os()->get_screen()->fill_rectangle(rc, BACKGROUND_COLOR);
+
     m_row--;
     m_col = 0;
     draw_cursor();
@@ -71,8 +95,8 @@ void console_t::scroll()
 
 void console_t::put_char(char c, color_ref_t color)
 {
-    m_text[m_row][m_col].ch = (char) c;
-    m_text[m_row][m_col].color = color;
+    //m_text[m_row][m_col].ch = (char) c;
+    //m_text[m_row][m_col].color = color;
 
     rect_t rc = { m_col*ASC16_WIDTH, m_row*ASC16_HEIGHT, ASC16_WIDTH, ASC16_HEIGHT };
     os()->get_screen()->fill_rectangle(rc, BACKGROUND_COLOR);
@@ -254,5 +278,18 @@ void console_t::update()
 
     /* reset tick to update */
     m_tick_to_update = HZ;
+    m_show_cursor = !m_show_cursor;
+    draw_cursor();
+}
+
+void console_t::do_input(char ch)
+{
+    if (ch != 0) {
+        m_tick_to_update = HZ;
+        m_show_cursor = true;
+
+        m_input_buffer.input(ch);
+        putc(ch, WHITE);
+    }
 }
 

@@ -24,12 +24,14 @@ void keyboard_t::do_irq()
 		m_queue.en_queue(scan_code);	
 	}
 
+    char ch = read();
+    console()->do_input(ch);
+
 	outb(0x20, 0x20);
 }
 
 void keyboard_t::init()
 {
-    //console()->kprintf(WHITE, "keyboard_t::init()\n");
 	os()->get_arch()->get_8259a()->enable_irq(IRQ_KEYBOARD);		/* enable keyboard interrupt */
 	m_queue.init();
 

@@ -20,6 +20,12 @@ enum {
     SYS_SIGNAL,
     SYS_SIGRET,
     SYS_KILL,
+    SYS_OPEN,
+    SYS_CLOSE,
+    SYS_READ,
+    SYS_WRITE,
+    SYS_LINK,
+    SYS_UNLINK,
     MAX_SYSCALL,
 };
 
@@ -37,6 +43,12 @@ public:
     static int32 sys_signal(trap_frame_t* frame);
     static int32 sys_sigret(trap_frame_t* frame);
     static int32 sys_kill(trap_frame_t* frame);
+    static int32 sys_open(trap_frame_t* frame);
+    static int32 sys_close(trap_frame_t* frame);
+    static int32 sys_read(trap_frame_t* frame);
+    static int32 sys_write(trap_frame_t* frame);
+    static int32 sys_link(trap_frame_t* frame);
+    static int32 sys_unlink(trap_frame_t* frame);
 
 private:
     static char s_print_buffer[1024];

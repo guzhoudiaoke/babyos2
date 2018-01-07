@@ -40,6 +40,7 @@ public:
 	void set_pixel(uint32 x, uint32 y, color_ref_t color);
 	void draw_asc16(char ch, uint32 left, uint32 top, color_ref_t color);
 	void fill_rectangle(rect_t rect, color_ref_t color);
+    void scroll();
 
 private:
 	uint8*	m_base;        // base address

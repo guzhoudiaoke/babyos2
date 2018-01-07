@@ -10,6 +10,8 @@
 #include "screen.h"
 #include "spinlock.h"
 
+#define BUFFER_SIZE     1024
+
 typedef char* va_list;
 #define va_start(ap,p)      (ap = (char *) (&(p)+1))
 #define va_arg(ap, type)    ((type *) (ap += sizeof(type)))[-1]
@@ -26,6 +28,14 @@ typedef struct color_text_s {
     color_ref_t color;
 } color_text_t;
 
+typedef struct input_buffer_s {
+    void init();
+    void input(char ch);
+
+    unsigned    m_index;
+    char        m_buffer[2][BUFFER_SIZE];
+} input_buffer_t;
+
 class console_t {
 public:
 	console_t();
@@ -34,6 +44,7 @@ public:
 	void init();
 	void kprintf(color_ref_t color, const char *fmt, ...);
     void update();
+    void do_input(char ch);
 
 private:
 	void draw_background();
@@ -45,18 +56,17 @@ private:
     void backspace();
 	void putc(int c, color_ref_t color);
 	void print_int(int32 n, int32 base, int32 sign, color_ref_t color);
-
     void scroll();
 
-	uint32 m_row_num;
-	uint32 m_col_num;
-	uint32 m_row;
-	uint32 m_col;
-	//char m_text[MAX_ROW][MAX_COL];
-    color_text_t m_text[MAX_ROW][MAX_COL];
-
-    uint32 m_tick_to_update;
-    spinlock_t m_lock;
+	uint32          m_row_num;
+	uint32          m_col_num;
+	uint32          m_row;
+	uint32          m_col;
+    color_text_t    m_text[MAX_ROW][MAX_COL];
+    uint32          m_tick_to_update;
+    bool            m_show_cursor;
+    spinlock_t      m_lock;
+    input_buffer_t  m_input_buffer;
 };
 
 #endif

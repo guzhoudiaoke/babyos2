@@ -22,6 +22,9 @@ OBJS = \
     process.o\
     signal.o\
     waitqueue.o\
+	fs.o\
+	file.o\
+	buf_cache.o\
 
 AS = as --32
 CC = gcc -m32
@@ -65,11 +68,11 @@ userlib.o: userlib.cc
 
 init: init.cc userlib.o
 	${CPP} ${CPPFLAGS} -O -c init.cc
-	${LD} ${LDFLAGS} -e main -Ttext 0x0000 -o init init.o userlib.o
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o init init.o userlib.o
 
 shell: shell.cc userlib.o
 	${CPP} ${CPPFLAGS} -O -c shell.cc
-	${LD} ${LDFLAGS} -e main -Ttext 0x0000 -o shell shell.o userlib.o
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o shell shell.o userlib.o
 
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< -o  $@

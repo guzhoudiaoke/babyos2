@@ -30,6 +30,15 @@ process_t* process_t::fork(trap_frame_t* frame)
     m_sig_queue.init();
     m_sig_mask_lock.init();
 
+    // file
+    p->m_cwd = m_cwd;
+    for (int i = 0; i < MAX_OPEN_FILE; i++) {
+        if (m_files[i] != NULL && m_files[i]->m_type != file_t::TYPE_NONE) {
+            m_files[i]->m_ref++;
+            p->m_files[i] = m_files[i];
+        }
+    }
+
     // context
     p->m_context.esp = (uint32) child_frame;
     p->m_context.esp0 = (uint32) (child_frame + 1);
@@ -218,4 +227,31 @@ void process_t::calc_sig_pending()
 {
     m_sig_pending = !m_sig_queue.empty();
 }
+
+int process_t::alloc_fd(file_t* file)
+{
+    for (int i = 0; i < MAX_OPEN_FILE; i++) {
+        if (m_files[i] == NULL) {
+            m_files[i] = file;
+            return i;
+        }
+    }
+    return -1;
+}
+
+file_t* process_t::get_file(int fd)
+{
+    if (fd < 0 || fd >= MAX_OPEN_FILE) {
+        return NULL;
+    }
+    return m_files[fd];
+}
+
+void process_t::close_file(int fd)
+{
+    if (fd >= 0 && fd < MAX_OPEN_FILE) {
+        current->m_files[fd] = NULL;
+    }
+}
+
 

@@ -11,5 +11,8 @@ void* memcpy(void* dst, const void* src, uint32 n);
 void* memset(void* dst, uint32 c, uint32 n);
 
 char* strcpy(char* dst, const char* src);
+char* strncpy(char* dst, const char* src, int n);
+int   strcmp(const char* s1, const char *s2);
+int   strlen(const char* s);
 
 #endif

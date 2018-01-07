@@ -51,3 +51,34 @@ char* strcpy(char* dst, const char* src)
 
 	return dst;
 }
+
+char* strncpy(char* dst, const char* src, int n)
+{
+	char* d = dst;
+	while (--n >= 0 && *src) {
+		*d++ = *src++;
+	}
+    *d++ = '\0';
+
+	return dst;
+}
+
+int strcmp(const char* s1, const char *s2)
+{
+    while (*s1 && *s2 && *s1 == *s2) {
+        s1++;
+        s2++;
+    }
+
+    return *s1 - *s2;
+}
+
+int strlen(const char* s)
+{
+    int len = 0;
+    while (*s++) {
+        len++;
+    }
+    return len;
+}
+

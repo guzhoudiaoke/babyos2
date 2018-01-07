@@ -34,6 +34,7 @@ void i8254_t::init()
 void i8254_t::do_irq()
 {
     m_tick++;
+    os()->update(m_tick);
 
     /* EOI */
     outb(0x20, 0x20);

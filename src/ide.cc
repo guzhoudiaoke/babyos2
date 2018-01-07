@@ -17,16 +17,23 @@ ide_t::~ide_t()
 void ide_t::init()
 {
     m_lock.init();
+    m_cache.init();
 
     os()->get_arch()->get_8259a()->enable_irq(IRQ_HARDDISK);
     wait();
     outb(0x1f6, 0xe0 | (0 << 4));
+    outb(0x1f6, 0xe0 | (1 << 4));
 }
 
 void ide_t::request(io_clb_t *clb)
 {
-    m_lock.lock();
+    if (clb->read) {
+        if (m_cache.read(clb)) {
+            return;
+        }
+    }
 
+    m_lock.lock();
     clb->next = NULL;
     if (m_head == NULL) {
         m_head = clb;
@@ -46,6 +53,13 @@ void ide_t::request(io_clb_t *clb)
 
     while ((clb->flags & IO_STATE_DONE) != IO_STATE_DONE) {
         current->sleep();
+    }
+
+    if (clb->read) {
+        m_cache.insert(clb);
+    }
+    else {
+        m_cache.write(clb);
     }
 }
 
@@ -91,7 +105,9 @@ void ide_t::do_irq()
     m_head = clb->next;
     m_lock.unlock();
 
-    insl(0x1f0, clb->buffer, SECT_SIZE/4);
+    if (clb->read) {
+        insl(0x1f0, clb->buffer, SECT_SIZE/4);
+    }
 
     clb->flags |= IO_STATE_DONE;
     if (clb->wait != NULL) {

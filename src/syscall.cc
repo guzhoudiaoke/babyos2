@@ -24,6 +24,12 @@ int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
     syscall_t::sys_signal,
     syscall_t::sys_sigret,
     syscall_t::sys_kill,
+    syscall_t::sys_open,
+    syscall_t::sys_close,
+    syscall_t::sys_read,
+    syscall_t::sys_write,
+    syscall_t::sys_link,
+    syscall_t::sys_unlink,
 };
 
 int32 syscall_t::sys_print(trap_frame_t* frame)
@@ -36,14 +42,14 @@ int32 syscall_t::sys_print(trap_frame_t* frame)
 int32 syscall_t::sys_fork(trap_frame_t* frame)
 {
     process_t* proc = os()->get_arch()->get_cpu()->fork(frame);
-    console()->kprintf(PINK, "sys_fork, eip: %p esp: %p pid: %p\n", frame->eip, frame->esp, current->m_pid);
+    //console()->kprintf(PINK, "sys_fork, eip: %p esp: %p pid: %p\n", frame->eip, frame->esp, current->m_pid);
     return proc->m_pid;
 }
 
 int32 syscall_t::sys_exec(trap_frame_t* frame)
 {
-    console()->kprintf(YELLOW, "sys_exec, eip: %p esp: %p pid: %p, name: %s\n", 
-            frame->eip, frame->esp, current->m_pid, frame->edx);
+    //console()->kprintf(YELLOW, "sys_exec, eip: %p esp: %p pid: %p, name: %s\n", 
+    //        frame->eip, frame->esp, current->m_pid, frame->edx);
     return current->exec(frame);
 }
 
@@ -89,6 +95,48 @@ int32 syscall_t::sys_kill(trap_frame_t* frame)
     uint32 pid = frame->ebx;
     uint32 sig = frame->ecx;
     return os()->get_arch()->get_cpu()->send_signal_to(pid, sig);
+}
+
+int32 syscall_t::sys_open(trap_frame_t* frame)
+{
+    const char* path = (const char *) frame->ebx;
+    int32 mode = frame->ecx;
+    return os()->get_fs()->do_open(path, mode);
+}
+
+int32 syscall_t::sys_close(trap_frame_t* frame)
+{
+    int32 fd = frame->ebx;
+    return os()->get_fs()->do_close(fd);
+}
+
+int32 syscall_t::sys_read(trap_frame_t* frame)
+{
+    int32 fd = frame->ebx;
+    char* buf = (char *) frame->ecx;
+    uint32 size = frame->edx;
+    return os()->get_fs()->do_read(fd, buf, size);
+}
+
+int32 syscall_t::sys_write(trap_frame_t* frame)
+{
+    int32 fd = frame->ebx;
+    char* buf = (char *) frame->ecx;
+    uint32 size = frame->edx;
+    return os()->get_fs()->do_write(fd, buf, size);
+}
+
+int32 syscall_t::sys_link(trap_frame_t* frame)
+{
+    char* path_old = (char *) frame->ebx;
+    char* path_new = (char *) frame->ecx;
+    return os()->get_fs()->do_link(path_old, path_new);
+}
+
+int32 syscall_t::sys_unlink(trap_frame_t* frame)
+{
+    char* path = (char *) frame->ebx;
+    return os()->get_fs()->do_unlink(path);
 }
 
 void syscall_t::do_syscall(trap_frame_t* frame)

@@ -33,6 +33,14 @@ public:
     static void sleep(uint32 second);
 
     static char* strrev(char* str, int len);
+
+    static int  open(const char* path, int mode);
+    static int  close(int fd);
+    static int  read(int fd, char* buf, uint32 size);
+    static int  write(int fd, char* buf, uint32 size);
+    static int  mkdir(const char* path);
+    static int  link(const char* path_old, const char* path_new);
+    static int  unlink(const char* path);
 };
 
 #endif

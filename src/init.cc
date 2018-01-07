@@ -10,14 +10,33 @@
 
 int main()
 {
-    uint32 cs = 0xffffffff;
-    __asm__ volatile("movl %%cs, %%eax" : "=a" (cs));
+    //uint32 cs = 0xffffffff;
+    //__asm__ volatile("movl %%cs, %%eax" : "=a" (cs));
 
     // print cs to show work in user mode
-    userlib_t::print("This is printed by init, cs = ");
-    userlib_t::print_int(cs, 16, 0);
-    userlib_t::print("\n");
+    //userlib_t::print("This is printed by init, cs = ");
+    //userlib_t::print_int(cs, 16, 0);
+    //userlib_t::print("\n");
 
+    int32 pid = userlib_t::fork();
+    if (pid == 0) {
+        // child
+        int ret = userlib_t::exec(SHELL_LBA, SHELL_SECT_NUM, "shell");
+        if (ret != 0) {
+            userlib_t::print("BUG exec failed!!!\n");
+            userlib_t::exit(-1);
+        }
+    }
+
+    while (1) {
+        userlib_t::wait(-1);
+    }
+    //while (1) {
+    //    userlib_t::sleep(2);
+    //    userlib_t::print("I,");
+    //}
+
+#if 0
     // fork
     int32 pid = userlib_t::fork();
     if (pid == 0) {
@@ -41,6 +60,7 @@ int main()
             userlib_t::kill(pid, 4);
         }
     }
+#endif
 
     return 0;
 }

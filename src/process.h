@@ -11,6 +11,10 @@
 #include "vm.h"
 #include "signal.h"
 #include "waitqueue.h"
+#include "fs.h"
+#include "file.h"
+
+#define MAX_OPEN_FILE 16
 
 /* get current by kernel stack */
 class process_t;
@@ -43,18 +47,22 @@ typedef struct context_s {
 
 class process_t {
 public:
-    process_t* fork(trap_frame_t* frame);
-    int32 exec(trap_frame_t* frame);
-    void sleep(uint32 ticks);
-    void sleep();
-    void wake_up();
-    int32 exit();
-    int32 wait_children(int32 pid);
-    void calc_sig_pending();
+    process_t*  fork(trap_frame_t* frame);
+    int32       exec(trap_frame_t* frame);
+    void        sleep(uint32 ticks);
+    void        sleep();
+    void        wake_up();
+    int32       exit();
+    int32       wait_children(int32 pid);
+    void        calc_sig_pending();
+
+    int         alloc_fd(file_t* file);
+    file_t*     get_file(int fd);
+    void        close_file(int fd);
 
 private:
-    void notify_parent();
-    void adope_children();
+    void        notify_parent();
+    void        adope_children();
 
 public:
     uint32              m_need_resched;
@@ -74,6 +82,9 @@ public:
     list_t<siginfo_t>   m_sig_queue;
     sigset_t            m_sig_blocked;
     spinlock_t          m_sig_mask_lock;
+
+    inode_t*            m_cwd;
+    file_t*             m_files[MAX_OPEN_FILE];
 
     process_t*	        m_prev;
     process_t*	        m_next;

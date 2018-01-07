@@ -8,6 +8,7 @@
 #include "i8259a.h"
 #include "x86.h"
 #include "string.h"
+#include "fs.h"
 
 extern uint32 isr_vector[];
 extern uint8  kernel_stack[];
@@ -164,6 +165,11 @@ void cpu_t::init_idle_process()
     m_idle_process->m_wait_child.init();
     m_proc_list.push_back(m_idle_process);
 
+    m_idle_process->m_cwd = os()->get_fs()->get_root();
+    for (int i = 0; i < MAX_OPEN_FILE; i++) {
+        m_idle_process->m_files[i] = NULL;
+    }
+
     console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
             m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
 }
@@ -209,13 +215,8 @@ void cpu_t::do_interrupt(uint32 trapno)
     switch (trapno) {
         case IRQ_0 + IRQ_KEYBOARD:
             os()->get_arch()->get_keyboard()->do_irq();
-            ch = os()->get_arch()->get_keyboard()->read();
-            if (ch != 0) {
-                console()->kprintf(WHITE, "%c", ch);
-            }
             break;
         case IRQ_0 + IRQ_TIMER:
-            os()->update(os()->get_arch()->get_8254()->get_tick());
             os()->get_arch()->get_8254()->do_irq();
             break;
         case IRQ_0 + IRQ_HARDDISK:
