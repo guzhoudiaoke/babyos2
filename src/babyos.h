@@ -14,10 +14,16 @@
 #include "pool.h"
 #include "atomic.h"
 #include "fs.h"
+#include "file.h"
 
 enum pool_type_e {
 	VMA_POOL = 0,
 	MAX_POOL,
+};
+
+enum device_type_e {
+    DEV_CONSOLE = 0,
+    MAX_DEV,
 };
 
 class babyos_t {
@@ -36,6 +42,7 @@ public:
 	object_pool_t* get_obj_pool(uint32 type);
     uint32      get_next_pid();
     file_system_t* get_fs();
+    dev_op_t*   get_dev(uint32 type);
 
     static babyos_t* get_os();
 
@@ -52,6 +59,7 @@ private:
 	object_pool_t	m_pools[MAX_POOL];
 	atomic_t	    m_next_pid;
     file_system_t   m_fs;
+    dev_op_t        m_devices[MAX_DEV];
 };
 
 #define os()	    babyos_t::get_os()

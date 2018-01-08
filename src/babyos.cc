@@ -56,6 +56,14 @@ object_pool_t* babyos_t::get_obj_pool(uint32 type)
     return &m_pools[type];
 }
 
+dev_op_t* babyos_t::get_dev(uint32 type)
+{
+    if (type >= MAX_DEV) {
+        return NULL;
+    }
+    return &m_devices[type];
+}
+
 void test_draw_time()
 {
     uint32 year, month, day, h, m, s;
@@ -214,10 +222,12 @@ void babyos_t::run()
     // test list
     //test_list();
 
-    m_console.kprintf(WHITE, "sti()\n");
+    //m_console.kprintf(WHITE, "sti()\n");
     sti();
 
     m_fs.init();
+    m_arch.get_cpu()->get_idle()->set_cwd(m_fs.get_root());
+
     test_fs();
 
     //test_draw_time();

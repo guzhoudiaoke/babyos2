@@ -31,11 +31,10 @@ process_t* process_t::fork(trap_frame_t* frame)
     m_sig_mask_lock.init();
 
     // file
-    p->m_cwd = m_cwd;
+    p->m_cwd = os()->get_fs()->dup_inode(m_cwd);
     for (int i = 0; i < MAX_OPEN_FILE; i++) {
         if (m_files[i] != NULL && m_files[i]->m_type != file_t::TYPE_NONE) {
-            m_files[i]->m_ref++;
-            p->m_files[i] = m_files[i];
+            p->m_files[i] = os()->get_fs()->dup_file(m_files[i]);
         }
     }
 
@@ -254,4 +253,8 @@ void process_t::close_file(int fd)
     }
 }
 
+void process_t::set_cwd(inode_t* inode)
+{
+    m_cwd = inode;
+}
 

@@ -30,6 +30,9 @@ int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
     syscall_t::sys_write,
     syscall_t::sys_link,
     syscall_t::sys_unlink,
+    syscall_t::sys_mkdir,
+    syscall_t::sys_mknod,
+    syscall_t::sys_dup,
 };
 
 int32 syscall_t::sys_print(trap_frame_t* frame)
@@ -137,6 +140,26 @@ int32 syscall_t::sys_unlink(trap_frame_t* frame)
 {
     char* path = (char *) frame->ebx;
     return os()->get_fs()->do_unlink(path);
+}
+
+int32 syscall_t::sys_mkdir(trap_frame_t* frame)
+{
+    char* path = (char *) frame->ebx;
+    return os()->get_fs()->do_mkdir(path);
+}
+
+int32 syscall_t::sys_mknod(trap_frame_t* frame)
+{
+    char* path = (char *) frame->ebx;
+    int major = frame->ecx;
+    int minor = frame->edx;
+    return os()->get_fs()->do_mknod(path, major, minor);
+}
+
+int32 syscall_t::sys_dup(trap_frame_t* frame)
+{
+    int fd = frame->ebx;
+    return os()->get_fs()->do_dup(fd);
 }
 
 void syscall_t::do_syscall(trap_frame_t* frame)

@@ -10,27 +10,37 @@
 #include "timer.h"
 #include "x86.h"
 
+static int console_read(inode_t* inode, void* buf, int size)
+{
+    return console()->read(buf, size);
+}
+
+static int console_write(inode_t* inode, void* buf, int size)
+{
+    return console()->write(buf, size);
+}
+
+/****************************************************************/
 
 void input_buffer_t::init()
 {
-    m_index = 0;
+    m_read_index = 0;
+    m_write_index = 0;
+    m_edit_index = 0;
     memset(m_buffer, 0, BUFFER_SIZE);
 }
 
 void input_buffer_t::input(char ch)
 {
     if (ch == '\b') {
-        m_buffer[0][m_index] = '\0';
-        m_index--;
+        m_edit_index--;
     }
     else if (ch == '\n') {
-        memcpy(m_buffer[1], m_buffer[0], BUFFER_SIZE);
-        memset(m_buffer[0], 0, BUFFER_SIZE);
-        m_index = 0;
+        m_buffer[m_edit_index++ % BUFFER_SIZE] = ch;
+        m_write_index = m_edit_index;
     }
     else {
-        m_buffer[0][m_index] = ch;
-        m_index++;
+        m_buffer[m_edit_index++ % BUFFER_SIZE] = ch;
     }
 }
 
@@ -65,6 +75,9 @@ void console_t::init()
     m_show_cursor = true;
     m_lock.init();
     m_input_buffer.init();
+
+    os()->get_dev(DEV_CONSOLE)->read = console_read;
+    os()->get_dev(DEV_CONSOLE)->write = console_write;
 
     draw_background();
     draw_cursor();
@@ -291,5 +304,31 @@ void console_t::do_input(char ch)
         m_input_buffer.input(ch);
         putc(ch, WHITE);
     }
+}
+
+int console_t::read(void* buf, int size)
+{
+    int left = size;
+    while (left > 0) {
+        if (m_input_buffer.m_read_index == m_input_buffer.m_write_index) {
+            break;
+        }
+        char c = m_input_buffer.m_buffer[m_input_buffer.m_read_index++ % BUFFER_SIZE];
+        *(char *) buf++ = c;
+        --left;
+        if (c == '\n') {
+            break;
+        }
+    }
+
+    return size - left;
+}
+
+int console_t::write(void* buf, int size)
+{
+    for (int i = 0; i < size; i++) {
+        putc(((char *) buf)[i], WHITE);
+    }
+    return size;
 }
 

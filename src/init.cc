@@ -4,6 +4,7 @@
  */
 
 #include "userlib.h"
+#include "file.h"
 
 #define SHELL_LBA       1056
 #define SHELL_SECT_NUM  32
@@ -17,6 +18,14 @@ int main()
     //userlib_t::print("This is printed by init, cs = ");
     //userlib_t::print_int(cs, 16, 0);
     //userlib_t::print("\n");
+
+    if (userlib_t::open("/dev/console", file_t::MODE_RDWR) < 0) {
+        userlib_t::mkdir("/dev/");
+        userlib_t::mknod("/dev/console", 0, 1);
+        userlib_t::open("/dev/console", file_t::MODE_RDWR);
+    }
+    userlib_t::dup(0); // stdout
+    userlib_t::dup(0); // stderr
 
     int32 pid = userlib_t::fork();
     if (pid == 0) {

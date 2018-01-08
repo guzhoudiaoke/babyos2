@@ -165,7 +165,6 @@ void cpu_t::init_idle_process()
     m_idle_process->m_wait_child.init();
     m_proc_list.push_back(m_idle_process);
 
-    m_idle_process->m_cwd = os()->get_fs()->get_root();
     for (int i = 0; i < MAX_OPEN_FILE; i++) {
         m_idle_process->m_files[i] = NULL;
     }
@@ -420,6 +419,11 @@ process_t* cpu_t::get_child_reaper()
     }
 
     return m_init_process;
+}
+
+process_t* cpu_t::get_idle()
+{
+    return m_idle_process;
 }
 
 void cpu_t::release_process(process_t* proc)

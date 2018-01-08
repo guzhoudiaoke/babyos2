@@ -32,8 +32,10 @@ typedef struct input_buffer_s {
     void init();
     void input(char ch);
 
-    unsigned    m_index;
-    char        m_buffer[2][BUFFER_SIZE];
+    unsigned    m_read_index;
+    unsigned    m_write_index;
+    unsigned    m_edit_index;
+    char        m_buffer[BUFFER_SIZE];
 } input_buffer_t;
 
 class console_t {
@@ -45,6 +47,8 @@ public:
 	void kprintf(color_ref_t color, const char *fmt, ...);
     void update();
     void do_input(char ch);
+    int  read(void* buf, int size);
+    int  write(void* buf, int size);
 
 private:
 	void draw_background();

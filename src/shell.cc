@@ -7,6 +7,38 @@
 #include "userlib.h"
 #include "file.h"
 
+#define MAX_CMD_LEN  1024
+
+void gets(char* buf, uint32 max)
+{
+    userlib_t::memset(buf, 0, max);
+    int i = 0;
+    while (i < max) {
+        char c;
+        int n = userlib_t::read(0, &c, 1);
+        if (n == 1) {
+            *buf++ = c;
+            if (c == '\n') {
+                break;
+            }
+            i++;
+        }
+    }
+}
+
+int main()
+{
+    char cmd[MAX_CMD_LEN] = {0};
+    while (true) {
+        gets(cmd, MAX_CMD_LEN);
+        userlib_t::print(cmd);
+    }
+
+    userlib_t::exit(0);
+    return 1;
+}
+
+#if 0
 int main()
 {
     int fd = userlib_t::open("/test", file_t::MODE_RDWR);
@@ -18,15 +50,22 @@ int main()
     char buf[512] = {0};
     int n = userlib_t::read(fd, buf, 512);
     userlib_t::print_int(n, 10, 1);
-    userlib_t::print(" bytes read.\n");
+    userlib_t::print(" bytes read from file.\n");
     userlib_t::print(buf);
+
+    while (true) {
+        int n = userlib_t::read(fd, buf, 512);
+        if (n > 0) {
+            userlib_t::print_int(n, 10, 1);
+            userlib_t::print(" bytes read from file.\n");
+        }
+    }
 
     userlib_t::close(fd);
     userlib_t::exit(0);
     return 1;
 }
 
-#if 0
 void process_signal(int32 sig)
 {
     userlib_t::print("SIG_");

@@ -74,6 +74,7 @@ public:
     void remove_timer(timer_t* timer);
     void wake_up_process(process_t* proc);
     process_t* get_child_reaper();
+    process_t* get_idle();
     void release_process(process_t* proc);
 
     int32 send_signal_to(uint32 pid, uint32 sig);

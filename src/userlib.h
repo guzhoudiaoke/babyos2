@@ -33,6 +33,7 @@ public:
     static void sleep(uint32 second);
 
     static char* strrev(char* str, int len);
+    static void* memset(void* dst, uint32 c, uint32 n);
 
     static int  open(const char* path, int mode);
     static int  close(int fd);
@@ -41,6 +42,8 @@ public:
     static int  mkdir(const char* path);
     static int  link(const char* path_old, const char* path_new);
     static int  unlink(const char* path);
+    static int  mknod(const char* path, int major, int minor);
+    static int  dup(int fd);
 };
 
 #endif

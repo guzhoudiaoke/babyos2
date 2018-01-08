@@ -143,7 +143,9 @@ int userlib_t::write(int fd, char* buf, uint32 size)
 
 int userlib_t::mkdir(const char* path)
 {
-    return 0;
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_MKDIR), "b" (path));
+    return ret;
 }
 
 int userlib_t::link(const char* path_old, const char* path_new)
@@ -158,5 +160,29 @@ int userlib_t::unlink(const char* path)
     uint32 ret = 0;
     __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_UNLINK), "b" (path));
     return ret;
+}
+
+int userlib_t::mknod(const char* path, int major, int minor)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_MKNOD), "b" (path), "c" (major), "d" (minor));
+    return ret;
+}
+
+int userlib_t::dup(int fd)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_DUP), "b" (fd));
+    return ret;
+}
+
+void* userlib_t::memset(void *dst, uint32 c, uint32 n)
+{
+    char* d = (char *) dst;
+    for (uint32 i = 0; i < n; i++) {
+        *d++ = (c & 0xff);
+    }
+
+    return dst;
 }
 

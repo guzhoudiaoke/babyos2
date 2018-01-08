@@ -26,6 +26,9 @@ enum {
     SYS_WRITE,
     SYS_LINK,
     SYS_UNLINK,
+    SYS_MKDIR,
+    SYS_MKNOD,
+    SYS_DUP,
     MAX_SYSCALL,
 };
 
@@ -49,6 +52,9 @@ public:
     static int32 sys_write(trap_frame_t* frame);
     static int32 sys_link(trap_frame_t* frame);
     static int32 sys_unlink(trap_frame_t* frame);
+    static int32 sys_mkdir(trap_frame_t* frame);
+    static int32 sys_mknod(trap_frame_t* frame);
+    static int32 sys_dup(trap_frame_t* frame);
 
 private:
     static char s_print_buffer[1024];
