@@ -119,12 +119,20 @@ int file_system_t::read_inode(inode_t* inode, void* dst, uint32 offset, uint32 s
     return total;
 }
 
+void file_system_t::zero_block(uint32 dev, uint32 b)
+{
+    io_clb_t clb;
+    clb.init(dev, 0, b);
+    memset(clb.buffer, 0, BSIZE);
+    os()->get_ide()->request(&clb);
+}
+
 unsigned file_system_t::alloc_block(uint32 dev)
 {
     uint32 index = bitmap_block();
     io_clb_t clb;
     for (unsigned int i = 0; i < m_super_block.m_nblocks; i += BSIZE*8) {
-        clb.init(m_dev, 1, index);
+        clb.init(dev, 1, index);
         os()->get_ide()->request(&clb);
         unsigned n = BSIZE*8;
         if (i + BSIZE*8 > m_super_block.m_nblocks) {
@@ -134,8 +142,9 @@ unsigned file_system_t::alloc_block(uint32 dev)
             unsigned flag = 1 << (bit % 8);
             if ((clb.buffer[bit / 8] & flag) == 0) {
                 clb.buffer[bit / 8] |= flag;
-                clb.init(m_dev, 0, index);
+                clb.init(dev, 0, index);
                 os()->get_ide()->request(&clb);
+                zero_block(dev, i+bit);
                 return i + bit;
             }
         }
@@ -143,6 +152,26 @@ unsigned file_system_t::alloc_block(uint32 dev)
     }
 
     return 0;
+}
+
+void file_system_t::free_block(uint32 dev, uint32 b)
+{
+    uint32 index = bitmap_block();
+    uint32 block = b / (BSIZE * 8);
+    uint32 offset = b % (BSIZE * 8);
+
+    io_clb_t clb;
+    clb.init(m_dev, 1, index + block);
+    os()->get_ide()->request(&clb);
+
+    uint32 mask = 1 << (offset % 8);
+    if ((clb.buffer[offset / 8] & mask) == 0) {
+        // need panic
+        return;
+    }
+    clb.buffer[offset / 8] &= ~mask;
+    clb.init(m_dev, 0, index + block);
+    os()->get_ide()->request(&clb);
 }
 
 uint32 file_system_t::block_map(inode_t* inode, uint32 block)
@@ -159,11 +188,17 @@ uint32 file_system_t::block_map(inode_t* inode, uint32 block)
     }
 
     io_clb_t clb;
-    clb.init(m_dev, 1, block);
+    clb.init(m_dev, 1, inode->m_addrs[NDIRECT]);
     os()->get_ide()->request(&clb);
     
     unsigned* addrs = (unsigned *) clb.buffer;
-    return addrs[block - NDIRECT];
+    uint32 b = addrs[block - NDIRECT];
+    if (b == 0) {
+        b = addrs[block - NDIRECT] = alloc_block(inode->m_dev);
+        clb.init(m_dev, 0, inode->m_addrs[NDIRECT]);
+        os()->get_ide()->request(&clb);
+    }
+    return b;
 }
 
 void file_system_t::update_disk_inode(inode_t* inode)
@@ -223,6 +258,31 @@ inode_t* file_system_t::put_inode(inode_t* inode)
         if (inode->m_ref == 1) {
             inode->m_flags = 0;
             inode->m_type = 0;
+
+            for (int i = 0; i < NDIRECT; i++) {
+                if (inode->m_addrs[i] != 0) {
+                    free_block(inode->m_dev, inode->m_addrs[i]);
+                    inode->m_addrs[i] = 0;
+                }
+            }
+
+            if (inode->m_addrs[NDIRECT] != 0) {
+                io_clb_t clb;
+                clb.init(m_dev, 1, inode->m_addrs[NDIRECT]);
+                os()->get_ide()->request(&clb);
+                uint32* addrs = (uint32 *) clb.buffer;
+                for (int i = 0; i < NINDIRECT; i++) {
+                    free_block(inode->m_dev, addrs[i]);
+                    addrs[i] = 0;
+                }
+                clb.init(m_dev, 0, inode->m_addrs[NDIRECT]);
+                os()->get_ide()->request(&clb);
+
+                free_block(inode->m_dev, inode->m_addrs[NDIRECT]);
+                inode->m_addrs[NDIRECT] = 0;
+            }
+
+            inode->m_size = 0;
             update_disk_inode(inode);
         }
     }
@@ -706,6 +766,7 @@ int file_system_t::do_dup(int fd)
             return -1;
         }
         dup_file(file);
+        return 0;
     }
     return -1;
 }

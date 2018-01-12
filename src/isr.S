@@ -38,6 +38,8 @@
 need_resched = 0
 sig_pending  = 4
 
+frame_cs = 0x38
+
 
 #define SAVE_ALL \
 	cld; \
@@ -82,7 +84,6 @@ dosignal:
 
 common_isr:
 	SAVE_ALL
-	GET_CURRENT(%ebx)
 	movl    $(SEG_KDATA<<3),%edx
 	movw    %dx,            %ds
 	movw    %dx,            %es
@@ -93,6 +94,12 @@ common_isr:
 	call    do_common_isr
 	addl    $4,             %esp
 ret_from_isr:
+	movl	frame_cs(%esp), %eax
+	testl	$0x3,			%eax
+	jne     restore_all
+
+	GET_CURRENT(%ebx)
+
 	cli
 	cmpl	$0,				need_resched(%ebx)
 	jne		reschedule

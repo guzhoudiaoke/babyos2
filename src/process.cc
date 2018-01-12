@@ -81,14 +81,14 @@ static int32 init_user_stack(trap_frame_t* frame)
 int32 process_t::exec(trap_frame_t* frame)
 {
     // copy process name
-    const char* name = (const char *) frame->edx;
-    strcpy(m_name, name);
+    const char* path = (const char *) frame->ebx;
+    strcpy(m_name, path);
 
     // flush old mmap
     current->m_vmm.release();
 
     // load elf binary
-    if (elf_t::load(frame) != 0) {
+    if (elf_t::load(frame, m_name) != 0) {
         return -1;
     }
 

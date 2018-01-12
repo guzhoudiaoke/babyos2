@@ -94,7 +94,8 @@ void test_syscall()
 
     if (ret == 0) {
         // exec
-        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (1024), "c" (32), "d" ("init"));
+        //__asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (1024), "c" (32), "d" ("init"));
+        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" ("/bin/init"));
     }
 
     //delay_print("P,");
@@ -187,7 +188,7 @@ void test_list()
 
 void babyos_t::test_fs()
 {
-    //m_console.kprintf(PINK, "**************** test fs ****************\n");
+    m_console.kprintf(PINK, "**************** test fs ****************\n");
     //m_fs.dump_super_block();
     //m_fs.test_read_inode();
     //m_fs.test_ls("/");
@@ -200,8 +201,8 @@ void babyos_t::test_fs()
     //m_fs.test_mkdir();
     //m_fs.test_link();
     //m_fs.test_unlink();
-    //m_fs.test_ls("/");
-    //m_console.kprintf(PINK, "**************** test fs ****************\n");
+    m_fs.test_ls("/bin");
+    m_console.kprintf(PINK, "**************** test fs ****************\n");
 }
 
 void babyos_t::run()

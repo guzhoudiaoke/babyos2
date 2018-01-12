@@ -169,8 +169,8 @@ void cpu_t::init_idle_process()
         m_idle_process->m_files[i] = NULL;
     }
 
-    console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
-            m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
+    //console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
+    //        m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
 }
 
 void cpu_t::init()
@@ -329,20 +329,16 @@ bool cpu_t::is_in_process_list(process_t* proc)
 
 void cpu_t::add_process_to_list(process_t* proc)
 {
-    m_proc_run_queue_lock.lock();
     proc->m_next = m_idle_process;
     proc->m_prev = m_idle_process->m_prev;
     m_idle_process->m_prev->m_next = proc;
     m_idle_process->m_prev = proc;
-    m_proc_run_queue_lock.unlock();
 }
 
 void cpu_t::remove_process_from_list(process_t* proc)
 {
-    m_proc_run_queue_lock.lock();
     proc->m_prev->m_next = proc->m_next;
     proc->m_next->m_prev = proc->m_prev;
-    m_proc_run_queue_lock.unlock();
 }
 
 process_t* cpu_t::fork(trap_frame_t* frame)
@@ -403,12 +399,12 @@ void cpu_t::remove_timer(timer_t* timer)
 
 void cpu_t::wake_up_process(process_t* proc)
 {
-    cli();
+    m_proc_run_queue_lock.lock_irqsave();
     proc->wake_up();
     if (!is_in_process_list(proc)) {
         add_process_to_list(proc);
     }
-    sti();
+    m_proc_run_queue_lock.unlock_irqrestore();
 }
 
 process_t* cpu_t::get_child_reaper()
@@ -457,7 +453,7 @@ process_t* cpu_t::find_process(uint32 pid)
 
 int32 cpu_t::send_signal_to(uint32 pid, uint32 sig)
 {
-    console()->kprintf(WHITE, "send_signal, ");
+    //console()->kprintf(WHITE, "send_signal, ");
 
     siginfo_t si;
     si.m_sig = sig;

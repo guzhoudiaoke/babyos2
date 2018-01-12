@@ -65,12 +65,20 @@ void file_system_t::read_block(unsigned block_index, unsigned char* buffer)
 
 void file_system_t::write_block(unsigned block_index, unsigned char* buffer)
 {
+    //printf("write block %u\n", block_index);
     FILE* fp = fopen("fs.img", "rb+");
     if (fp != NULL) {
         fseek(fp, BSIZE*block_index, SEEK_SET);
         fwrite(buffer, 1, BSIZE, fp);
         fclose(fp);
     }
+}
+
+void file_system_t::zero_block(uint32 dev, uint32 b)
+{
+    unsigned char buffer[512] = {0};
+    memset(buffer, 0, 512);
+    write_block(b, buffer);
 }
 
 unsigned file_system_t::alloc_block(unsigned dev)
@@ -88,6 +96,7 @@ unsigned file_system_t::alloc_block(unsigned dev)
             if ((buffer[bit / 8] & flag) == 0) {
                 buffer[bit / 8] |= flag;
                 write_block(index, buffer);
+                zero_block(dev, i+bit);
                 return i + bit;
             }
         }
@@ -95,6 +104,25 @@ unsigned file_system_t::alloc_block(unsigned dev)
     }
 
     return 0;
+}
+
+void file_system_t::free_block(unsigned dev, unsigned b)
+{
+    //printf("free block : %u\n", b);
+    unsigned int index = 3 + (m_super_block.m_ninodes * sizeof(disk_inode_t)) / BSIZE;
+    unsigned block = index + b / (BSIZE * 8);
+    unsigned offset = b % (BSIZE * 8);
+
+    unsigned char buffer[512];
+    read_block(block, buffer);
+
+    uint32 mask = 1 << (offset % 8);
+    if ((buffer[offset / 8] & mask) == 0) {
+        // need panic
+        return;
+    }
+    buffer[offset / 8] &= ~mask;
+    write_block(block, buffer);
 }
 
 void file_system_t::read_super_block()
@@ -405,10 +433,35 @@ inode_t* file_system_t::dup_inode(inode_t* inode)
 
 inode_t* file_system_t::put_inode(inode_t* inode)
 {
-    if ((inode->m_flags & I_VALID) && inode->m_nlinks == 0) {
+    if (/*(inode->m_flags & I_VALID) && */inode->m_nlinks == 0) {
         if (inode->m_ref == 1) {
             inode->m_flags = 0;
             inode->m_type = 0;
+
+            for (int i = 0; i < NDIRECT; i++) {
+                if (inode->m_addrs[i] != 0) {
+                    free_block(inode->m_dev, inode->m_addrs[i]);
+                    inode->m_addrs[i] = 0;
+                }
+            }
+
+            if (inode->m_addrs[NDIRECT] != 0) {
+                unsigned char buffer[512];
+                read_block(inode->m_addrs[NDIRECT], buffer);
+                uint32* addrs = (uint32 *) buffer;
+                for (int i = 0; i < NINDIRECT; i++) {
+                    if (addrs[i] != 0) {
+                        free_block(inode->m_dev, addrs[i]);
+                        addrs[i] = 0;
+                    }
+                }
+                write_block(inode->m_addrs[NDIRECT], buffer);
+
+                free_block(inode->m_dev, inode->m_addrs[NDIRECT]);
+                inode->m_addrs[NDIRECT] = 0;
+            }
+
+            inode->m_size = 0;
             update_disk_inode(inode);
         }
     }
@@ -613,6 +666,9 @@ int file_system_t::read_inode(inode_t* inode, char* dst, uint32 offset, uint32 s
     if (offset + size > inode->m_size) {
         size = inode->m_size - offset;
     }
+    if (size == 0) {
+        return 0;
+    }
 
     int nbyte = 0, total = 0;
     unsigned char buffer[512];
@@ -637,7 +693,7 @@ int file_system_t::write_inode(inode_t* inode, char* src, uint32 offset, uint32 
     if (offset > inode->m_size) {
         return -1;
     }
-    if (offset + size > MAX_FILE * BSIZE) {
+    if (offset + size > MAXFILE * BSIZE) {
         return -1;
     }
 
@@ -651,6 +707,7 @@ int file_system_t::write_inode(inode_t* inode, char* src, uint32 offset, uint32 
         }
 
         memcpy(buffer + offset % BSIZE, src, nbyte);
+        //printf("write inode offset: %u\n", offset);
         write_block(block_map(inode, offset / BSIZE), buffer);
 
         total += nbyte;
@@ -683,6 +740,13 @@ uint32 file_system_t::block_map(inode_t* inode, uint32 block)
     read_block(inode->m_addrs[NDIRECT], buffer);
     
     unsigned* addrs = (unsigned *) buffer;
-    return addrs[block - NDIRECT];
+    unsigned b = addrs[block - NDIRECT];
+    if (b == 0) {
+        b = addrs[block - NDIRECT] = alloc_block(inode->m_dev);
+        write_block(inode->m_addrs[NDIRECT], buffer);
+    }
+
+    //printf("block map: %u->%u\n", block, b);
+    return b;
 }
 

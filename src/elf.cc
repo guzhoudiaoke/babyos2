@@ -34,7 +34,7 @@ static int32 read_hard_disk(uint8* buffer, uint32 lba, uint32 sector_num)
     return 0;
 }
 
-int32 load_elf_segments(elf_hdr_t* elf)
+int32 load_elf_binary(elf_hdr_t* elf)
 {
     pde_t* pg_dir = current->m_vmm.get_pg_dir();
     uint8 *base = (uint8 *) elf;
@@ -69,6 +69,44 @@ int32 load_elf_segments(elf_hdr_t* elf)
     return 0;
 }
 
+int32 elf_t::load(trap_frame_t* frame, const char* path)
+{
+    // read elf from hard disk
+    //uint32 order = log(2, PAGE_ALIGN(sector_num * SECT_SIZE) / PAGE_SIZE);
+    int order = 3;
+    uint8* buffer = (uint8*) os()->get_mm()->alloc_pages(order);
+
+    int fd = os()->get_fs()->do_open(path, file_t::MODE_RDWR);
+    if (fd < 0) {
+        console()->kprintf(RED, "BUG on open file!\n");
+        return -1;
+    }
+    os()->get_fs()->do_read(fd, buffer, 32*1024);
+    os()->get_fs()->do_close(fd);
+    //read_hard_disk(buffer, lba, sector_num);
+    elf_hdr_t *elf = (elf_hdr_t *) (buffer);
+
+    // 3. check if it's a valid elf file
+    if (elf->magic != ELF_MAGIC) {
+        console()->kprintf(RED, "BUG on elf format!\n");
+        return -1;
+    }
+
+    // load program segments
+    if (load_elf_binary(elf) != 0) {
+        console()->kprintf(RED, "BUG on load elf program segments!\n");
+        return -1;
+    }
+
+    // eip
+    frame->eip = (uint32)(elf->entry);
+
+    // free buffer pages
+    os()->get_mm()->free_pages(buffer, order);
+
+    return 0;
+}
+#if 0
 int32 elf_t::load(trap_frame_t* frame)
 {
     uint32 lba = frame->ebx;
@@ -100,4 +138,5 @@ int32 elf_t::load(trap_frame_t* frame)
 
     return 0;
 }
+#endif
 

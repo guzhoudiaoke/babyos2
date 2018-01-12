@@ -19,7 +19,8 @@
 class userlib_t {
 public:
     static int fork();
-    static int exec(uint32 lba, uint32 sector_num, const char* name);
+    //static int exec(uint32 lba, uint32 sector_num, const char* name);
+    static int exec(const char* path);
     static void *mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags);
     static void exit(int val);
     static void wait(uint32 pid);
@@ -34,6 +35,7 @@ public:
 
     static char* strrev(char* str, int len);
     static void* memset(void* dst, uint32 c, uint32 n);
+    static int   strlen(const char* str);
 
     static int  open(const char* path, int mode);
     static int  close(int fd);

@@ -26,10 +26,18 @@ void gets(char* buf, uint32 max)
     }
 }
 
+void puts(char* buf)
+{
+    userlib_t::write(0, buf, userlib_t::strlen(buf));
+}
+
 int main()
 {
+    userlib_t::print("This is printed by shell.\n");
+
     char cmd[MAX_CMD_LEN] = {0};
     while (true) {
+        puts("liuruyi $ ");
         gets(cmd, MAX_CMD_LEN);
         userlib_t::print(cmd);
     }

@@ -45,7 +45,7 @@ typedef struct prog_hdr_s {
 
 class elf_t {
 public:
-    static int32 load(trap_frame_t* frame);
+    static int32 load(trap_frame_t* frame, const char* path);
 };
 
 #endif

@@ -111,7 +111,9 @@ private:
     uint32   bitmap_block();
 
     void     read_super_block();
+    void     zero_block(uint32 dev, uint32 b);
     uint32   alloc_block(uint32 dev);
+    void     free_block(uint32 dev, uint32 b);
     uint32   block_map(inode_t* inode, uint32 block);
 
     void     read_disk_inode(int id, inode_t* inode);

@@ -14,10 +14,17 @@ int userlib_t::fork()
     return ret;
 }
 
-int userlib_t::exec(uint32 lba, uint32 sector_num, const char* name)
+//int userlib_t::exec(uint32 lba, uint32 sector_num, const char* name)
+//{
+//    int ret = 0;
+//    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (lba), "c" (sector_num), "d" (name));
+//    return ret;
+//}
+
+int userlib_t::exec(const char* path)
 {
     int ret = 0;
-    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (lba), "c" (sector_num), "d" (name));
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (path));
     return ret;
 }
 
@@ -184,5 +191,14 @@ void* userlib_t::memset(void *dst, uint32 c, uint32 n)
     }
 
     return dst;
+}
+
+int userlib_t::strlen(const char* s)
+{
+    int len = 0;
+    while (*s++) {
+        len++;
+    }
+    return len;
 }
 

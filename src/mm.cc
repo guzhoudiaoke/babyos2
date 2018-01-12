@@ -98,6 +98,8 @@ void mm_t::boot_map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint3
 
 void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
 {
+    console()->kprintf(YELLOW, "map va: %x to pa: %p\n", va, pa);
+
     uint8 *v = (uint8 *) (((uint32)va) & PAGE_MASK);
     uint8 *e = (uint8 *) (((uint32)va + size) & PAGE_MASK);
     pa = (pa & PAGE_MASK);

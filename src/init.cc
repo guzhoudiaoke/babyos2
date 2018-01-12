@@ -9,15 +9,17 @@
 #define SHELL_LBA       1056
 #define SHELL_SECT_NUM  32
 
+//char path[128] = "/bin/shell";
+
 int main()
 {
-    //uint32 cs = 0xffffffff;
-    //__asm__ volatile("movl %%cs, %%eax" : "=a" (cs));
+    uint32 cs = 0xffffffff;
+    __asm__ volatile("movl %%cs, %%eax" : "=a" (cs));
 
     // print cs to show work in user mode
-    //userlib_t::print("This is printed by init, cs = ");
-    //userlib_t::print_int(cs, 16, 0);
-    //userlib_t::print("\n");
+    userlib_t::print("This is printed by init, cs = ");
+    userlib_t::print_int(cs, 16, 0);
+    userlib_t::print("\n");
 
     if (userlib_t::open("/dev/console", file_t::MODE_RDWR) < 0) {
         userlib_t::mkdir("/dev/");
@@ -30,7 +32,8 @@ int main()
     int32 pid = userlib_t::fork();
     if (pid == 0) {
         // child
-        int ret = userlib_t::exec(SHELL_LBA, SHELL_SECT_NUM, "shell");
+        //char path[128] = "/bin/shell";
+        int ret = userlib_t::exec("/bin/shell");
         if (ret != 0) {
             userlib_t::print("BUG exec failed!!!\n");
             userlib_t::exit(-1);

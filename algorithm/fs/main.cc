@@ -245,6 +245,7 @@ void ls(char* path)
     inode_t* inode = fs.namei(path);
     if (inode == NULL) {
         printf("failed to ls %s\n", path);
+        return;
     }
 
     if (inode->m_type == inode_t::I_TYPE_FILE) {
@@ -272,10 +273,90 @@ void test_link()
     ls((char *) "/test_mkdir/");
 }
 
-void test_unlink()
+void test_unlink(char* path)
 {
-    sys_unlink((char *) "/test_mkdir/abc");
-    ls((char *) "/test_mkdir/");
+    sys_unlink(path);
+    ls((char *) "/");
+}
+
+void get_name(char* path, char* name)
+{
+    char* p = path + strlen(path);
+    char* end;
+    while (*p == '/') {
+        p--;
+    }
+    end = p;
+    while (*p != '/') {
+        p--;
+    }
+
+    strncpy(name, p+1, end-p);
+}
+
+void check(char* path)
+{
+    int fd = sys_open(path, file_t::MODE_RDWR);
+    if (fd < 0) {
+        printf("failed to open %s\n", path);
+        return;
+    }
+
+    char name[128] = {0};
+    get_name(path, name);
+    FILE* fp = fopen(name, "w");
+    if (fp == NULL) {
+        printf("failed to open %s\n", name);
+        return;
+    }
+
+    char buffer[512];
+    int nbyte;
+    do {
+        nbyte = sys_read(fd, buffer, 512);
+        fwrite(buffer, 1, nbyte, fp);
+    } while (nbyte > 0);
+
+    fclose(fp);
+    sys_close(fd);
+}
+
+void write_file(char* path)
+{
+    FILE* fp = fopen(path, "rb");
+    if (fp == NULL) {
+        return;
+    }
+
+    char name[128] = {0};
+    get_name(path, name);
+
+    char disk_path[128] = {0};
+    sprintf(disk_path, "/bin/%s", name);
+
+    test_unlink(disk_path);
+
+    int fd = sys_open(disk_path, file_t::MODE_CREATE | file_t::MODE_RDWR);
+
+    char buffer[512];
+    int nbyte;
+    int total_w = 0, total_r = 0;
+    do {
+        nbyte = fread(buffer, 1, 512, fp);
+        total_r += nbyte;
+        int nwrite = sys_write(fd, buffer, nbyte);
+        total_w += nwrite;
+
+        //printf("%d %d \n", nbyte, nwrite);
+    } while (nbyte > 0);
+
+    printf("%s, total read: %u, total write %u\n", disk_path, total_r, total_w);
+    sys_close(fd);
+    fclose(fp);
+
+    ls("/bin");
+
+    check(disk_path);
 }
 
 int main()
@@ -286,29 +367,48 @@ int main()
 
     fs.init();
 
-    ls((char *) "/test_mkdir/");
-    return 0;
 
     test_superblock();
-    test_bitmap();
-    test_inode();
-    test_read_inode();
-    test_namei();
 
-    test_read();
-    test_read2();
+    //test_unlink("/rm");
+    //test_unlink("/sh");
+    //test_unlink("/cat");
+    //test_unlink("/mkdir");
+    //test_unlink("/ls");
+    //test_unlink("/wc");
+    //test_unlink("/echo");
+    //test_unlink("/init");
+    //test_unlink("/kill");
+    //test_unlink("/grep");
+    //test_unlink("/test");
+    //test_unlink("/abc");
+    //test_unlink("/ln");
+    //test_unlink("/zombie.asm");
 
-    test_create();
-    test_read_inode();
+    //test_bitmap();
+    //test_inode();
+    //test_read_inode();
+    //test_namei();
 
-    test_write1();
-    test_write2();
+    //test_read();
+    //test_read2();
 
-    test_mkdir();
+    //test_create();
+    //test_read_inode();
 
-    test_link();
-    test_unlink();
+    //test_write1();
+    //test_write2();
 
+    //test_mkdir();
+
+    //test_link();
+    //test_unlink();
+
+    sys_mkdir("/bin");
+    write_file("../../src/init");
+    write_file("../../src/shell");
+
+    //ls("/");
     return 0;
 }
 

@@ -105,7 +105,9 @@ public:
 
     void     read_block(unsigned block_index, unsigned char* buffer);
     void     write_block(unsigned block_index, unsigned char* buffer);
+    void     zero_block(uint32 dev, uint32 b);
     unsigned alloc_block(unsigned dev);
+    void     free_block(unsigned dev, unsigned b);
 
     file_t*  alloc_file();
     inode_t* create(char* path, uint16 type, uint16 major, uint16 minor);
