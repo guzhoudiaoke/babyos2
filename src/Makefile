@@ -38,7 +38,7 @@ CPPFLAGS = -g -w -trigraphs -fno-builtin -fno-exceptions -fno-stack-protector -m
 
 all: babyos
 
-babyos: boot loader kernel init shell ls
+babyos: boot loader kernel init shell ls cat ln mkdir rm cp mv
 	../tool/checksize boot 1
 	../tool/checksize loader 1
 	../tool/checksize kernel 1014
@@ -46,7 +46,8 @@ babyos: boot loader kernel init shell ls
 	dd if=loader            of=baby_hd.img ibs=512 seek=1   count=1 conv=notrunc
 	dd if=kernel            of=baby_hd.img ibs=512 seek=2           conv=notrunc
 	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=1016        conv=notrunc
-	../tool/mkfs ./init ./shell ./ls
+	cp fs.img.bak1 fs.img
+	../tool/mkfs ./init ./shell ./ls ./cat ./ln ./mkdir ./rm ./cp ./mv
 
 boot: boot.S
 	${CPP} ${CPPFLAGS} -c boot.S
@@ -75,6 +76,30 @@ ls: ls.cc userlib.o
 	${CPP} ${CPPFLAGS} -O -c ls.cc
 	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o ls ls.o userlib.o
 
+ln: ln.cc userlib.o
+	${CPP} ${CPPFLAGS} -O -c ln.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o ln ln.o userlib.o
+
+rm: rm.cc userlib.o
+	${CPP} ${CPPFLAGS} -O -c rm.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o rm rm.o userlib.o
+
+cat: cat.cc userlib.o
+	${CPP} ${CPPFLAGS} -O -c cat.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o cat cat.o userlib.o
+
+mkdir: mkdir.cc userlib.o
+	${CPP} ${CPPFLAGS} -O -c mkdir.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o mkdir mkdir.o userlib.o
+
+cp: cp.cc userlib.o
+	${CPP} ${CPPFLAGS} -O -c cp.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o cp cp.o userlib.o
+
+mv: mv.cc userlib.o
+	${CPP} ${CPPFLAGS} -O -c mv.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o mv mv.o userlib.o
+
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< -o  $@
 
@@ -83,5 +108,5 @@ ls: ls.cc userlib.o
 
 
 clean:
-	rm -f boot loader kernel *.o  trace* init shell ls
+	rm -f boot loader kernel *.o  trace* init shell ls cat cp ln mkdir mv cp rm
 

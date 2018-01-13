@@ -252,7 +252,7 @@ inode_t* file_system_t::dup_inode(inode_t* inode)
     return inode;
 }
 
-inode_t* file_system_t::put_inode(inode_t* inode)
+void file_system_t::put_inode(inode_t* inode)
 {
     if (/*(inode->m_flags & I_VALID) &&*/ inode->m_nlinks == 0) {
         if (inode->m_ref == 1) {
@@ -517,9 +517,6 @@ inode_t* file_system_t::create(const char* path, uint16 type, uint16 major, uint
 
 
     dir_link(inode_dir, name, inode->m_inum);
-
-    console()->kprintf(YELLOW, "create, %u, %u, { %u, ... }\n", inode->m_type, inode->m_inum, inode->m_addrs[0]);
-
     put_inode(inode_dir);
 
     return inode;
@@ -1037,5 +1034,22 @@ void file_system_t::test_unlink()
     else {
         console()->kprintf(WHITE, "success to unlink /test_mkdir: \n");
     }
+}
+
+int32 file_system_t::do_chdir(const char* path)
+{
+    inode_t* inode = namei(path);
+    if (inode == NULL) {
+        return -1;
+    }
+    if (inode->m_type != inode_t::I_TYPE_DIR) {
+        put_inode(inode);
+        return -1;
+    }
+
+    put_inode(current->m_cwd);
+    current->m_cwd = inode;
+
+    return 0;
 }
 

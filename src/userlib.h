@@ -59,6 +59,7 @@ public:
     static int  unlink(const char* path);
     static int  mknod(const char* path, int major, int minor);
     static int  dup(int fd);
+    static int  chdir(const char* path);
 
     static int  fstat(int fd, stat_t* st);
     static int  stat(const char* path, stat_t* st);

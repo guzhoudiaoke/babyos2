@@ -177,6 +177,13 @@ int userlib_t::dup(int fd)
     return ret;
 }
 
+int userlib_t::chdir(const char* path)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_CHDIR), "b" (path));
+    return ret;
+}
+
 int userlib_t::fstat(int fd, stat_t* st)
 {
     uint32 ret = 0;

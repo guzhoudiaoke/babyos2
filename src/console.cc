@@ -33,6 +33,9 @@ void input_buffer_t::init()
 void input_buffer_t::input(char ch)
 {
     if (ch == '\b') {
+        if (m_edit_index == m_write_index) {
+            return;
+        }
         m_edit_index--;
     }
     else if (ch == '\n') {
@@ -42,6 +45,7 @@ void input_buffer_t::input(char ch)
     else {
         m_buffer[m_edit_index++ % BUFFER_SIZE] = ch;
     }
+    console()->putc(ch, WHITE);
 }
 
 /****************************************************************/
@@ -302,7 +306,6 @@ void console_t::do_input(char ch)
         m_show_cursor = true;
 
         m_input_buffer.input(ch);
-        putc(ch, WHITE);
     }
 }
 

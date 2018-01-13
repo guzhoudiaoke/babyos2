@@ -49,6 +49,7 @@ public:
     void do_input(char ch);
     int  read(void* buf, int size);
     int  write(void* buf, int size);
+	void putc(int c, color_ref_t color);
 
 private:
 	void draw_background();
@@ -58,7 +59,6 @@ private:
 	void put_char(char c, color_ref_t color);
     void unput_char();
     void backspace();
-	void putc(int c, color_ref_t color);
 	void print_int(int32 n, int32 base, int32 sign, color_ref_t color);
     void scroll();
 

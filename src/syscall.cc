@@ -34,6 +34,7 @@ int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
     syscall_t::sys_mknod,
     syscall_t::sys_dup,
     syscall_t::sys_stat,
+    syscall_t::sys_chdir,
 };
 
 int32 syscall_t::sys_print(trap_frame_t* frame)
@@ -169,6 +170,12 @@ int32 syscall_t::sys_stat(trap_frame_t* frame)
     int fd = frame->ebx;
     stat_t* st = (stat_t *) frame->ecx;
     return os()->get_fs()->do_stat(fd, st);
+}
+
+int32 syscall_t::sys_chdir(trap_frame_t* frame)
+{
+    const char* path = (const char *) frame->ebx;
+    return os()->get_fs()->do_chdir(path);
 }
 
 void syscall_t::do_syscall(trap_frame_t* frame)

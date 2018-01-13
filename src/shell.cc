@@ -98,15 +98,22 @@ void do_cmd(const char* cmd_line)
     userlib_t::wait(pid);
 }
 
-char cmd[MAX_CMD_LEN] = {0};
+char cmd_line[MAX_CMD_LEN] = {0};
 int main()
 {
     userlib_t::printf("This is printed by shell.\n");
 
     while (true) {
         puts("liuruyi $ ");
-        gets(cmd, MAX_CMD_LEN);
-        do_cmd(cmd);
+        gets(cmd_line, MAX_CMD_LEN);
+        if (cmd_line[0] == 'c' && cmd_line[1] == 'd' && cmd_line[2] == ' ') {
+            if (userlib_t::chdir(cmd_line+3) < 0) {
+                userlib_t::printf("can't cd %s\n", cmd_line+3);
+            }
+            continue;
+        }
+
+        do_cmd(cmd_line);
     }
 
     userlib_t::exit(0);

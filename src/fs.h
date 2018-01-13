@@ -96,6 +96,7 @@ public:
     int      do_dup(int fd);
     int      do_seek(int fd, uint32 pos);
     int      do_stat(int fd, stat_t* st);
+    int      do_chdir(const char* path);
 
     inode_t* dup_inode(inode_t* inode);
     file_t*  dup_file(file_t* file);
@@ -128,7 +129,7 @@ private:
     void     read_disk_inode(int id, inode_t* inode);
     void     update_disk_inode(inode_t* inode);
     inode_t* get_inode(uint32 dev, uint32 inum);
-    inode_t* put_inode(inode_t* inode);
+    void     put_inode(inode_t* inode);
     int      read_inode(inode_t* inode, void* dst, uint32 offset, uint32 size);
     int      write_inode(inode_t* inode, void* src, uint32 offset, uint32 size);
     inode_t* alloc_inode(uint16 dev, uint16 type);
