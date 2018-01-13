@@ -7,7 +7,7 @@
 #include "userlib.h"
 #include "file.h"
 
-#define MAX_CMD_LEN  1024
+#define MAX_CMD_LEN  64
 
 void gets(char* buf, uint32 max)
 {
@@ -17,10 +17,10 @@ void gets(char* buf, uint32 max)
         char c;
         int n = userlib_t::read(0, &c, 1);
         if (n == 1) {
-            *buf++ = c;
             if (c == '\n') {
                 break;
             }
+            *buf++ = c;
             i++;
         }
     }
@@ -31,15 +31,38 @@ void puts(char* buf)
     userlib_t::write(0, buf, userlib_t::strlen(buf));
 }
 
+char p[MAX_CMD_LEN] = {0};
+void do_cmd(const char* cmd)
+{
+    userlib_t::memset(p, 0, MAX_CMD_LEN);
+    if (*cmd == '/') {
+        userlib_t::strcpy(p, cmd);
+    }
+    else {
+        userlib_t::strcpy(p, "/bin/");
+        userlib_t::strcat(p, cmd);
+    }
+
+    int32 pid = userlib_t::fork();
+    if (pid == 0) {
+        int ret = userlib_t::exec(p);
+        if (ret < 0) {
+            userlib_t::exit(-1);
+        }
+    }
+
+    userlib_t::wait(pid);
+}
+
+char cmd[MAX_CMD_LEN] = {0};
 int main()
 {
     userlib_t::print("This is printed by shell.\n");
 
-    char cmd[MAX_CMD_LEN] = {0};
     while (true) {
         puts("liuruyi $ ");
         gets(cmd, MAX_CMD_LEN);
-        userlib_t::print(cmd);
+        do_cmd(cmd);
     }
 
     userlib_t::exit(0);

@@ -98,7 +98,7 @@ void mm_t::boot_map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint3
 
 void mm_t::map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm)
 {
-    console()->kprintf(YELLOW, "map va: %x to pa: %p\n", va, pa);
+    //console()->kprintf(YELLOW, "map va: %x to pa: %p\n", va, pa);
 
     uint8 *v = (uint8 *) (((uint32)va) & PAGE_MASK);
     uint8 *e = (uint8 *) (((uint32)va + size) & PAGE_MASK);
@@ -369,8 +369,8 @@ uint32 mm_t::va_2_pa(void* va)
 
 void mm_t::copy_page(void* dst, void* src)
 {
-    dst = PA2VA(va_2_pa(dst));
-    src = PA2VA(va_2_pa(src));
+    dst = PA2VA(va_2_pa(dst) & PAGE_MASK);
+    src = PA2VA(va_2_pa(src) & PAGE_MASK);
 
     memcpy(dst, src, PAGE_SIZE);
 }

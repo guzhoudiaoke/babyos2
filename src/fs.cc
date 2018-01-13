@@ -575,7 +575,7 @@ int file_system_t::do_open(const char* path, int mode)
 
     int fd = -1;
     do {
-        if (inode->m_type == inode_t::I_TYPE_DIR) {
+        if (inode->m_type == inode_t::I_TYPE_DIR && mode != file_t::MODE_RDONLY) {
             break;
         }
         if ((file = alloc_file()) == NULL) {
@@ -766,6 +766,29 @@ int file_system_t::do_dup(int fd)
             return -1;
         }
         dup_file(file);
+        return 0;
+    }
+    return -1;
+}
+
+int file_system_t::do_stat(int fd, stat_t* st)
+{
+    file_t* file = current->get_file(fd);
+    if (file != NULL && file->m_inode != NULL) {
+        st->m_type      = file->m_inode->m_type;
+        st->m_nlinks    = file->m_inode->m_nlinks;
+        st->m_dev       = file->m_inode->m_dev;
+        st->m_size      = file->m_inode->m_size;
+        return 0;
+    }
+    return -1;
+}
+
+int file_system_t::do_seek(int fd, uint32 pos)
+{
+    file_t* file = current->get_file(fd);
+    if (file != NULL && file->m_inode != NULL && pos < file->m_inode->m_size) {
+        file->m_offset = pos;
         return 0;
     }
     return -1;

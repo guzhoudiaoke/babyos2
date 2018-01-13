@@ -29,6 +29,7 @@ enum {
     SYS_MKDIR,
     SYS_MKNOD,
     SYS_DUP,
+    SYS_STAT,
     MAX_SYSCALL,
 };
 
@@ -55,6 +56,7 @@ public:
     static int32 sys_mkdir(trap_frame_t* frame);
     static int32 sys_mknod(trap_frame_t* frame);
     static int32 sys_dup(trap_frame_t* frame);
+    static int32 sys_stat(trap_frame_t* frame);
 
 private:
     static char s_print_buffer[1024];

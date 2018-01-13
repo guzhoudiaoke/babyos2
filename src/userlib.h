@@ -9,6 +9,7 @@
 #include "types.h"
 #include "syscall.h"
 #include "signal.h"
+#include "fs.h"
 
 #define PROT_NONE           0x0       /* page can not be accessed */
 #define PROT_READ           0x1       /* page can be read */
@@ -27,7 +28,7 @@ public:
     static void kill(uint32 pid, uint32 sig);
     static void signal(uint32 sig, sighandler_t handler);
 
-    static void print(const char *str);
+    static int  print(const char *str);
     static void print_int(int32 n, int32 base, int32 sign);
 
     static void loop_delay(int32 loop);
@@ -36,16 +37,23 @@ public:
     static char* strrev(char* str, int len);
     static void* memset(void* dst, uint32 c, uint32 n);
     static int   strlen(const char* str);
+    static char* strcpy(char* dst, const char* src);
+    static char* strncpy(char* dst, const char* src, int n);
+    static int   strcmp(const char* s1, const char *s2);
+    static char* strcat(char* dst, const char* src);
 
     static int  open(const char* path, int mode);
     static int  close(int fd);
-    static int  read(int fd, char* buf, uint32 size);
-    static int  write(int fd, char* buf, uint32 size);
+    static int  read(int fd, void* buf, uint32 size);
+    static int  write(int fd, void* buf, uint32 size);
     static int  mkdir(const char* path);
     static int  link(const char* path_old, const char* path_new);
     static int  unlink(const char* path);
     static int  mknod(const char* path, int major, int minor);
     static int  dup(int fd);
+
+    static int  fstat(int fd, stat_t* st);
+    static int  stat(const char* path, stat_t* st);
 };
 
 #endif

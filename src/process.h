@@ -51,7 +51,7 @@ public:
     int32       exec(trap_frame_t* frame);
     void        sleep(uint32 ticks);
     void        sleep();
-    void        wake_up();
+    void        set_state(uint32 state);
     int32       exit();
     int32       wait_children(int32 pid);
     void        calc_sig_pending();

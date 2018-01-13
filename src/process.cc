@@ -89,6 +89,7 @@ int32 process_t::exec(trap_frame_t* frame)
 
     // load elf binary
     if (elf_t::load(frame, m_name) != 0) {
+        exit();
         return -1;
     }
 
@@ -109,15 +110,12 @@ static void process_timeout(uint32 data)
 
 void process_t::sleep(uint32 ticks)
 {
-    cli();
-
     // add a timer to alarm after ticks
     timer_t timer;
     timer.init(ticks, (uint32) current, process_timeout);
     os()->get_arch()->get_cpu()->add_timer(&timer);
 
     current->m_state = PROCESS_ST_SLEEP;
-    sti();
 
     os()->get_arch()->get_cpu()->schedule();
 
@@ -131,9 +129,9 @@ void process_t::sleep()
     __asm__("nop");
 }
 
-void process_t::wake_up()
+void process_t::set_state(uint32 state)
 {
-    m_state = PROCESS_ST_RUNABLE;
+    m_state = state;
 }
 
 void process_t::adope_children()
@@ -157,7 +155,6 @@ int32 process_t::wait_children(int32 pid)
 {
     current->m_wait_child.add(current);
 repeat:
-    cli();
     m_state = PROCESS_ST_SLEEP;
     list_t<process_t *>::iterator it = m_children.begin();
 
@@ -179,7 +176,6 @@ repeat:
         os()->get_arch()->get_cpu()->release_process(p);
         goto end_wait;
     }
-    sti();
 
     // if find pid, or any child if pid == -1
     if (flag) {
@@ -199,7 +195,7 @@ end_wait:
 
 int32 process_t::exit()
 {
-    console()->kprintf(YELLOW, "\ncurrent: %p(%s), pid: %x is exiting\n", current, current->m_name, current->m_pid);
+    //console()->kprintf(YELLOW, "\ncurrent: %p(%s), pid: %x is exiting\n", current, current->m_name, current->m_pid);
 
     // remove the resource, now only memory 
     m_vmm.release();
@@ -208,14 +204,10 @@ int32 process_t::exit()
     adope_children();
 
     // do not schedule before finish to notify parent
-    cli();
-
     m_state = PROCESS_ST_ZOMBIE;
 
     // let parent wake up, and mourn us
     notify_parent();
-
-    sti();
 
     os()->get_arch()->get_cpu()->schedule();
 

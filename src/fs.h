@@ -72,6 +72,13 @@ public:
     char   m_name[MAX_PATH];
 } dir_entry_t;
 
+typedef struct stat_s {
+    uint16 m_type;
+    uint16 m_nlinks;
+    uint32 m_dev;
+    uint32 m_size;
+} stat_t;
+
 
 class file_system_t {
 public:
@@ -87,6 +94,8 @@ public:
     int      do_unlink(const char* path);
     int      do_mknod(const char* path, int major, int minor);
     int      do_dup(int fd);
+    int      do_seek(int fd, uint32 pos);
+    int      do_stat(int fd, stat_t* st);
 
     inode_t* dup_inode(inode_t* inode);
     file_t*  dup_file(file_t* file);

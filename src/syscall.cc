@@ -33,6 +33,7 @@ int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
     syscall_t::sys_mkdir,
     syscall_t::sys_mknod,
     syscall_t::sys_dup,
+    syscall_t::sys_stat,
 };
 
 int32 syscall_t::sys_print(trap_frame_t* frame)
@@ -40,6 +41,7 @@ int32 syscall_t::sys_print(trap_frame_t* frame)
     char* va = (char *) PA2VA(os()->get_mm()->va_2_pa((void *) frame->ebx));
     strcpy(s_print_buffer, va);
     console()->kprintf(GREEN, "%s", s_print_buffer);
+    return 0;
 }
 
 int32 syscall_t::sys_fork(trap_frame_t* frame)
@@ -160,6 +162,13 @@ int32 syscall_t::sys_dup(trap_frame_t* frame)
 {
     int fd = frame->ebx;
     return os()->get_fs()->do_dup(fd);
+}
+
+int32 syscall_t::sys_stat(trap_frame_t* frame)
+{
+    int fd = frame->ebx;
+    stat_t* st = (stat_t *) frame->ecx;
+    return os()->get_fs()->do_stat(fd, st);
 }
 
 void syscall_t::do_syscall(trap_frame_t* frame)

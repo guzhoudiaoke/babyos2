@@ -328,8 +328,8 @@ uint32 vmm_t::do_protection_fault(vm_area_t* vma, uint32 addr, uint32 write)
         return -1;
     }
 
-    //console()->kprintf(YELLOW, "handle protection fault, addr: %x, ref count: %u\n", 
-    //    addr, os()->get_mm()->get_page_ref(pa));
+    //console()->kprintf(YELLOW, "handle protection fault, %s, addr: %x, ref count: %u\n",
+    //    current->m_name, addr, os()->get_mm()->get_page_ref(pa));
 
     // this is a write protection fault, but this vma can't write
     if (write && !(vma->m_flags & VM_WRITE)) {
@@ -380,14 +380,14 @@ uint32 vmm_t::do_page_fault(trap_frame_t* frame)
                 expand_stk = 1;
             }
             else {
-                console()->kprintf(RED, "segment fault, addr: %x!\n", addr);
+                console()->kprintf(RED, "process: %s, segment fault, addr: %x!\n", current->m_name, addr);
                 send_sig_segv();
                 return -1;
             }
         }
 
         if (!expand_stk) {
-            console()->kprintf(RED, "segment fault, addr: %x!\n", addr);
+            console()->kprintf(RED, "process: %s, segment fault, addr: %x!\n", current->m_name, addr);
             send_sig_segv();
             return -1;
         }

@@ -95,7 +95,7 @@ common_isr:
 	addl    $4,             %esp
 ret_from_isr:
 	movl	frame_cs(%esp), %eax
-	testl	$0x3,			%eax
+	testb	$0x3,			%al
 	jne     restore_all
 
 	GET_CURRENT(%ebx)

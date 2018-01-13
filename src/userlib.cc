@@ -14,13 +14,6 @@ int userlib_t::fork()
     return ret;
 }
 
-//int userlib_t::exec(uint32 lba, uint32 sector_num, const char* name)
-//{
-//    int ret = 0;
-//    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (lba), "c" (sector_num), "d" (name));
-//    return ret;
-//}
-
 int userlib_t::exec(const char* path)
 {
     int ret = 0;
@@ -28,10 +21,11 @@ int userlib_t::exec(const char* path)
     return ret;
 }
 
-void userlib_t::print(const char *str)
+int userlib_t::print(const char *str)
 {
     int ret = 0;
     __asm__ volatile("int $0x80" : "=a" (ret) : "b" (str), "a" (SYS_PRINT));
+    return ret;
 }
 
 void *userlib_t::mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags)
@@ -134,14 +128,14 @@ int userlib_t::close(int fd)
     return ret;
 }
 
-int userlib_t::read(int fd, char* buf, uint32 size)
+int userlib_t::read(int fd, void* buf, uint32 size)
 {
     uint32 ret = 0;
     __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_READ), "b" (fd), "c" ((uint32) buf), "d" (size));
     return ret;
 }
 
-int userlib_t::write(int fd, char* buf, uint32 size)
+int userlib_t::write(int fd, void* buf, uint32 size)
 {
     uint32 ret = 0;
     __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_WRITE), "b" (fd), "c" ((uint32) buf), "d" (size));
@@ -183,6 +177,23 @@ int userlib_t::dup(int fd)
     return ret;
 }
 
+int userlib_t::fstat(int fd, stat_t* st)
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_STAT), "b" (fd), "c" (st));
+    return ret;
+}
+
+int userlib_t::stat(const char* path, stat_t* st)
+{
+    int fd = open(path, file_t::MODE_RDONLY);
+    if (fd < 0) {
+        return -1;
+    }
+
+    return fstat(fd, st);
+}
+
 void* userlib_t::memset(void *dst, uint32 c, uint32 n)
 {
     char* d = (char *) dst;
@@ -200,5 +211,50 @@ int userlib_t::strlen(const char* s)
         len++;
     }
     return len;
+}
+
+
+char* userlib_t::strcpy(char* dst, const char* src)
+{
+	char* d = dst;
+	while (*src) {
+		*d++ = *src++;
+	}
+    *d++ = '\0';
+
+	return dst;
+}
+
+char* userlib_t::strncpy(char* dst, const char* src, int n)
+{
+	char* d = dst;
+	while (--n >= 0 && *src) {
+		*d++ = *src++;
+	}
+    *d++ = '\0';
+
+	return dst;
+}
+
+int userlib_t::strcmp(const char* s1, const char *s2)
+{
+    while (*s1 && *s2 && *s1 == *s2) {
+        s1++;
+        s2++;
+    }
+
+    return *s1 - *s2;
+}
+
+char* userlib_t::strcat(char* dst, const char* src)
+{
+    char* ret = dst;
+    while (*dst) {
+        dst++;
+    }
+    while (*src) {
+        *dst++ = *src++;
+    }
+    return ret;
 }
 

@@ -147,7 +147,7 @@ void cpu_t::init_idle_process()
     strcpy(m_idle_process->m_name, "idle");
 
     m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + 2*KSTACK_SIZE);
-    m_idle_process->m_timeslice = 10;
+    m_idle_process->m_timeslice = 2;
     m_idle_process->m_need_resched = 0;
 
     // signal
@@ -314,7 +314,6 @@ void schedule()
 bool cpu_t::is_in_process_list(process_t* proc)
 {
     bool find = false;
-    m_proc_run_queue_lock.lock();
     process_t* p = m_idle_process->m_next;
     while (p != m_idle_process) {
         if (p == proc) {
@@ -323,7 +322,6 @@ bool cpu_t::is_in_process_list(process_t* proc)
         }
         p = p->m_next;
     }
-    m_proc_run_queue_lock.unlock();
     return find;
 }
 
@@ -367,7 +365,7 @@ void cpu_t::update()
 {
     if (--current->m_timeslice == 0) {
         current->m_need_resched = 1;
-        current->m_timeslice = 10;
+        current->m_timeslice = 2;
     }
 
     list_t<timer_t*>::iterator it = m_timer_list.begin();
@@ -400,7 +398,7 @@ void cpu_t::remove_timer(timer_t* timer)
 void cpu_t::wake_up_process(process_t* proc)
 {
     m_proc_run_queue_lock.lock_irqsave();
-    proc->wake_up();
+    proc->set_state(PROCESS_ST_RUNABLE);
     if (!is_in_process_list(proc)) {
         add_process_to_list(proc);
     }
