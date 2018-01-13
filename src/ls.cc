@@ -21,29 +21,20 @@ void get_name(const char* path, char* name)
 
 void list_file(const char* name, uint32 size)
 {
-    userlib_t::print(name);
-    for (int i = 0; i < 20 - userlib_t::strlen(name); i++) {
-        userlib_t::print(" ");
-    }
-    userlib_t::print_int(size, 10, 0);
-    userlib_t::print("\n");
+    userlib_t::printf("%20s %u\n", name, size);
 }
 
 void ls(const char* path)
 {
     int fd = userlib_t::open(path, file_t::MODE_RDONLY);
     if (fd < 0) {
-        userlib_t::print("ls: cannot open ");
-        userlib_t::print(path);
-        userlib_t::print("\n");
+        userlib_t::printf("ls: cannot open %s\n", path);
         return;
     }
 
     stat_t st;
     if (userlib_t::fstat(fd, &st) < 0) {
-        userlib_t::print("ls: cannot stat ");
-        userlib_t::print(path);
-        userlib_t::close(fd);
+        userlib_t::printf("ls: cannot stat file %s\n", fd);
         return;
     }
 
@@ -70,9 +61,7 @@ void ls(const char* path)
             userlib_t::strcat(p, de.m_name);
 
             if (userlib_t::stat(p, &st) < 0) {
-                userlib_t::print("ls: cannot stat ");
-                userlib_t::print(p);
-                userlib_t::print("\n");
+                userlib_t::printf("ls: cannot stat %s\n", p);
                 continue;
             }
 
@@ -86,10 +75,6 @@ void ls(const char* path)
 
 int main(int argc, char** argv)
 {
-    ls("/");
-    userlib_t::exit(0);
-    return 0;
-
     if (argc < 2) {
         ls(".");
         userlib_t::exit(0);
@@ -102,3 +87,4 @@ int main(int argc, char** argv)
     userlib_t::exit(0);
     return 0;
 }
+

@@ -95,7 +95,7 @@ void test_syscall()
     if (ret == 0) {
         // exec
         //__asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (1024), "c" (32), "d" ("init"));
-        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" ("/bin/init"));
+        __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" ("/bin/init"), "c" (0));
     }
 
     //delay_print("P,");

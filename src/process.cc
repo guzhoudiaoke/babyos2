@@ -58,7 +58,7 @@ process_t* process_t::fork(trap_frame_t* frame)
     return p;
 }
 
-static int32 init_user_stack(trap_frame_t* frame)
+static int32 init_user_stack(trap_frame_t* frame, argument_t* arg)
 {
     vm_area_t* vma = (vm_area_t *) os()->get_obj_pool(VMA_POOL)->alloc_from_pool();
     if (vma == NULL) {
@@ -76,6 +76,42 @@ static int32 init_user_stack(trap_frame_t* frame)
     }
 
     frame->esp = USER_STACK_TOP - 4;
+    if (arg == NULL) {
+        return 0;
+    }
+
+    // space for args
+    for (int i = 0; i < arg->m_argc; i++) {
+        frame->esp -= (strlen(arg->m_argv[i]) + 1);
+    }
+    frame->esp -= frame->esp % 4;
+    frame->esp -= arg->m_argc * sizeof(char*);  // argv[]
+    frame->esp -= arg->m_argc * sizeof(char**); // argv
+    frame->esp -= sizeof(uint32);               // argc
+    frame->esp -= sizeof(uint32);               // ret address
+
+    // ret addr
+    uint32 top = frame->esp;
+    *(uint32 *)top = 0xffffffff;
+    top += sizeof(uint32);
+
+    // argc
+    *(uint32 *)top = arg->m_argc;
+    top += sizeof(uint32);
+
+    // argv
+    *(uint32 *)top = top + sizeof(char **);
+    top += sizeof(uint32);
+
+    char** argv = (char **) top;
+    char* p = (char *) top + sizeof(char *) * arg->m_argc;
+    for (int i = 0; i < arg->m_argc; i++) {
+        argv[i] = p;
+        strcpy(p, arg->m_argv[i]);
+        p += (strlen(p) + 1);
+    }
+
+    return 0;
 }
 
 int32 process_t::exec(trap_frame_t* frame)
@@ -83,6 +119,13 @@ int32 process_t::exec(trap_frame_t* frame)
     // copy process name
     const char* path = (const char *) frame->ebx;
     strcpy(m_name, path);
+
+    // save arg
+    argument_t* arg = NULL;
+    if (frame->ecx != 0) {
+        arg = (argument_t *) os()->get_mm()->alloc_pages(0);
+        memcpy(arg, (void *)frame->ecx, sizeof(argument_t));
+    }
 
     // flush old mmap
     current->m_vmm.release();
@@ -98,7 +141,10 @@ int32 process_t::exec(trap_frame_t* frame)
     frame->ds = frame->es = frame->ss = frame->fs = frame->gs = (SEG_UDATA << 3 | 0x3);
 
     // stack, esp
-    init_user_stack(frame);
+    init_user_stack(frame, arg);
+
+    // free arg
+    os()->get_mm()->free_pages(arg, 0);
 
     return 0;
 }

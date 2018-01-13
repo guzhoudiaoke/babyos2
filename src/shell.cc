@@ -6,8 +6,9 @@
 #include "shell.h"
 #include "userlib.h"
 #include "file.h"
+#include "types.h"
 
-#define MAX_CMD_LEN  64
+#define MAX_CMD_LEN 128
 
 void gets(char* buf, uint32 max)
 {
@@ -31,21 +32,64 @@ void puts(char* buf)
     userlib_t::write(0, buf, userlib_t::strlen(buf));
 }
 
-char p[MAX_CMD_LEN] = {0};
-void do_cmd(const char* cmd)
+static char command[MAX_CMD_LEN] = {0};
+static argument_t argument;
+
+const char* parse_cmd(const char* cmd_line, char* cmd)
 {
-    userlib_t::memset(p, 0, MAX_CMD_LEN);
-    if (*cmd == '/') {
-        userlib_t::strcpy(p, cmd);
-    }
-    else {
-        userlib_t::strcpy(p, "/bin/");
-        userlib_t::strcat(p, cmd);
+    userlib_t::memset(cmd, 0, MAX_CMD_LEN);
+    if (*cmd_line != '/') {
+        userlib_t::strcpy(cmd, "/bin/");
+        cmd += userlib_t::strlen(cmd);
     }
 
+    const char* p = cmd_line;
+    while (*p != ' ' && *p != '\0') {
+        *cmd++ = *p++;
+    }
+
+    while (*p == ' ') {
+        p++;
+    }
+
+    return p;
+}
+
+void parse_cmd_line(const char* cmd_line, char* cmd, argument_t* arg)
+{
+    const char* p = parse_cmd(cmd_line, cmd);
+    arg->m_argc = 0;
+    char* q = arg->m_argv[arg->m_argc++];
+    userlib_t::strcpy(q, cmd);
+
+    if (*p == '\0') {
+        return;
+    }
+
+    while (true) {
+        char* q = arg->m_argv[arg->m_argc];
+        userlib_t::memset(q, 0, MAX_ARG_LEN);
+        while (*p != ' ' && *p != '\0') {
+            *q++ = *p++;
+        }
+
+        while (*p == ' ') {
+            p++;
+        }
+
+        arg->m_argc++;
+        if (*p == '\0') {
+            break;
+        }
+    }
+}
+
+void do_cmd(const char* cmd_line)
+{
+    parse_cmd_line(cmd_line, command, &argument);
     int32 pid = userlib_t::fork();
     if (pid == 0) {
-        int ret = userlib_t::exec(p);
+        int ret = userlib_t::exec(command, &argument);
         if (ret < 0) {
             userlib_t::exit(-1);
         }
@@ -57,7 +101,7 @@ void do_cmd(const char* cmd)
 char cmd[MAX_CMD_LEN] = {0};
 int main()
 {
-    userlib_t::print("This is printed by shell.\n");
+    userlib_t::printf("This is printed by shell.\n");
 
     while (true) {
         puts("liuruyi $ ");

@@ -17,19 +17,27 @@
 #define PROT_EXEC           0x4       /* page can be executed */
 
 
+#define BUFFER_SIZE     1024
+
+typedef char* va_list;
+#define va_start(ap,p)      (ap = (char *) (&(p)+1))
+#define va_arg(ap, type)    ((type *) (ap += sizeof(type)))[-1]
+#define va_end(ap)
+
+#define CHARACTER(ch)       (ch & 0xff)
+
 class userlib_t {
 public:
     static int fork();
-    //static int exec(uint32 lba, uint32 sector_num, const char* name);
-    static int exec(const char* path);
+    static int exec(const char* path, argument_t* arg);
     static void *mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags);
     static void exit(int val);
     static void wait(uint32 pid);
     static void kill(uint32 pid, uint32 sig);
     static void signal(uint32 sig, sighandler_t handler);
 
-    static int  print(const char *str);
-    static void print_int(int32 n, int32 base, int32 sign);
+    static int  sprintf(char* buffer, const char* fmt, ...);
+	static int  printf(const char* fmt, ...);
 
     static void loop_delay(int32 loop);
     static void sleep(uint32 second);
@@ -54,6 +62,13 @@ public:
 
     static int  fstat(int fd, stat_t* st);
     static int  stat(const char* path, stat_t* st);
+
+private:
+    static int  sprint_int(char* buffer, int n, int width, int base, bool sign);
+    static int  sprint_str(char* buffer, char* s, int width);
+    static bool is_digit(char c);
+    static int  print(const char *str);
+    static void print_int(int32 n, int32 base, int32 sign);
 };
 
 #endif

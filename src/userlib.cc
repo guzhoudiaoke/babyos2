@@ -14,10 +14,10 @@ int userlib_t::fork()
     return ret;
 }
 
-int userlib_t::exec(const char* path)
+int userlib_t::exec(const char* path, argument_t* arg)
 {
     int ret = 0;
-    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (path));
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (path), "c" (arg));
     return ret;
 }
 
@@ -256,5 +256,203 @@ char* userlib_t::strcat(char* dst, const char* src)
         *dst++ = *src++;
     }
     return ret;
+}
+
+int userlib_t::sprint_int(char* buffer, int n, int width, int base, bool sign)
+{
+    char buf[16] = {0};
+
+    uint32 num = (uint32)n;
+    if (sign && (sign = (n < 0))) {
+        num = -n;
+    }
+
+    int i = 0;
+    do {
+        buf[i++] = digits[num % base];
+        num /= base;
+    } while (num != 0);
+
+    if (sign) {
+        buf[i++] = '-';
+    }
+
+    if (width < i) {
+        width = i;
+    }
+
+    int len = i;
+    while (--i >= 0) {
+        *buffer++ = buf[i];
+    }
+
+    for (int i = 0; i < width - len; i++) {
+        *buffer++ = ' ';
+    }
+
+    return width;
+}
+
+int userlib_t::sprint_str(char* buffer, char* s, int width)
+{
+    if (s == NULL) {
+        return 0;
+    }
+
+    int len = strlen(s);
+    if (width < len) {
+        width = len;
+    }
+
+    strcat(buffer, s);
+    buffer += len;
+    for (int i = 0; i < width - len; i++) {
+        *buffer++ = ' ';
+    }
+    return width;
+}
+
+bool userlib_t::is_digit(char c)
+{
+    return (c >= '0' && c <= '9');
+}
+
+static char str_null[] = "NULL";
+int userlib_t::sprintf(char* buffer, const char *fmt, ...)
+{
+    buffer[0] = '\0';
+    if (fmt == NULL) {
+        return 0;
+    }
+
+    int total = 0;
+    char sprintf_buf[BUFFER_SIZE];
+    memset(sprintf_buf, 0, BUFFER_SIZE);
+
+    va_list ap;
+    va_start(ap, fmt);
+
+    char c;
+    int width = 0;
+    char* s = NULL;
+    for (int i = 0; (c = CHARACTER(fmt[i])) != 0; i++) {
+        if (c != '%') {
+            sprintf_buf[total++] = c;
+            continue;
+        }
+
+        c = CHARACTER(fmt[++i]);
+        if (c == '\0') {
+            break;
+        }
+
+        width = 0;
+        while (c != '\0' && is_digit(c)) {
+            width = width * 10 + c - '0';
+            c = CHARACTER(fmt[++i]);
+        }
+
+        if (c == '\0') {
+            break;
+        }
+
+        switch (c) {
+            case 'd':
+                total += sprint_int(sprintf_buf + total, va_arg(ap, int32), width, 10, true);
+                break;
+            case 'u':
+                total += sprint_int(sprintf_buf + total, va_arg(ap, int32), width, 10, false);
+                break;
+            case 'x':
+            case 'p':
+                total += sprint_int(sprintf_buf + total, va_arg(ap, int32), width, 16, false);
+                break;
+            case 'c':
+                sprintf_buf[total++] = (char) CHARACTER(va_arg(ap, int32));
+                break;
+            case 's':
+                total += sprint_str(buffer + total, va_arg(ap, char *), width);
+                break;
+            case '%':
+                sprintf_buf[total++] = '%';
+                break;
+            default:
+                sprintf_buf[total++] = '%';
+                sprintf_buf[total++] = c;
+                break;
+        }
+    }
+
+    va_end(ap);
+    strcpy(buffer, sprintf_buf);
+
+    return total;
+}
+
+// only support %d %u %x %p %c %s, and seems enough for now
+int userlib_t::printf(const char *fmt, ...)
+{
+    int total = 0;
+    char buffer[BUFFER_SIZE] = {0};
+    if (fmt == NULL) {
+        return 0;
+    }
+
+    va_list ap;
+    va_start(ap, fmt);
+
+    char c;
+    for (int i = 0; (c = CHARACTER(fmt[i])) != 0; i++) {
+        if (c != '%') {
+            buffer[total++] = c;
+            continue;
+        }
+
+        c = CHARACTER(fmt[++i]);
+        if (c == '\0') {
+            break;
+        }
+
+        int width = 0;
+        while (c != '\0' && is_digit(c)) {
+            width = width * 10 + c - '0';
+            c = CHARACTER(fmt[++i]);
+        }
+
+        if (c == '\0') {
+            break;
+        }
+
+        switch (c) {
+            case 'd':
+                total += sprint_int(buffer + total, va_arg(ap, int32), width, 10, true);
+                break;
+            case 'u':
+                total += sprint_int(buffer + total, va_arg(ap, int32), width, 10, false);
+                break;
+            case 'x':
+            case 'p':
+                total += sprint_int(buffer + total, va_arg(ap, int32), width, 16, false);
+                break;
+            case 'c':
+                buffer[total++] = (char) CHARACTER(va_arg(ap, int32));
+                break;
+            case 's':
+                total += sprint_str(buffer + total, va_arg(ap, char *), width);
+                break;
+            case '%':
+                buffer[total++] = '%';
+                break;
+            default:
+                buffer[total++] = '%';
+                buffer[total++] = c;
+                break;
+        }
+    }
+
+    va_end(ap);
+    print(buffer);
+
+    return total;
 }
 

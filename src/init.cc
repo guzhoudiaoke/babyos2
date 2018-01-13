@@ -6,20 +6,13 @@
 #include "userlib.h"
 #include "file.h"
 
-#define SHELL_LBA       1056
-#define SHELL_SECT_NUM  32
-
-//char path[128] = "/bin/shell";
-
 int main()
 {
     uint32 cs = 0xffffffff;
     __asm__ volatile("movl %%cs, %%eax" : "=a" (cs));
 
     // print cs to show work in user mode
-    userlib_t::print("This is printed by init, cs = ");
-    userlib_t::print_int(cs, 16, 0);
-    userlib_t::print("\n");
+    userlib_t::printf("This is printed by init, cs = 0x%8x\n", cs);
 
     if (userlib_t::open("/dev/console", file_t::MODE_RDWR) < 0) {
         userlib_t::mkdir("/dev/");
@@ -33,9 +26,9 @@ int main()
     if (pid == 0) {
         // child
         //char path[128] = "/bin/shell";
-        int ret = userlib_t::exec("/bin/shell");
+        int ret = userlib_t::exec("/bin/shell", NULL);
         if (ret != 0) {
-            userlib_t::print("BUG exec failed!!!\n");
+            userlib_t::printf("BUG exec failed!!!\n");
             userlib_t::exit(-1);
         }
     }

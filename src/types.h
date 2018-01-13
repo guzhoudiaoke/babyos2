@@ -89,4 +89,13 @@ typedef struct trap_frame_s {
     uint16 ss, padding6;
 } trap_frame_t;
 
+#define MAX_ARGS 16
+#define MAX_ARG_LEN 32
+
+typedef struct argument_s {
+    unsigned m_argc;
+    char m_argv[MAX_ARGS][MAX_ARG_LEN];
+} argument_t;
+
+
 #endif
