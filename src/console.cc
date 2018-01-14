@@ -41,6 +41,7 @@ void input_buffer_t::input(char ch)
     else if (ch == '\n') {
         m_buffer[m_edit_index++ % BUFFER_SIZE] = ch;
         m_write_index = m_edit_index;
+        console()->wakeup_reader();
     }
     else {
         m_buffer[m_edit_index++ % BUFFER_SIZE] = ch;
@@ -79,6 +80,7 @@ void console_t::init()
     m_show_cursor = true;
     m_lock.init();
     m_input_buffer.init();
+    m_wait_queue.init();
 
     os()->get_dev(DEV_CONSOLE)->read = console_read;
     os()->get_dev(DEV_CONSOLE)->write = console_write;
@@ -314,7 +316,8 @@ int console_t::read(void* buf, int size)
     int left = size;
     while (left > 0) {
         if (m_input_buffer.m_read_index == m_input_buffer.m_write_index) {
-            break;
+            current->sleep_on(&m_wait_queue);
+            //break;
         }
         char c = m_input_buffer.m_buffer[m_input_buffer.m_read_index++ % BUFFER_SIZE];
         *(char *) buf++ = c;
@@ -333,5 +336,10 @@ int console_t::write(void* buf, int size)
         putc(((char *) buf)[i], WHITE);
     }
     return size;
+}
+
+void console_t::wakeup_reader()
+{
+    m_wait_queue.wake_up();
 }
 

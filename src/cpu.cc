@@ -291,7 +291,7 @@ void cpu_t::schedule()
     while (next != prev && next->m_state != PROCESS_ST_RUNNING) {
         next = next->m_next;
     }
-    if (prev->m_state != PROCESS_ST_RUNNING) {
+    if (prev->m_pid && prev->m_state != PROCESS_ST_RUNNING) {
         m_proc_run_queue_lock.lock_irqsave();
         remove_process_from_list(prev);
         m_proc_run_queue_lock.unlock_irqrestore();

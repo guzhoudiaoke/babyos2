@@ -9,6 +9,7 @@
 #include "types.h"
 #include "screen.h"
 #include "spinlock.h"
+#include "waitqueue.h"
 
 #define BUFFER_SIZE     1024
 
@@ -50,6 +51,7 @@ public:
     int  read(void* buf, int size);
     int  write(void* buf, int size);
 	void putc(int c, color_ref_t color);
+    void wakeup_reader();
 
 private:
 	void draw_background();
@@ -71,6 +73,7 @@ private:
     bool            m_show_cursor;
     spinlock_t      m_lock;
     input_buffer_t  m_input_buffer;
+    wait_queue_t    m_wait_queue;
 };
 
 #endif

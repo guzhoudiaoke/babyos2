@@ -46,6 +46,7 @@ void ls(const char* path)
         list_file(name, st.m_size);
         break;
     case inode_t::I_TYPE_DIR:
+        userlib_t::printf("%s: \n", path);
         while (userlib_t::read(fd, &de, sizeof(de)) == sizeof(de)) {
             if (de.m_inum == 0) {
                 continue;

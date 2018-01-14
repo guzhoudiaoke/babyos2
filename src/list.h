@@ -78,7 +78,6 @@ public:
         m_head = NULL;
         m_tail = NULL;
         m_size = 0;
-        m_lock.init();
         m_pool.init(sizeof(list_node_t<T>));
     }
 
@@ -113,7 +112,6 @@ public:
         return true;
     }
     bool push_front(const T& data) {
-        locker_t locker(m_lock);
         return push_front_nolock(data);
     }
 
@@ -134,7 +132,6 @@ public:
         return true;
     }
     bool push_back(const T& data) {
-        locker_t locker(m_lock);
         return push_back_nolock(data);
     }
 
@@ -155,7 +152,6 @@ public:
         return true;
     }
     bool pop_back() {
-        locker_t locker(m_lock);
         return pop_back_nolock();
     }
 
@@ -177,13 +173,10 @@ public:
         return true;
     }
     bool pop_front() {
-        locker_t locker(m_lock);
         return pop_front_nolock();
     }
 
     list_t<T>::iterator insert(list_t<T>::iterator &it, const T& data) {
-        locker_t locker(m_lock);
-
         // insert before end, just push back
         if (it.m_ptr == NULL) {
             push_back_nolock(data);
@@ -212,7 +205,6 @@ public:
     }
 
     list_t<T>::iterator erase(list_t<T>::iterator &it) {
-        locker_t locker(m_lock);
         list_t<T>::iterator ret = it;
 
         // error erase
@@ -269,7 +261,6 @@ private:
     list_node_t<T>*     m_head;
     list_node_t<T>*     m_tail;
     uint32              m_size;
-    spinlock_t          m_lock;
     object_pool_t       m_pool;
 };
 

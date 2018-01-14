@@ -31,13 +31,14 @@ void object_pool_t::free_object_nolock(void* obj)
 }
 void object_pool_t::free_object(void* obj)
 {
-    locker_t locker(m_lock);
+    m_lock.lock_irqsave();
     free_object_nolock(obj);
+    m_lock.unlock_irqrestore();
 }
 
 void* object_pool_t::alloc_from_pool()
 {
-    locker_t locker(m_lock);
+    m_lock.lock_irqsave();
 	if (m_free_list == NULL) {
 		uint8* mem = (uint8 *) os()->get_mm()->alloc_pages(0);
 		uint8* end = mem + PAGE_SIZE;
@@ -51,6 +52,8 @@ void* object_pool_t::alloc_from_pool()
 	m_free_list = m_free_list->m_next;
 
 	m_available--;
+    m_lock.unlock_irqrestore();
+
 	return obj;
 }
 

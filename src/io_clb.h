@@ -17,15 +17,15 @@ typedef struct io_clb_s {
     uint32            read;
     uint32            lba;
     struct io_clb_s*  next;
-    process_t*        wait;
     uint8             buffer[SECT_SIZE];
+    wait_queue_t      wait_queue;
 
     void init(uint32 dev, uint32 read, uint32 lba) {
         this->flags = 0;
         this->dev = dev;
         this->read = read;
         this->lba = lba;
-        this->wait = NULL;
+        this->wait_queue.init();
     }
 } io_clb_t;
 

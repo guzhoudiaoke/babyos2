@@ -180,6 +180,14 @@ void process_t::sleep()
     __asm__("nop");
 }
 
+void process_t::sleep_on(wait_queue_t* queue)
+{
+    queue->add(current);
+    current->m_state = PROCESS_ST_SLEEP;
+    os()->get_arch()->get_cpu()->schedule();
+    queue->remove(current);
+}
+
 void process_t::set_state(uint32 state)
 {
     m_state = state;

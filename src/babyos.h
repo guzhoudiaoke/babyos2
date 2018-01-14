@@ -16,6 +16,7 @@
 #include "fs.h"
 #include "file.h"
 
+
 enum pool_type_e {
 	VMA_POOL = 0,
 	MAX_POOL,
@@ -40,6 +41,7 @@ public:
     arch_t*     get_arch();
     ide_t*      get_ide();
 	object_pool_t* get_obj_pool(uint32 type);
+    object_pool_t* get_obj_pool_of_size(uint32 size);
     uint32      get_next_pid();
     file_system_t* get_fs();
     dev_op_t*   get_dev(uint32 type);

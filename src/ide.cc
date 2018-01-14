@@ -53,6 +53,15 @@ void ide_t::request(io_clb_t *clb)
 
     while ((clb->flags & IO_STATE_DONE) != IO_STATE_DONE) {
         current->sleep();
+        //clb->wait_queue.add(current);
+        //current->m_state = PROCESS_ST_SLEEP;
+
+        //if ((clb->flags & IO_STATE_DONE) != IO_STATE_DONE) {
+        //    os()->get_arch()->get_cpu()->schedule();
+        //}
+
+        //current->m_state = PROCESS_ST_RUNNING;
+        //clb->wait_queue.remove(current);
     }
 
     if (clb->read) {
@@ -110,9 +119,7 @@ void ide_t::do_irq()
     }
 
     clb->flags |= IO_STATE_DONE;
-    if (clb->wait != NULL) {
-        os()->get_arch()->get_cpu()->wake_up_process(clb->wait);
-    }
+    //clb->wait_queue.wake_up();
 
     /* EOI */
     outb(0x20, 0x20);
