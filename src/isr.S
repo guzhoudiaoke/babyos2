@@ -94,9 +94,9 @@ common_isr:
 	call    do_common_isr
 	addl    $4,             %esp
 ret_from_isr:
-	movl	frame_cs(%esp), %eax
+	movb	frame_cs(%esp), %al
 	testb	$0x3,			%al
-	jne     restore_all
+	jz      restore_all
 
 	GET_CURRENT(%ebx)
 

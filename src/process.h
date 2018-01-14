@@ -30,9 +30,7 @@ static inline process_t* get_current(void)
 
 /* state of process */
 enum {
-    PROCESS_ST_PREPARE = 0,
-    PROCESS_ST_RUNABLE,
-    PROCESS_ST_RUNNING,
+    PROCESS_ST_RUNNING = 0,
     PROCESS_ST_SLEEP,
     PROCESS_ST_ZOMBIE,
 };

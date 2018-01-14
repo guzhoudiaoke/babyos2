@@ -372,27 +372,18 @@ uint32 vmm_t::do_page_fault(trap_frame_t* frame)
 
     /* not find the vma or out of range */
     if (vma == NULL || vma->m_start > addr) {
-        uint32 expand_stk = 0;
         if (frame->err & 0x4) {
             if (vma != NULL && (vma->m_flags & VM_STACK) && addr + 32 >= frame->esp) {
                 console()->kprintf(YELLOW, "expand stack\n");
                 expand_stack(vma, addr);
-                expand_stk = 1;
-            }
-            else {
-                console()->kprintf(RED, "process: %s, segment fault, addr: %x!\n", current->m_name, addr);
-                send_sig_segv();
-                return -1;
+                goto good_area;
             }
         }
 
-        if (!expand_stk) {
-            console()->kprintf(RED, "process: %s, segment fault, addr: %x!\n", current->m_name, addr);
-            send_sig_segv();
-            return -1;
-        }
+        goto sig_segv;
     }
 
+good_area:
     /* find a vma and the addr in this vma */
     if (vma != NULL && vma->m_start <= addr) {
         if (frame->err & 0x1) {
@@ -406,6 +397,15 @@ uint32 vmm_t::do_page_fault(trap_frame_t* frame)
     }
 
     return 0;
+
+sig_segv:
+    console()->kprintf(RED, "process: %s, segment fault, addr: %x, err: %x, vma: %p(%x->%x)\n", 
+            current->m_name, addr, frame->err, vma, vma->m_start, vma->m_end);
+
+    //console()->kprintf(RED, "errno: %x, eip: %x, cs: %x, esp: %x\n", frame->err, frame->eip, frame->cs, frame->esp);
+    send_sig_segv();
+    //current->exit();
+    return -1;
 }
 
 pde_t* vmm_t::get_pg_dir()

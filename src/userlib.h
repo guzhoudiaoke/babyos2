@@ -48,6 +48,7 @@ public:
     static char* strcpy(char* dst, const char* src);
     static char* strncpy(char* dst, const char* src, int n);
     static int   strcmp(const char* s1, const char *s2);
+    static int   strncmp(const char* s1, const char *s2, int n);
     static char* strcat(char* dst, const char* src);
 
     static int  open(const char* path, int mode);

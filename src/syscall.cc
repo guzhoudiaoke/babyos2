@@ -49,6 +49,9 @@ int32 syscall_t::sys_fork(trap_frame_t* frame)
 {
     process_t* proc = os()->get_arch()->get_cpu()->fork(frame);
     //console()->kprintf(PINK, "sys_fork, eip: %p esp: %p pid: %p\n", frame->eip, frame->esp, current->m_pid);
+    if (proc == NULL) {
+        return -1;
+    }
     return proc->m_pid;
 }
 

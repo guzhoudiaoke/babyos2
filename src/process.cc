@@ -15,6 +15,11 @@ process_t* process_t::fork(trap_frame_t* frame)
 {
     // alloc a process_t
     process_t* p = (process_t *)os()->get_mm()->alloc_pages(1);
+    if (p == NULL) {
+        console()->kprintf(RED, "fork failed\n");
+        return NULL;
+    }
+
     *p = *this;
 
     // frame
@@ -47,9 +52,9 @@ process_t* process_t::fork(trap_frame_t* frame)
     p->m_pid = os()->get_next_pid();
 
     // change state
-    p->m_state = PROCESS_ST_RUNABLE;
+    p->m_state = PROCESS_ST_RUNNING;
     p->m_need_resched = 0;
-    p->m_timeslice = 10;
+    p->m_timeslice = 2;
 
     p->m_children.init();
     p->m_wait_child.init();
@@ -200,6 +205,7 @@ void process_t::notify_parent()
 int32 process_t::wait_children(int32 pid)
 {
     current->m_wait_child.add(current);
+
 repeat:
     m_state = PROCESS_ST_SLEEP;
     list_t<process_t *>::iterator it = m_children.begin();
@@ -211,48 +217,55 @@ repeat:
             continue;
         }
 
-        // find pid, or any child if pid == -1
+        /* find pid, or find any child if pid == -1 */
         flag = true;
 
         if (p->m_state != PROCESS_ST_ZOMBIE) {
             continue;
         }
 
-        // this child has be ZOMBIE, free it
+        /* this child has become ZOMBIE, free it */
         os()->get_arch()->get_cpu()->release_process(p);
+
         goto end_wait;
     }
 
-    // if find pid, or any child if pid == -1
+    /* if find pid, or any child if pid == -1 */
     if (flag) {
-        // sleep to wait child exit
+        /* sleep to wait child exit */
         os()->get_arch()->get_cpu()->schedule();
 
-        // wake up by a exited child, repead to check
+        /* wake up by a exited child, repead to check */
         goto repeat;
     }
 
 end_wait:
-    // continue to run
-    m_state = PROCESS_ST_RUNABLE;
+    /* continue to run */
+    m_state = PROCESS_ST_RUNNING;
     current->m_wait_child.remove(current);
+
     return 0;
 }
 
 int32 process_t::exit()
 {
-    //console()->kprintf(YELLOW, "\ncurrent: %p(%s), pid: %x is exiting\n", current, current->m_name, current->m_pid);
-
-    // remove the resource, now only memory 
+    /* remove the mem resource */
     m_vmm.release();
 
-    // adope children to init
+    /* files */
+    os()->get_fs()->put_inode(m_cwd);
+    for (int i = 0; i < MAX_OPEN_FILE; i++) {
+        if (m_files[i] != NULL && m_files[i]->m_type != file_t::TYPE_NONE) {
+            os()->get_fs()->close_file(m_files[i]);
+        }
+    }
+
+    /* adope children to init */
     adope_children();
 
-    // do not schedule before finish to notify parent
     m_state = PROCESS_ST_ZOMBIE;
 
-    // let parent wake up, and mourn us
+    /* let parent wake up, and mourn us */
     notify_parent();
 
     os()->get_arch()->get_cpu()->schedule();

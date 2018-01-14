@@ -83,7 +83,7 @@ int32 elf_t::load(trap_frame_t* frame, const char* path)
     /* 1. open file */
     int fd = os()->get_fs()->do_open(path, file_t::MODE_RDWR);
     if (fd < 0) {
-        console()->kprintf(RED, "BUG on open file!\n");
+        console()->kprintf(RED, "BUG on open file %s!\n", path);
         ret = -1;
         goto end;
     }

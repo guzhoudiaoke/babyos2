@@ -98,6 +98,34 @@ void do_cmd(const char* cmd_line)
     userlib_t::wait(pid);
 }
 
+// only for test
+void test_fork_exec_wait_exit(const char* times)
+{
+    int t = 0;
+    while (*times != '\0') {
+        if (*times < '0' || *times > '9') {
+            break;
+        }
+        t = t*10 + *times - '0';
+        times++;
+    }
+
+    argument.m_argc = 1;
+    argument.m_argv[0][0] = 0;
+    for (int i = 0; i < t; i++) {
+        int32 pid = userlib_t::fork();
+        if (pid == 0) {
+            int ret = userlib_t::exec("/bin/ls", &argument);
+            if (ret < 0) {
+                userlib_t::exit(-1);
+            }
+            userlib_t::exit(0);
+        }
+
+        userlib_t::wait(pid);
+    }
+}
+
 char cmd_line[MAX_CMD_LEN] = {0};
 int main()
 {
@@ -106,10 +134,14 @@ int main()
     while (true) {
         puts("liuruyi $ ");
         gets(cmd_line, MAX_CMD_LEN);
-        if (cmd_line[0] == 'c' && cmd_line[1] == 'd' && cmd_line[2] == ' ') {
-            if (userlib_t::chdir(cmd_line+3) < 0) {
+        if (userlib_t::strncmp(cmd_line, "cd ", 3) == 0) {
+            if (userlib_t::chdir(cmd_line + 3) < 0) {
                 userlib_t::printf("can't cd %s\n", cmd_line+3);
             }
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "test ", 5) == 0) {
+            test_fork_exec_wait_exit(cmd_line + 5);
             continue;
         }
 
@@ -119,69 +151,4 @@ int main()
     userlib_t::exit(0);
     return 1;
 }
-
-#if 0
-int main()
-{
-    int fd = userlib_t::open("/test", file_t::MODE_RDWR);
-    if (fd < 0) {
-        userlib_t::print("failed to open file abc\n");
-        userlib_t::exit(-1);
-    }
-
-    char buf[512] = {0};
-    int n = userlib_t::read(fd, buf, 512);
-    userlib_t::print_int(n, 10, 1);
-    userlib_t::print(" bytes read from file.\n");
-    userlib_t::print(buf);
-
-    while (true) {
-        int n = userlib_t::read(fd, buf, 512);
-        if (n > 0) {
-            userlib_t::print_int(n, 10, 1);
-            userlib_t::print(" bytes read from file.\n");
-        }
-    }
-
-    userlib_t::close(fd);
-    userlib_t::exit(0);
-    return 1;
-}
-
-void process_signal(int32 sig)
-{
-    userlib_t::print("SIG_");
-    userlib_t::print_int(sig, 10, 1);
-    userlib_t::print(",");
-}
-
-int main()
-{
-    userlib_t::exit(0);
-    return 1;
-
-    sighandler_t handler = &process_signal;
-    userlib_t::signal(4, handler);
-    userlib_t::print("This is printed by shell.\n");
-
-    int times = 0;
-    while (times++ < 5) {
-        userlib_t::sleep(2);
-        userlib_t::print("S,");
-    }
-
-    userlib_t::exit(0);
-
-    int* p = (int *) 0xa0000000;
-    *p = 0x1234;
-
-    while (1) {
-        userlib_t::sleep(2);
-        userlib_t::print("s,");
-    }
-
-    userlib_t::exit(0);
-    return 1;
-}
-#endif
 

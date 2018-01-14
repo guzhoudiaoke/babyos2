@@ -198,7 +198,9 @@ int userlib_t::stat(const char* path, stat_t* st)
         return -1;
     }
 
-    return fstat(fd, st);
+    int ret = fstat(fd, st);
+    close(fd);
+    return ret;
 }
 
 void* userlib_t::memset(void *dst, uint32 c, uint32 n)
@@ -251,6 +253,16 @@ int userlib_t::strcmp(const char* s1, const char *s2)
     }
 
     return *s1 - *s2;
+}
+
+int userlib_t::strncmp(const char* s1, const char *s2, int n)
+{
+    while (*s1 && *s2 && *s1 == *s2 && --n >= 0) {
+        s1++;
+        s2++;
+    }
+
+    return n == 0 ? 0 : *s1 - *s2;
 }
 
 char* userlib_t::strcat(char* dst, const char* src)

@@ -142,7 +142,7 @@ void cpu_t::init_idle_process()
     m_idle_process = (process_t *) kernel_stack;
     m_idle_process->m_pid = os()->get_next_pid();
 
-    m_idle_process->m_state = PROCESS_ST_RUNABLE;
+    m_idle_process->m_state = PROCESS_ST_RUNNING;
     memset(&m_idle_process->m_context, 0, sizeof(context_t));
     strcpy(m_idle_process->m_name, "idle");
 
@@ -183,6 +183,8 @@ void cpu_t::init()
     m_proc_run_queue_lock.init();
     m_timer_list.init();
     m_proc_list.init();
+    m_proc_list_lock.init();
+    m_timer_list_lock.init();
 
     init_idle_process();
 }
@@ -284,16 +286,16 @@ void __switch_to(process_t* next)
 
 void cpu_t::schedule()
 {
-    cli();
     process_t* prev = current;
     process_t* next = current->m_next;
-    while (next != prev && next->m_state != PROCESS_ST_RUNABLE) {
+    while (next != prev && next->m_state != PROCESS_ST_RUNNING) {
         next = next->m_next;
     }
-    if (prev->m_state != PROCESS_ST_RUNABLE) {
+    if (prev->m_state != PROCESS_ST_RUNNING) {
+        m_proc_run_queue_lock.lock_irqsave();
         remove_process_from_list(prev);
+        m_proc_run_queue_lock.unlock_irqrestore();
     }
-    sti();
 
     if (prev == next) {
         return;
@@ -342,21 +344,22 @@ void cpu_t::remove_process_from_list(process_t* proc)
 process_t* cpu_t::fork(trap_frame_t* frame)
 {
     // fork a new process
-    process_t*p = current->fork(frame);
-
-    // close interrupt
-    cli();
+    process_t* p = current->fork(frame);
+    if (p == NULL) {
+        return NULL;
+    }
 
     // link to list
+    m_proc_run_queue_lock.lock_irqsave();
     add_process_to_list(p);
+    m_proc_run_queue_lock.unlock_irqrestore();
 
     // add a child for current
     current->m_children.push_back(p);
 
+    m_proc_list_lock.lock_irqsave();
     m_proc_list.push_back(p);
-
-    // start interrupt
-    sti();
+    m_proc_list_lock.unlock_irqrestore();
 
     return p;
 }
@@ -377,14 +380,14 @@ void cpu_t::update()
 
 void cpu_t::add_timer(timer_t* timer)
 {
-    cli();
+    m_timer_list_lock.lock_irqsave();
     m_timer_list.push_back(timer);
-    sti();
+    m_timer_list_lock.unlock_irqrestore();
 }
 
 void cpu_t::remove_timer(timer_t* timer)
 {
-    cli();
+    m_timer_list_lock.lock_irqsave();
     list_t<timer_t*>::iterator it = m_timer_list.begin();
     while (it != m_timer_list.end()) {
         if (timer == *it) {
@@ -392,13 +395,13 @@ void cpu_t::remove_timer(timer_t* timer)
             break;
         }
     }
-    sti();
+    m_timer_list_lock.unlock_irqrestore();
 }
 
 void cpu_t::wake_up_process(process_t* proc)
 {
     m_proc_run_queue_lock.lock_irqsave();
-    proc->set_state(PROCESS_ST_RUNABLE);
+    proc->set_state(PROCESS_ST_RUNNING);
     if (!is_in_process_list(proc)) {
         add_process_to_list(proc);
     }
@@ -457,13 +460,13 @@ int32 cpu_t::send_signal_to(uint32 pid, uint32 sig)
     si.m_sig = sig;
     si.m_pid = current->m_pid;
 
-    cli();
+    m_proc_list_lock.lock_irqsave();
     process_t* p = find_process(pid);
     if (p != NULL) {
         p->m_sig_queue.push_back(si);
         p->calc_sig_pending();
     }
-    sti();
+    m_proc_list_lock.unlock_irqrestore();
 
     return 0;
 }

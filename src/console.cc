@@ -216,9 +216,9 @@ void console_t::print_int(int32 n, int32 base, int32 sign, color_ref_t color)
 // only support %d %u %x %p %c %s, and seems enough for now
 void console_t::kprintf(color_ref_t color, const char *fmt, ...)
 {
-    m_lock.lock();
+    m_lock.lock_irqsave();
     if (fmt == NULL) {
-        m_lock.unlock();
+        m_lock.unlock_irqrestore();
         return;
     }
 
@@ -271,7 +271,7 @@ void console_t::kprintf(color_ref_t color, const char *fmt, ...)
     }
 
     va_end(ap);
-    m_lock.unlock();
+    m_lock.unlock_irqrestore();
 }
 
 void console_t::draw_time()

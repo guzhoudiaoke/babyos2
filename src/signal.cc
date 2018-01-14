@@ -71,6 +71,7 @@ int32 signal_t::do_sigaction(uint32 sig, sighandler_t sig_handler)
 int32 signal_t::handle_signal_default(uint32 sig)
 {
     if (sig == SIG_SEGV) {
+        console()->kprintf(YELLOW, "handle sigsegv\n");
         current->exit();
     }
     return 0;

@@ -99,7 +99,9 @@ public:
     int      do_chdir(const char* path);
 
     inode_t* dup_inode(inode_t* inode);
+    void     put_inode(inode_t* inode);
     file_t*  dup_file(file_t* file);
+    int      close_file(file_t* file);
 
     /* test */
     void     dump_super_block();
@@ -129,7 +131,6 @@ private:
     void     read_disk_inode(int id, inode_t* inode);
     void     update_disk_inode(inode_t* inode);
     inode_t* get_inode(uint32 dev, uint32 inum);
-    void     put_inode(inode_t* inode);
     int      read_inode(inode_t* inode, void* dst, uint32 offset, uint32 size);
     int      write_inode(inode_t* inode, void* src, uint32 offset, uint32 size);
     inode_t* alloc_inode(uint16 dev, uint16 type);
@@ -144,7 +145,6 @@ private:
     inode_t* create(const char* path, uint16 type, uint16 major, uint16 minor);
 
     file_t*  alloc_file();
-    int      close_file(file_t* file);
 
 private:
     uint32          m_dev;

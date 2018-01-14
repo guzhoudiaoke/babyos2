@@ -111,6 +111,8 @@ private:
     spinlock_t       m_proc_run_queue_lock;
     list_t<timer_t*> m_timer_list;
     list_t<process_t*> m_proc_list;
+    spinlock_t       m_proc_list_lock;
+    spinlock_t       m_timer_list_lock;
 };
 
 #endif
