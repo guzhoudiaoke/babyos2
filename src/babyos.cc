@@ -43,11 +43,6 @@ arch_t* babyos_t::get_arch()
     return &m_arch;
 }
 
-ide_t* babyos_t::get_ide()
-{
-    return &m_ide;
-}
-
 object_pool_t* babyos_t::get_obj_pool(uint32 type)
 {
     if (type >= MAX_POOL) {
@@ -217,7 +212,9 @@ void babyos_t::run()
 
     m_mm.init();
     m_arch.init();
-    m_ide.init();
+    m_hd.init();
+    m_block_dev.init(1);
+
     init_pools();
 
     // test list
@@ -258,5 +255,15 @@ uint32 babyos_t::get_next_pid()
 file_system_t* babyos_t::get_fs()
 {
     return &m_fs;
+}
+
+hard_disk_t* babyos_t::get_hd()
+{
+    return &m_hd;
+}
+
+block_dev_t* babyos_t::get_block_dev()
+{
+    return &m_block_dev;
 }
 

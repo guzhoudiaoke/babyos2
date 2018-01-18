@@ -4,15 +4,17 @@
  */
 
 #include "sem.h"
+#include "babyos.h"
+#include "process.h"
 
-void sem_t::init(uint32 count)
+void semaphore_t::init(uint32 count)
 {
     m_count = count;
     m_lock.init();
     m_wait_list.init();
 }
 
-void sem_t::down()
+void semaphore_t::down()
 {
     m_lock.lock_irqsave();
     if (m_count > 0) {
@@ -24,7 +26,7 @@ void sem_t::down()
     m_lock.unlock_irqrestore();
 }
 
-void sem_t::up()
+void semaphore_t::up()
 {
     m_lock.lock_irqsave();
     if (m_wait_list.empty()) {
@@ -36,7 +38,7 @@ void sem_t::up()
     m_lock.unlock_irqrestore();
 }
 
-void sem_t::down_common()
+void semaphore_t::down_common()
 {
     sem_waiter_t waiter;
     waiter.m_proc = current;
@@ -57,9 +59,9 @@ void sem_t::down_common()
     }
 }
 
-void sem_t::up_common()
+void semaphore_t::up_common()
 {
-    sem_waiter_t* waiter = *m_wait_list.front();
+    sem_waiter_t* waiter = *m_wait_list.begin();
     m_wait_list.pop_front();
     waiter->m_up = true;
     os()->get_arch()->get_cpu()->wake_up_process(waiter->m_proc);

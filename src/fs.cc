@@ -5,9 +5,9 @@
 
 #include "fs.h"
 #include "babyos.h"
-#include "ide.h"
 #include "console.h"
 #include "string.h"
+#include "block_dev.h"
 
 /******************************************************************************/
 void inode_t::init(uint16 major, uint16 minor, uint16 nlink)
@@ -24,10 +24,9 @@ void inode_t::init(uint16 major, uint16 minor, uint16 nlink)
 
 void file_system_t::read_super_block()
 {
-    io_clb_t clb;
-    clb.init(m_dev, 1, m_super_block_lba);
-    os()->get_ide()->request(&clb);
-    memcpy(&m_super_block, clb.buffer, sizeof(super_block_t));
+    io_buffer_t* b = os()->get_block_dev()->read(m_super_block_lba);
+    memcpy(&m_super_block, b->m_buffer, sizeof(super_block_t));
+    os()->get_block_dev()->release_block(b);
 }
 
 void file_system_t::init()
@@ -69,12 +68,11 @@ void file_system_t::read_disk_inode(int id, inode_t* inode)
     unsigned block = os()->get_fs()->inode_block(id);
     unsigned offset = os()->get_fs()->inode_offset(id);
 
-    io_clb_t clb;
-    clb.init(m_dev, 1, block);
-    os()->get_ide()->request(&clb);
-
     disk_inode_t dinode;
-    memcpy(&dinode, clb.buffer + offset*sizeof(disk_inode_t), sizeof(disk_inode_t));
+    io_buffer_t* b = os()->get_block_dev()->read(block);
+    memcpy(&dinode, b->m_buffer + offset*sizeof(disk_inode_t), sizeof(disk_inode_t));
+    os()->get_block_dev()->release_block(b);
+
     inode->m_type = dinode.m_type;
     inode->m_major = dinode.m_major;
     inode->m_minor = dinode.m_minor;
@@ -102,15 +100,15 @@ int file_system_t::read_inode(inode_t* inode, void* dst, uint32 offset, uint32 s
 
     int nbyte = 0, total = 0;
     while (total < size) {
-        io_clb_t clb;
-        clb.init(m_dev, 1, block_map(inode, offset / BSIZE));
-        os()->get_ide()->request(&clb);
+        io_buffer_t* b = os()->get_block_dev()->read(block_map(inode, offset / BSIZE));
         nbyte = BSIZE - offset % BSIZE;
         if (nbyte > size - total) {
             nbyte = size - total;
         }
 
-        memcpy(dst, clb.buffer + offset % BSIZE, nbyte);
+        memcpy(dst, b->m_buffer + offset % BSIZE, nbyte);
+        os()->get_block_dev()->release_block(b);
+
         total += nbyte;
         offset += nbyte;
         dst += nbyte;
@@ -119,59 +117,55 @@ int file_system_t::read_inode(inode_t* inode, void* dst, uint32 offset, uint32 s
     return total;
 }
 
-void file_system_t::zero_block(uint32 dev, uint32 b)
+void file_system_t::zero_block(uint32 dev, uint32 block)
 {
-    io_clb_t clb;
-    clb.init(dev, 0, b);
-    memset(clb.buffer, 0, BSIZE);
-    os()->get_ide()->request(&clb);
+    io_buffer_t* b = os()->get_block_dev()->read(block);
+    memset(b->m_buffer, 0, BSIZE);
+    os()->get_block_dev()->write(b);
+    os()->get_block_dev()->release_block(b);
 }
 
 unsigned file_system_t::alloc_block(uint32 dev)
 {
     uint32 index = bitmap_block();
-    io_clb_t clb;
     for (unsigned int i = 0; i < m_super_block.m_nblocks; i += BSIZE*8) {
-        clb.init(dev, 1, index);
-        os()->get_ide()->request(&clb);
+        io_buffer_t* b = os()->get_block_dev()->read(index);
         unsigned n = BSIZE*8;
         if (i + BSIZE*8 > m_super_block.m_nblocks) {
             n = m_super_block.m_nblocks - i;
         }
         for (unsigned bit = 0; bit < n; bit++) {
             unsigned flag = 1 << (bit % 8);
-            if ((clb.buffer[bit / 8] & flag) == 0) {
-                clb.buffer[bit / 8] |= flag;
-                clb.init(dev, 0, index);
-                os()->get_ide()->request(&clb);
+            if ((b->m_buffer[bit / 8] & flag) == 0) {
+                b->m_buffer[bit / 8] |= flag;
+                os()->get_block_dev()->write(b);
+                os()->get_block_dev()->release_block(b);
                 zero_block(dev, i+bit);
                 return i + bit;
             }
         }
+        os()->get_block_dev()->release_block(b);
         index++;
     }
 
     return 0;
 }
 
-void file_system_t::free_block(uint32 dev, uint32 b)
+void file_system_t::free_block(uint32 dev, uint32 lba)
 {
     uint32 index = bitmap_block();
-    uint32 block = b / (BSIZE * 8);
-    uint32 offset = b % (BSIZE * 8);
+    uint32 block = lba / (BSIZE * 8);
+    uint32 offset = lba % (BSIZE * 8);
 
-    io_clb_t clb;
-    clb.init(m_dev, 1, index + block);
-    os()->get_ide()->request(&clb);
-
+    io_buffer_t* b = os()->get_block_dev()->read(index+block);
     uint32 mask = 1 << (offset % 8);
-    if ((clb.buffer[offset / 8] & mask) == 0) {
+    if ((b->m_buffer[offset / 8] & mask) == 0) {
         // need panic
         return;
     }
-    clb.buffer[offset / 8] &= ~mask;
-    clb.init(m_dev, 0, index + block);
-    os()->get_ide()->request(&clb);
+    b->m_buffer[offset / 8] &= ~mask;
+    os()->get_block_dev()->write(b);
+    os()->get_block_dev()->release_block(b);
 }
 
 uint32 file_system_t::block_map(inode_t* inode, uint32 block)
@@ -187,18 +181,16 @@ uint32 file_system_t::block_map(inode_t* inode, uint32 block)
         inode->m_addrs[NDIRECT] = alloc_block(inode->m_dev);
     }
 
-    io_clb_t clb;
-    clb.init(m_dev, 1, inode->m_addrs[NDIRECT]);
-    os()->get_ide()->request(&clb);
+    io_buffer_t* b = os()->get_block_dev()->read(inode->m_addrs[NDIRECT]);
     
-    unsigned* addrs = (unsigned *) clb.buffer;
-    uint32 b = addrs[block - NDIRECT];
-    if (b == 0) {
-        b = addrs[block - NDIRECT] = alloc_block(inode->m_dev);
-        clb.init(m_dev, 0, inode->m_addrs[NDIRECT]);
-        os()->get_ide()->request(&clb);
+    unsigned* addrs = (unsigned *) b->m_buffer;
+    uint32 lba = addrs[block - NDIRECT];
+    if (lba == 0) {
+        lba = addrs[block - NDIRECT] = alloc_block(inode->m_dev);
+        os()->get_block_dev()->write(b);
     }
-    return b;
+    os()->get_block_dev()->release_block(b);
+    return lba;
 }
 
 void file_system_t::update_disk_inode(inode_t* inode)
@@ -207,20 +199,16 @@ void file_system_t::update_disk_inode(inode_t* inode)
     unsigned block = (inode->m_inum / (BSIZE / sizeof(disk_inode_t)) + 2);
     unsigned offset = inode->m_inum % (BSIZE / sizeof(disk_inode_t));
 
-    io_clb_t clb;
-    clb.init(m_dev, 1, block);
-    os()->get_ide()->request(&clb);
-
-    disk_inode = (disk_inode_t *) clb.buffer + offset;
+    io_buffer_t* b = os()->get_block_dev()->read(block);
+    disk_inode = (disk_inode_t *) b->m_buffer + offset;
     disk_inode->m_type = inode->m_type;
     disk_inode->m_major = inode->m_major;
     disk_inode->m_minor = inode->m_minor;
     disk_inode->m_nlinks = inode->m_nlinks;
     disk_inode->m_size = inode->m_size;
     memcpy(disk_inode->m_addrs, inode->m_addrs, sizeof(inode->m_addrs));
-
-    clb.init(m_dev, 0, block);
-    os()->get_ide()->request(&clb);
+    os()->get_block_dev()->write(b);
+    os()->get_block_dev()->release_block(b);
 }
 
 inode_t* file_system_t::get_inode(uint32 dev, uint32 inum)
@@ -267,16 +255,14 @@ void file_system_t::put_inode(inode_t* inode)
             }
 
             if (inode->m_addrs[NDIRECT] != 0) {
-                io_clb_t clb;
-                clb.init(m_dev, 1, inode->m_addrs[NDIRECT]);
-                os()->get_ide()->request(&clb);
-                uint32* addrs = (uint32 *) clb.buffer;
+                io_buffer_t* b = os()->get_block_dev()->read(inode->m_addrs[NDIRECT]);
+                uint32* addrs = (uint32 *) b->m_buffer;
                 for (int i = 0; i < NINDIRECT; i++) {
                     free_block(inode->m_dev, addrs[i]);
                     addrs[i] = 0;
                 }
-                clb.init(m_dev, 0, inode->m_addrs[NDIRECT]);
-                os()->get_ide()->request(&clb);
+                os()->get_block_dev()->write(b);
+                os()->get_block_dev()->release_block(b);
 
                 free_block(inode->m_dev, inode->m_addrs[NDIRECT]);
                 inode->m_addrs[NDIRECT] = 0;
@@ -295,17 +281,16 @@ inode_t* file_system_t::alloc_inode(uint16 dev, uint16 type)
     for (int i = 1; i < m_super_block.m_ninodes; i++) {
         unsigned block = 2 + i / (BSIZE / sizeof(disk_inode_t));
         unsigned offset = i % (BSIZE / sizeof(disk_inode_t));
-        io_clb_t clb;
-        clb.init(m_dev, 1, block);
-        os()->get_ide()->request(&clb);
-        disk_inode_t* dinode = ((disk_inode_t *) clb.buffer) + offset;
+        io_buffer_t* b = os()->get_block_dev()->read(block);
+        disk_inode_t* dinode = ((disk_inode_t *) b->m_buffer) + offset;
         if (dinode->m_type == 0) {
             memset(dinode, 0, sizeof(disk_inode_t));
             dinode->m_type = type;
-            clb.init(m_dev, 0, block);
-            os()->get_ide()->request(&clb);
+            os()->get_block_dev()->write(b);
+            os()->get_block_dev()->release_block(b);
             return get_inode(dev, i);
         }
+        os()->get_block_dev()->release_block(b);
     }
     return NULL;
 }
@@ -426,17 +411,15 @@ int file_system_t::write_inode(inode_t* inode, void* src, uint32 offset, uint32 
 
     int nbyte = 0, total = 0;
     while (total < size) {
-        io_clb_t clb;
-        clb.init(m_dev, 1, block_map(inode, offset/ BSIZE));
-        os()->get_ide()->request(&clb);
+        io_buffer_t* b = os()->get_block_dev()->read(block_map(inode, offset / BSIZE));
         nbyte = BSIZE - offset % BSIZE;
         if (nbyte > size - total) {
             nbyte = size - total;
         }
 
-        memcpy(clb.buffer + offset % BSIZE, src, nbyte);
-        clb.init(m_dev, 0, block_map(inode, offset/ BSIZE));
-        os()->get_ide()->request(&clb);
+        memcpy(b->m_buffer + offset % BSIZE, src, nbyte);
+        os()->get_block_dev()->write(b);
+        os()->get_block_dev()->release_block(b);
 
         total += nbyte;
         offset += nbyte;
@@ -819,15 +802,13 @@ void file_system_t::test_read_bitmap()
     uint32 index = bitmap_block();
     console()->kprintf(YELLOW, "bitmap: \n");
     for (unsigned int i = 0; i < m_super_block.m_nblocks; i += BSIZE*8) {
-        io_clb_t clb;
-        clb.init(m_dev, 1, index);
-        os()->get_ide()->request(&clb);
+        io_buffer_t* b = os()->get_block_dev()->read(index);
         uint32 size = BSIZE * 8;
         if (size > m_super_block.m_nblocks - i) {
             size = m_super_block.m_nblocks - i;
         }
 
-        uint32* bmp = (uint32 *) clb.buffer;
+        uint32* bmp = (uint32 *) b->m_buffer;
         for (int j = 0; j < size / 32; j++) {
             console()->kprintf(YELLOW, "%x, ", bmp[j]);
             if (j % 8 == 0) {
@@ -835,6 +816,7 @@ void file_system_t::test_read_bitmap()
             }
 
         }
+        os()->get_block_dev()->release_block(b);
         index++;
     }
     console()->kprintf(YELLOW, "\n");
@@ -868,7 +850,7 @@ void file_system_t::test_read_dir_entry()
 void file_system_t::test_namei()
 {
     console()->kprintf(YELLOW, "test namei: \n");
-    inode_t* inode = namei("/ls");
+    inode_t* inode = namei("/bin/ls");
     if (inode != NULL) {
         console()->kprintf(YELLOW, "{ %u, %u, %u, %u, %u }\n", inode->m_type, inode->m_major,
                 inode->m_minor, inode->m_nlinks, inode->m_size);
@@ -881,13 +863,13 @@ void file_system_t::test_namei()
 
 void file_system_t::test_create()
 {
-    console()->kprintf(YELLOW, "before create file \"abc\" \n");
+    console()->kprintf(YELLOW, "before create file \"test\" \n");
     test_read_dir_entry();
 
-    int fd = do_open("/abc", file_t::MODE_CREATE);
+    int fd = do_open("/test", file_t::MODE_CREATE);
     do_close(fd);
 
-    console()->kprintf(YELLOW, "after create file \"abc\" \n");
+    console()->kprintf(YELLOW, "after create file \"test\" \n");
     test_read_dir_entry();
 }
 

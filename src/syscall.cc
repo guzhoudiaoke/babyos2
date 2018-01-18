@@ -6,7 +6,6 @@
 #include "kernel.h"
 #include "syscall.h"
 #include "babyos.h"
-#include "ide.h"
 #include "string.h"
 #include "elf.h"
 #include "x86.h"

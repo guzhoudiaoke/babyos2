@@ -11,7 +11,6 @@ OBJS = \
 	keyboard.o\
 	queue.o\
 	timer.o\
-	ide.o\
 	spinlock.o\
 	syscall.o\
 	cpu.o\
@@ -24,7 +23,10 @@ OBJS = \
     waitqueue.o\
 	fs.o\
 	file.o\
-	buf_cache.o\
+    sem.o\
+    block_dev.o\
+	hd.o\
+	io_buffer.o\
 
 AS = as --32
 CC = gcc -m32

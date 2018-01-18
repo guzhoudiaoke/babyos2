@@ -221,7 +221,8 @@ void cpu_t::do_interrupt(uint32 trapno)
             os()->get_arch()->get_8254()->do_irq();
             break;
         case IRQ_0 + IRQ_HARDDISK:
-            os()->get_ide()->do_irq();
+            //os()->get_ide()->do_irq();
+            os()->get_hd()->do_irq();
             break;
         default:
             console()->kprintf(RED, "Interrupt: %x\n", trapno);
@@ -286,24 +287,26 @@ void __switch_to(process_t* next)
 
 void cpu_t::schedule()
 {
+    m_proc_run_queue_lock.lock_irqsave();
+
     process_t* prev = current;
     process_t* next = current->m_next;
     while (next != prev && next->m_state != PROCESS_ST_RUNNING) {
         next = next->m_next;
     }
     if (prev->m_pid && prev->m_state != PROCESS_ST_RUNNING) {
-        m_proc_run_queue_lock.lock_irqsave();
         remove_process_from_list(prev);
-        m_proc_run_queue_lock.unlock_irqrestore();
     }
 
+    m_proc_run_queue_lock.unlock_irqrestore();
     if (prev == next) {
         return;
     }
 
-    set_cr3(VA2PA(next->m_vmm.get_pg_dir()));
 
+    set_cr3(VA2PA(next->m_vmm.get_pg_dir()));
     prev->m_need_resched = 0;
+
     switch_to(prev, next, prev);
 }
 
@@ -315,16 +318,15 @@ void schedule()
 
 bool cpu_t::is_in_process_list(process_t* proc)
 {
-    bool find = false;
-    process_t* p = m_idle_process->m_next;
-    while (p != m_idle_process) {
+    process_t* p = m_idle_process;
+    do {
         if (p == proc) {
-            find = true;
-            break;
+            return true;
         }
         p = p->m_next;
-    }
-    return find;
+    } while (p != m_idle_process);
+
+    return false;
 }
 
 void cpu_t::add_process_to_list(process_t* proc)

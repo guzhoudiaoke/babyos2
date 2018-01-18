@@ -5,7 +5,6 @@
 
 #include "elf.h"
 #include "babyos.h"
-#include "ide.h"
 #include "string.h"
 
 static uint32 log(int32 x, int32 n)

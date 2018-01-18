@@ -3,9 +3,14 @@
  * 2018-01-09
  */
 
+#ifndef _SEM_H_
+#define _SEM_H_
+
 #include "types.h"
+#include "list.h"
 #include "spinlock.h"
 
+class process_t;
 typedef struct sem_waiter_s {
     process_t*  m_proc;
     bool        m_up;
@@ -26,3 +31,5 @@ private:
     uint32                  m_count;
     list_t<sem_waiter_t*>   m_wait_list;
 };
+
+#endif
