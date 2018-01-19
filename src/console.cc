@@ -307,7 +307,14 @@ void console_t::do_input(char ch)
         m_tick_to_update = HZ;
         m_show_cursor = true;
 
-        m_input_buffer.input(ch);
+        if (ch == '\t') {
+            for (int i = 0; i < (4 - m_col % 4); i++) {
+                m_input_buffer.input(' ');
+            }
+        }
+        else {
+            m_input_buffer.input(ch);
+        }
     }
 }
 
