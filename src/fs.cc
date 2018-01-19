@@ -436,7 +436,7 @@ int file_system_t::write_inode(inode_t* inode, void* src, uint32 offset, uint32 
 
 int file_system_t::dir_link(inode_t* inode, char* name, uint32 inum)
 {
-    // already present in the dir
+    /* already present in the dir */
     inode_t* find = NULL;
     unsigned offset = 0;
     if ((find = dir_lookup(inode, name, offset)) != NULL) {
@@ -444,7 +444,7 @@ int file_system_t::dir_link(inode_t* inode, char* name, uint32 inum)
         return -1;
     }
 
-    // find an empty dir_entry
+    /* find an empty dir_entry */
     dir_entry_t dir;
     for (offset = 0; offset < inode->m_size; offset += sizeof(dir)) {
         if (read_inode(inode, (char *) &dir, offset, sizeof(dir)) != sizeof(dir)) {

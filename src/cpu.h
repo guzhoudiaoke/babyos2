@@ -96,23 +96,21 @@ private:
     void do_interrupt(uint32 trapno);
     void do_syscall(trap_frame_t* frame);
 
-    bool is_in_process_list(process_t* proc);
+    bool is_in_run_queue(process_t* proc);
     void add_process_to_list(process_t* proc);
     void remove_process_from_list(process_t* proc);
 
     process_t* find_process(uint32 pid);
 
 private:
-    uint64			 m_gdt[GDT_LEN];
-    uint64			 m_idt[IDT_LEN];
-    tss_t			 m_tss;
-    process_t*		 m_idle_process;
-    process_t*		 m_init_process;
-    spinlock_t       m_proc_run_queue_lock;
-    list_t<timer_t*> m_timer_list;
-    list_t<process_t*> m_proc_list;
-    spinlock_t       m_proc_list_lock;
-    spinlock_t       m_timer_list_lock;
+    uint64			    m_gdt[GDT_LEN];
+    uint64			    m_idt[IDT_LEN];
+    tss_t			    m_tss;
+    process_t*		    m_idle_process;
+    process_t*		    m_init_process;
+    spinlock_t          m_rq_lock;
+    list_t<timer_t*>    m_timer_list;
+    list_t<process_t*>  m_proc_list;
 };
 
 #endif

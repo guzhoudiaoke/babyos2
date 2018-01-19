@@ -78,17 +78,17 @@ void cpu_t::set_system_gate(uint32 index, uint32 addr)
 
 void cpu_t::init_isrs()
 {
-    // exceptions
+    /* exceptions */
     for (uint32 i = 0; i < IRQ_0; i++) {
         set_trap_gate(i, (uint32)isr_vector[i]);
     }
 
-    // interrupts
+    /* interrupts */
     for (uint32 i = IRQ_0; i < 256; i++) {
         set_intr_gate(i, (uint32)isr_vector[i]);
     }
 
-    // syscall
+    /* syscall */
     set_system_gate(IRQ_SYSCALL, (uint32)isr_vector[IRQ_SYSCALL]);
 }
 
@@ -150,12 +150,12 @@ void cpu_t::init_idle_process()
     m_idle_process->m_timeslice = 2;
     m_idle_process->m_need_resched = 0;
 
-    // signal
+    /* signal */
     m_idle_process->m_sig_queue.init();
     m_idle_process->m_sig_pending = 0;
     m_idle_process->m_signal.init();
 
-    // make link
+    /* make link */
     m_idle_process->m_next = m_idle_process;
     m_idle_process->m_prev = m_idle_process;
 
@@ -168,9 +168,6 @@ void cpu_t::init_idle_process()
     for (int i = 0; i < MAX_OPEN_FILE; i++) {
         m_idle_process->m_files[i] = NULL;
     }
-
-    //console()->kprintf(GREEN, "idle: %p, m_tss.esp0: %p, idle->m_contenxt.esp0: %p\n", 
-    //        m_idle_process, m_tss.esp0, m_idle_process->m_context.esp0);
 }
 
 void cpu_t::init()
@@ -180,11 +177,9 @@ void cpu_t::init()
     init_tss();
 
     m_init_process = NULL;
-    m_proc_run_queue_lock.init();
+    m_rq_lock.init();
     m_timer_list.init();
     m_proc_list.init();
-    m_proc_list_lock.init();
-    m_timer_list_lock.init();
 
     init_idle_process();
 }
@@ -221,7 +216,6 @@ void cpu_t::do_interrupt(uint32 trapno)
             os()->get_arch()->get_8254()->do_irq();
             break;
         case IRQ_0 + IRQ_HARDDISK:
-            //os()->get_ide()->do_irq();
             os()->get_hd()->do_irq();
             break;
         default:
@@ -252,7 +246,7 @@ void cpu_t::do_common_isr(trap_frame_t* frame)
     }
 }
 
-// pass args by: eax, edx, ecx
+/* pass args by: eax, edx, ecx */
 #define FASTCALL(x)	x __attribute__((regparm(1)))
 extern "C" void FASTCALL(__switch_to(process_t* prev));
 
@@ -287,22 +281,22 @@ void __switch_to(process_t* next)
 
 void cpu_t::schedule()
 {
-    m_proc_run_queue_lock.lock_irqsave();
+    m_rq_lock.lock_irqsave();
 
     process_t* prev = current;
     process_t* next = current->m_next;
     while (next != prev && next->m_state != PROCESS_ST_RUNNING) {
         next = next->m_next;
     }
-    if (prev->m_pid && prev->m_state != PROCESS_ST_RUNNING) {
+    if (prev != next && prev->m_pid && prev->m_state != PROCESS_ST_RUNNING) {
         remove_process_from_list(prev);
     }
 
-    m_proc_run_queue_lock.unlock_irqrestore();
+    m_rq_lock.unlock_irqrestore();
+
     if (prev == next) {
         return;
     }
-
 
     set_cr3(VA2PA(next->m_vmm.get_pg_dir()));
     prev->m_need_resched = 0;
@@ -316,7 +310,7 @@ void schedule()
     os()->get_arch()->get_cpu()->schedule();
 }
 
-bool cpu_t::is_in_process_list(process_t* proc)
+bool cpu_t::is_in_run_queue(process_t* proc)
 {
     process_t* p = m_idle_process;
     do {
@@ -345,23 +339,24 @@ void cpu_t::remove_process_from_list(process_t* proc)
 
 process_t* cpu_t::fork(trap_frame_t* frame)
 {
-    // fork a new process
+    /* fork a new process */
     process_t* p = current->fork(frame);
     if (p == NULL) {
         return NULL;
     }
 
-    // link to list
-    m_proc_run_queue_lock.lock_irqsave();
+    /* link to list */
+    m_rq_lock.lock_irqsave();
     add_process_to_list(p);
-    m_proc_run_queue_lock.unlock_irqrestore();
+    m_rq_lock.unlock_irqrestore();
 
-    // add a child for current
+    /* add a child for current */
     current->m_children.push_back(p);
 
-    m_proc_list_lock.lock_irqsave();
+    spinlock_t* lock = m_proc_list.get_lock();
+    lock->lock_irqsave();
     m_proc_list.push_back(p);
-    m_proc_list_lock.unlock_irqrestore();
+    lock->unlock_irqrestore();
 
     return p;
 }
@@ -382,14 +377,16 @@ void cpu_t::update()
 
 void cpu_t::add_timer(timer_t* timer)
 {
-    m_timer_list_lock.lock_irqsave();
+    spinlock_t* lock = m_timer_list.get_lock();
+    lock->lock_irqsave();
     m_timer_list.push_back(timer);
-    m_timer_list_lock.unlock_irqrestore();
+    lock->unlock_irqrestore();
 }
 
 void cpu_t::remove_timer(timer_t* timer)
 {
-    m_timer_list_lock.lock_irqsave();
+    spinlock_t* lock = m_timer_list.get_lock();
+    lock->lock_irqsave();
     list_t<timer_t*>::iterator it = m_timer_list.begin();
     while (it != m_timer_list.end()) {
         if (timer == *it) {
@@ -397,22 +394,22 @@ void cpu_t::remove_timer(timer_t* timer)
             break;
         }
     }
-    m_timer_list_lock.unlock_irqrestore();
+    lock->unlock_irqrestore();
 }
 
 void cpu_t::wake_up_process(process_t* proc)
 {
-    m_proc_run_queue_lock.lock_irqsave();
+    m_rq_lock.lock_irqsave();
     proc->set_state(PROCESS_ST_RUNNING);
-    if (!is_in_process_list(proc)) {
+    if (!is_in_run_queue(proc)) {
         add_process_to_list(proc);
     }
-    m_proc_run_queue_lock.unlock_irqrestore();
+    m_rq_lock.unlock_irqrestore();
 }
 
 process_t* cpu_t::get_child_reaper()
 {
-    // if have not set init process, set it by idle process's child
+    /* if have not set init process, set it by idle process's child */
     if (m_init_process == NULL) {
         m_init_process = *m_idle_process->m_children.begin();
     }
@@ -456,19 +453,18 @@ process_t* cpu_t::find_process(uint32 pid)
 
 int32 cpu_t::send_signal_to(uint32 pid, uint32 sig)
 {
-    //console()->kprintf(WHITE, "send_signal, ");
-
     siginfo_t si;
     si.m_sig = sig;
     si.m_pid = current->m_pid;
 
-    m_proc_list_lock.lock_irqsave();
+    spinlock_t* lock = m_proc_list.get_lock();
+    lock->lock_irqsave();
     process_t* p = find_process(pid);
     if (p != NULL) {
         p->m_sig_queue.push_back(si);
         p->calc_sig_pending();
     }
-    m_proc_list_lock.unlock_irqrestore();
+    lock->unlock_irqrestore();
 
     return 0;
 }

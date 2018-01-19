@@ -79,6 +79,7 @@ public:
         m_tail = NULL;
         m_size = 0;
         m_pool.init(sizeof(list_node_t<T>));
+        m_lock.init();
     }
 
     list_node_t<T>* alloc_node(const T& data) {
@@ -95,7 +96,7 @@ public:
         return m_size == 0;
     }
 
-    bool push_front_nolock(const T& data) {
+    bool push_front(const T& data) {
         list_node_t<T>* node = alloc_node(data);
         if (node == NULL) {
             return false;
@@ -111,11 +112,8 @@ public:
         m_size++;
         return true;
     }
-    bool push_front(const T& data) {
-        return push_front_nolock(data);
-    }
 
-    bool push_back_nolock(const T& data) {
+    bool push_back(const T& data) {
         list_node_t<T>* node = alloc_node(data);
         if (node == NULL) {
             return false;
@@ -131,11 +129,8 @@ public:
         m_size++;
         return true;
     }
-    bool push_back(const T& data) {
-        return push_back_nolock(data);
-    }
 
-    bool pop_back_nolock() {
+    bool pop_back() {
         if (m_size == 0) {
             return false;
         }
@@ -151,11 +146,8 @@ public:
         m_pool.free_object((void *) del);
         return true;
     }
-    bool pop_back() {
-        return pop_back_nolock();
-    }
 
-    bool pop_front_nolock() {
+    bool pop_front() {
         if (m_size == 0) {
             return false;
         }
@@ -172,24 +164,21 @@ public:
         m_pool.free_object((void *) del);
         return true;
     }
-    bool pop_front() {
-        return pop_front_nolock();
-    }
 
     list_t<T>::iterator insert(list_t<T>::iterator &it, const T& data) {
-        // insert before end, just push back
+        /* insert before end, just push back */
         if (it.m_ptr == NULL) {
-            push_back_nolock(data);
+            push_back(data);
             return list_t::iterator(m_tail);
         }
 
-        // insert before front
+        /* insert before front */
         if (it.m_ptr->m_prev == NULL) {
-            push_front_nolock(data);
+            push_front(data);
             return list_t::iterator(m_head);
         }
 
-        // insert middle
+        /* insert middle */
         list_node_t<T>* node = alloc_node(data);
         if (node == NULL) {
             return list_t::iterator(NULL);
@@ -207,28 +196,28 @@ public:
     list_t<T>::iterator erase(list_t<T>::iterator &it) {
         list_t<T>::iterator ret = it;
 
-        // error erase
+        /* error erase */
         if (m_size == 0) {
             return ret;
         }
 
         m_size--;
 
-        // no node left
+        /* no node left */
         if (m_size == 0) {
             m_head = m_tail = NULL;
             free_node(it.m_ptr);
             return list_t::iterator(NULL);
         }
 
-        // erase head
+        /* erase head */
         if (m_head == it.m_ptr) {
             m_head = m_head->m_next;
             free_node(it.m_ptr);
             return list_t::iterator(m_head);
         }
 
-        // erase tail
+        /* erase tail */
         if (m_tail == it.m_ptr) {
             m_tail = m_tail->m_prev;
             m_tail->m_next = NULL;
@@ -236,7 +225,7 @@ public:
             return list_t::iterator(m_tail);
         }
 
-        // erase middle node
+        /* erase middle node */
         if (it.m_ptr->m_prev != NULL) {
             it.m_ptr->m_prev->m_next = it.m_ptr->m_next;
         }
@@ -250,6 +239,15 @@ public:
         return ret;
     }
 
+    iterator find(const T& data) {
+        list_t<T>::iterator it = begin();
+        while (it != end() && *it != data) {
+            it++;
+        }
+
+        return it;
+    }
+
     iterator begin() {
         return list_t::iterator(m_head);
     }
@@ -257,11 +255,16 @@ public:
         return list_t::iterator(NULL);
     }
 
+    spinlock_t* get_lock() {
+        return &m_lock;
+    }
+
 private:
     list_node_t<T>*     m_head;
     list_node_t<T>*     m_tail;
     uint32              m_size;
     object_pool_t       m_pool;
+    spinlock_t          m_lock;
 };
 
 #endif
