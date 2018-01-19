@@ -183,21 +183,21 @@ void test_list()
 
 void babyos_t::test_fs()
 {
-    //m_console.kprintf(PINK, "**************** test fs ****************\n");
-    //m_fs.dump_super_block();
-    //m_fs.test_read_inode();
-    //m_fs.test_ls("/");
-    //m_fs.test_read_bitmap();
-    //m_fs.test_read_dir_entry();
-    //m_fs.test_namei();
-    //m_fs.test_create();
-    //m_fs.test_read();
-    //m_fs.test_write();
-    //m_fs.test_mkdir();
-    //m_fs.test_link();
-    //m_fs.test_unlink();
-    //m_fs.test_ls("/bin");
-    //m_console.kprintf(PINK, "**************** test fs ****************\n");
+    m_console.kprintf(PINK, "**************** test fs ****************\n");
+    m_fs.dump_super_block();
+    m_fs.test_read_inode();
+    m_fs.test_ls("/");
+    m_fs.test_read_bitmap();
+    m_fs.test_read_dir_entry();
+    m_fs.test_namei();
+    m_fs.test_create();
+    m_fs.test_read();
+    m_fs.test_write();
+    m_fs.test_mkdir();
+    m_fs.test_link();
+    m_fs.test_unlink();
+    m_fs.test_ls("/bin");
+    m_console.kprintf(PINK, "**************** test fs ****************\n");
 }
 
 void babyos_t::run()

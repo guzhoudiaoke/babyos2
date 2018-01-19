@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "file.h"
+#include "sem.h"
 
 #define ROOT_DEV 1
 #define ROOT_INUM 1 
@@ -20,9 +21,6 @@
 #define MAX_PATH 14
 #define MAX_INODE_CACHE 64
 #define MAX_FILE_NUM 64
-
-#define I_BUSY 0x1
-#define I_VALID 0x2
 
 typedef struct super_block_s {
     uint32 m_size;      /* total num of blocks */
@@ -51,12 +49,15 @@ public:
         I_TYPE_DEV,
     };
     void init(uint16 major, uint16 minor, uint16 nlink);
+    void lock();
+    void unlock();
 
 public:
     uint32 m_dev;           // device number
     uint32 m_inum;          // inode number
     uint32 m_ref;           // reference count
-    uint32 m_flags;
+    uint32 m_valid;
+    semaphore_t m_sem;
 
     uint16 m_type;          // copy of disk inode
     uint16 m_major;
@@ -152,8 +153,12 @@ private:
     uint32          m_inode_lba;
 
     super_block_t   m_super_block;
-    inode_t         m_inodes[MAX_INODE_CACHE];
     inode_t*        m_root;
+
+    spinlock_t      m_inodes_lock;
+    inode_t         m_inodes[MAX_INODE_CACHE];
+
+    spinlock_t      m_file_table_lock;
     file_t          m_file_table[MAX_FILE_NUM];
 };
 
