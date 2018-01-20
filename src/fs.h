@@ -39,7 +39,9 @@ typedef struct stat_s {
 } stat_t;
 
 
+class fs_tester_t;
 class file_system_t {
+    friend class fs_tester_t;
 public:
     void     init();
     inode_t* get_root();
@@ -63,20 +65,6 @@ public:
     void     put_inode(inode_t* inode);
     file_t*  dup_file(file_t* file);
     int      close_file(file_t* file);
-
-    /* test */
-    void     dump_super_block();
-    void     test_read_inode();
-    void     test_read_bitmap();
-    void     test_read_dir_entry();
-    void     test_namei();
-    void     test_create();
-    void     test_read();
-    void     test_write();
-    void     test_mkdir();
-    void     test_link();
-    void     test_unlink();
-    void     test_ls(const char* path);
 
 private:
     uint32   bitmap_block();

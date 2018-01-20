@@ -8,6 +8,7 @@
 #include "x86.h"
 #include "vm.h"
 #include "list.h"
+#include "fs_test.h"
 
 extern babyos_t babyos;
 babyos_t* babyos_t::get_os()
@@ -183,20 +184,23 @@ void test_list()
 
 void babyos_t::test_fs()
 {
+    fs_tester_t tester;
+    tester.init(&m_fs);
+
     m_console.kprintf(PINK, "**************** test fs ****************\n");
-    m_fs.dump_super_block();
-    m_fs.test_read_inode();
-    m_fs.test_ls("/");
-    m_fs.test_read_bitmap();
-    m_fs.test_read_dir_entry();
-    m_fs.test_namei();
-    m_fs.test_create();
-    m_fs.test_read();
-    m_fs.test_write();
-    m_fs.test_mkdir();
-    m_fs.test_link();
-    m_fs.test_unlink();
-    m_fs.test_ls("/bin");
+    tester.dump_super_block();
+    tester.test_read_inode();
+    tester.test_ls("/");
+    tester.test_read_bitmap();
+    tester.test_read_dir_entry();
+    tester.test_namei();
+    tester.test_create();
+    tester.test_read();
+    tester.test_write();
+    tester.test_mkdir();
+    tester.test_link();
+    tester.test_unlink();
+    tester.test_ls("/bin");
     m_console.kprintf(PINK, "**************** test fs ****************\n");
 }
 

@@ -28,6 +28,7 @@ OBJS = \
 	hd.o\
 	io_buffer.o\
 	inode.o\
+	fs_test.o\
 
 AS = as --32
 CC = gcc -m32
