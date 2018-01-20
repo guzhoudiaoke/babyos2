@@ -27,6 +27,7 @@ OBJS = \
     block_dev.o\
 	hd.o\
 	io_buffer.o\
+	inode.o\
 
 AS = as --32
 CC = gcc -m32

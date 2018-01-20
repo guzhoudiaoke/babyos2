@@ -9,31 +9,6 @@
 #include "string.h"
 #include "block_dev.h"
 
-/******************************************************************************/
-void inode_t::init(uint16 major, uint16 minor, uint16 nlink)
-{
-    m_major = major;
-    m_minor = minor;
-    m_nlinks = nlink;
-    m_size = 0;
-    for (int i = 0; i < NDIRECT+1; i++) {
-        m_addrs[i] = 0;
-    }
-
-    m_sem.init(1);
-}
-
-void inode_t::lock()
-{
-    m_sem.down();
-}
-
-void inode_t::unlock()
-{
-    m_sem.up();
-}
-
-/******************************************************************************/
 
 void file_system_t::read_super_block()
 {
@@ -60,7 +35,7 @@ void file_system_t::init()
 inode_t* file_system_t::get_root()
 {
     inode_t* inode = get_inode(ROOT_DEV, ROOT_INUM);
-    read_disk_inode(ROOT_INUM, inode);
+    inode->read_from_disk(ROOT_INUM);
     return inode;
 }
 
@@ -77,27 +52,6 @@ uint32 file_system_t::bitmap_block()
 uint32 file_system_t::inode_offset(uint32 id)
 {
     return id % (BSIZE / sizeof(disk_inode_t));
-}
-
-void file_system_t::read_disk_inode(int id, inode_t* inode)
-{
-    if (inode->m_valid == 0) {
-        unsigned block = os()->get_fs()->inode_block(id);
-        unsigned offset = os()->get_fs()->inode_offset(id);
-
-        disk_inode_t dinode;
-        io_buffer_t* b = os()->get_block_dev()->read(block);
-        memcpy(&dinode, b->m_buffer + offset*sizeof(disk_inode_t), sizeof(disk_inode_t));
-        os()->get_block_dev()->release_block(b);
-
-        inode->m_type = dinode.m_type;
-        inode->m_major = dinode.m_major;
-        inode->m_minor = dinode.m_minor;
-        inode->m_nlinks = dinode.m_nlinks;
-        inode->m_size = dinode.m_size;
-        memcpy(inode->m_addrs, dinode.m_addrs, sizeof(uint32) * (NDIRECT + 1));
-        inode->m_valid = 1;
-    }
 }
 
 int file_system_t::read_inode(inode_t* inode, void* dst, uint32 offset, uint32 size)
@@ -212,24 +166,6 @@ uint32 file_system_t::block_map(inode_t* inode, uint32 block)
     return lba;
 }
 
-void file_system_t::update_disk_inode(inode_t* inode)
-{
-    struct disk_inode_t* disk_inode;
-    unsigned block = (inode->m_inum / (BSIZE / sizeof(disk_inode_t)) + 2);
-    unsigned offset = inode->m_inum % (BSIZE / sizeof(disk_inode_t));
-
-    io_buffer_t* b = os()->get_block_dev()->read(block);
-    disk_inode = (disk_inode_t *) b->m_buffer + offset;
-    disk_inode->m_type = inode->m_type;
-    disk_inode->m_major = inode->m_major;
-    disk_inode->m_minor = inode->m_minor;
-    disk_inode->m_nlinks = inode->m_nlinks;
-    disk_inode->m_size = inode->m_size;
-    memcpy(disk_inode->m_addrs, inode->m_addrs, sizeof(inode->m_addrs));
-    os()->get_block_dev()->write(b);
-    os()->get_block_dev()->release_block(b);
-}
-
 inode_t* file_system_t::get_inode(uint32 dev, uint32 inum)
 {
     inode_t* inode = NULL;
@@ -302,7 +238,7 @@ void file_system_t::put_inode(inode_t* inode)
             }
 
             inode->m_size = 0;
-            update_disk_inode(inode);
+            inode->write_to_disk();
 
             inode->m_valid = 0;
         }
@@ -342,7 +278,7 @@ inode_t* file_system_t::dir_lookup(inode_t* inode, char* name, unsigned& offset)
             if (strcmp(name, dir.m_name) == 0) {
                 unsigned inum = dir.m_inum;
                 inode = get_inode(inode->m_dev, inum);
-                read_disk_inode(inum, inode);
+                inode->read_from_disk(inum);
                 offset = off;
                 return inode;
             }
@@ -473,7 +409,7 @@ int file_system_t::write_inode(inode_t* inode, void* src, uint32 offset, uint32 
 
     if (total > 0 && offset > inode->m_size) {
         inode->m_size = offset;
-        update_disk_inode(inode);
+        inode->write_to_disk();
     }
 
     return total;
@@ -543,11 +479,11 @@ inode_t* file_system_t::create(const char* path, uint16 type, uint16 major, uint
     inode->m_minor = minor;
     inode->m_nlinks = 1;
     inode->m_type = type;
-    update_disk_inode(inode);
+    inode->write_to_disk();
 
     if (inode->m_type == inode_t::I_TYPE_DIR) {
         inode_dir->m_nlinks++;
-        update_disk_inode(inode_dir);
+        inode_dir->write_to_disk();
         if (dir_link(inode, (char *) ".", inode->m_inum) < 0 || 
             dir_link(inode, (char *) "..", inode->m_inum) < 0) {
             inode->unlock();
@@ -721,7 +657,7 @@ int file_system_t::do_link(const char* path_old, const char* path_new)
     }
 
     inode->m_nlinks++;
-    update_disk_inode(inode);
+    inode->write_to_disk();
     inode->unlock();
 
     char name[MAX_PATH] = {0};
@@ -745,7 +681,7 @@ int file_system_t::do_link(const char* path_old, const char* path_new)
 failed:
     inode->lock();
     inode->m_nlinks--;
-    update_disk_inode(inode);
+    inode->write_to_disk();
     inode->unlock();
 
     return -1;
@@ -805,13 +741,13 @@ int file_system_t::do_unlink(const char* path)
 
     if (inode->m_type == inode_t::I_TYPE_DIR) {
         dir->m_nlinks--;
-        update_disk_inode(dir);
+        dir->write_to_disk();
     }
     dir->unlock();
     put_inode(dir);
 
     inode->m_nlinks--;
-    update_disk_inode(inode);
+    inode->write_to_disk();
     inode->unlock();
     put_inode(inode);
 
@@ -871,6 +807,25 @@ int file_system_t::do_seek(int fd, uint32 pos)
     return -1;
 }
 
+int32 file_system_t::do_chdir(const char* path)
+{
+    inode_t* inode = namei(path);
+    if (inode == NULL) {
+        return -1;
+    }
+    if (inode->m_type != inode_t::I_TYPE_DIR) {
+        inode->unlock();
+        put_inode(inode);
+        return -1;
+    }
+
+    inode->unlock();
+    put_inode(current->m_cwd);
+    current->m_cwd = inode;
+
+    return 0;
+}
+
 /******************************************************************************/
 
 void file_system_t::dump_super_block()
@@ -887,7 +842,7 @@ void file_system_t::test_read_inode()
     inode.m_sem.init(1);
     console()->kprintf(WHITE, "inodes: \n");
     for (int i = 0; i < m_super_block.m_ninodes; i++) {
-        read_disk_inode(i, &inode);
+        inode.read_from_disk(i);
         if (inode.m_type != 0) {
             console()->kprintf(WHITE, "%d: { %u, %u, %u, %u, %u }\n", 
                     i, inode.m_type, inode.m_major,
@@ -928,7 +883,7 @@ void file_system_t::test_read_dir_entry()
     inode.m_valid = 0;
     inode.m_sem.init(1);
     for (int i = 0; i < m_super_block.m_ninodes; i++) {
-        read_disk_inode(i, &inode);
+        inode.read_from_disk(i);
         if (inode.m_type == inode_t::I_TYPE_DIR) {
             break;
         }
@@ -1117,24 +1072,5 @@ void file_system_t::test_unlink()
     else {
         console()->kprintf(WHITE, "success to unlink /test_mkdir: \n");
     }
-}
-
-int32 file_system_t::do_chdir(const char* path)
-{
-    inode_t* inode = namei(path);
-    if (inode == NULL) {
-        return -1;
-    }
-    if (inode->m_type != inode_t::I_TYPE_DIR) {
-        inode->unlock();
-        put_inode(inode);
-        return -1;
-    }
-
-    inode->unlock();
-    put_inode(current->m_cwd);
-    current->m_cwd = inode;
-
-    return 0;
 }
 

@@ -14,7 +14,7 @@
 #include "fs.h"
 #include "file.h"
 
-#define MAX_OPEN_FILE 16
+#define MAX_OPEN_FILE 64
 
 /* get current by kernel stack */
 class process_t;

@@ -8,64 +8,22 @@
 
 #include "types.h"
 #include "file.h"
-#include "sem.h"
+#include "inode.h"
 
 #define ROOT_DEV 1
 #define ROOT_INUM 1 
 
 #define BSIZE   SECT_SIZE
-#define NDIRECT 12
-#define NINDIRECT (BSIZE / sizeof(unsigned int))
-#define MAX_FILE_SIZE (NDIRECT + NINDIRECT)
 
 #define MAX_PATH 14
 #define MAX_INODE_CACHE 64
-#define MAX_FILE_NUM 64
+#define MAX_FILE_NUM 256
 
 typedef struct super_block_s {
     uint32 m_size;      /* total num of blocks */
     uint32 m_nblocks;   /* num of data blocks */
     uint32 m_ninodes;   /* num of inodes */
 } super_block_t;
-
-class disk_inode_t {
-public:
-
-public:
-    uint16 m_type;
-    uint16 m_major;
-    uint16 m_minor;
-    uint16 m_nlinks;
-    uint32 m_size;
-    uint32 m_addrs[NDIRECT + 1];
-};
-
-
-class inode_t {
-public:
-    enum inode_type {
-        I_TYPE_DIR = 1,
-        I_TYPE_FILE,
-        I_TYPE_DEV,
-    };
-    void init(uint16 major, uint16 minor, uint16 nlink);
-    void lock();
-    void unlock();
-
-public:
-    uint32 m_dev;           // device number
-    uint32 m_inum;          // inode number
-    uint32 m_ref;           // reference count
-    uint32 m_valid;
-    semaphore_t m_sem;
-
-    uint16 m_type;          // copy of disk inode
-    uint16 m_major;
-    uint16 m_minor;
-    uint16 m_nlinks;
-    uint32 m_size;
-    uint32 m_addrs[NDIRECT+1];
-};
 
 typedef struct dir_entry_s {
 public:
@@ -85,6 +43,8 @@ class file_system_t {
 public:
     void     init();
     inode_t* get_root();
+    uint32   inode_block(uint32 id);
+    uint32   inode_offset(uint32 id);
 
     int      do_open(const char* path, int mode);
     int      do_close(int fd);
@@ -119,8 +79,6 @@ public:
     void     test_ls(const char* path);
 
 private:
-    uint32   inode_block(uint32 id);
-    uint32   inode_offset(uint32 id);
     uint32   bitmap_block();
 
     void     read_super_block();
@@ -129,8 +87,6 @@ private:
     void     free_block(uint32 dev, uint32 b);
     uint32   block_map(inode_t* inode, uint32 block);
 
-    void     read_disk_inode(int id, inode_t* inode);
-    void     update_disk_inode(inode_t* inode);
     inode_t* get_inode(uint32 dev, uint32 inum);
     int      read_inode(inode_t* inode, void* dst, uint32 offset, uint32 size);
     int      write_inode(inode_t* inode, void* src, uint32 offset, uint32 size);
