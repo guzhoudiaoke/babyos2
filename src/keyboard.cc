@@ -19,10 +19,7 @@ keyboard_t::~keyboard_t()
 void keyboard_t::do_irq()
 {
 	uint8 scan_code = inb(0x60);				        /* read scan code */
-	if (!m_queue.full())
-	{
-		m_queue.en_queue(scan_code);	
-	}
+    m_queue.push_back(scan_code);
 
     char ch = read();
     console()->do_input(ch);
@@ -33,7 +30,7 @@ void keyboard_t::do_irq()
 void keyboard_t::init()
 {
 	os()->get_arch()->get_8259a()->enable_irq(IRQ_KEYBOARD);		/* enable keyboard interrupt */
-	m_queue.init();
+    m_queue.init(os()->get_obj_pool_of_size());
 
 	m_shift_l = 0;
 	m_shift_r = 0;
@@ -47,7 +44,8 @@ int32 keyboard_t::read()
 
 	if (!m_queue.empty())
 	{
-		m_queue.de_queue(&scan_code);
+        scan_code = *m_queue.begin();
+        m_queue.pop_front();
 
 		/* set m_leading_e0 */
 		if (scan_code == 0xe0)

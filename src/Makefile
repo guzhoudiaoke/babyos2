@@ -9,7 +9,6 @@ OBJS = \
 	arch.o\
 	isr.o\
 	keyboard.o\
-	queue.o\
 	timer.o\
 	spinlock.o\
 	syscall.o\

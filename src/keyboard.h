@@ -8,7 +8,7 @@
 
 
 #include "types.h"
-#include "queue.h"
+#include "list.h"
 
 #define NR_SCAN_CODES		0x80		/* 扫描码个数 */
 #define NR_CODE_COL			0x03		/* 扫描码列数 */
@@ -264,7 +264,7 @@ public:
     int32 read();
 
 private:
-    queue_t m_queue;
+    list_t<uint8> m_queue;
     uint8 m_shift_l;
     uint8 m_shift_r;
     uint8 m_leading_e0;
