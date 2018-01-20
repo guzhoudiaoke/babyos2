@@ -9,6 +9,7 @@
 #include "types.h"
 
 class inode_t;
+class pipe_t;
 class file_t {
 public:
     enum {
@@ -23,7 +24,7 @@ public:
         TYPE_INODE,
     };
 
-    void init(uint32 type, inode_t* inode, uint32 offset, uint16 readable, uint16 writeable);
+    void init(uint32 type, inode_t* inode, pipe_t* pipe, uint32 offset, uint16 readable, uint16 writeable);
 
 public:
     uint32      m_type;
@@ -31,6 +32,7 @@ public:
     uint16      m_readable;
     uint16      m_writeable;
     inode_t*    m_inode;
+    pipe_t*     m_pipe;
     uint32      m_offset;
 };
 

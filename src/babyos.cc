@@ -104,7 +104,9 @@ void babyos_t::start_init_proc()
 void babyos_t::init_pools()
 {
     m_pools[VMA_POOL].init(sizeof(vm_area_t));
-    for (uint32 i = 1; i <= MAX_POOL_SIZE; i++) {
+    m_pools[PIPE_POOL].init(sizeof(pipe_t));
+
+    for (uint32 i = 1; i <= SMALL_POOL_SIZE; i++) {
         m_pool_of_size[i].init(i);
     }
 }

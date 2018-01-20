@@ -29,6 +29,7 @@ OBJS = \
 	inode.o\
 	fs_test.o\
 	file_table.o\
+	pipe.o\
 
 AS = as --32
 CC = gcc -m32

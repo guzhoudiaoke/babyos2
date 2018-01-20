@@ -65,6 +65,8 @@ public:
     static int  fstat(int fd, stat_t* st);
     static int  stat(const char* path, stat_t* st);
 
+    static int  pipe(int fd[2]);
+
 private:
     static int  sprint_int(char* buffer, int n, int width, int base, bool sign);
     static int  sprint_str(char* buffer, char* s, int width);

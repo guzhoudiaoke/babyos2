@@ -74,11 +74,19 @@ public:
         list_node_t<T>* m_ptr;
     };
 
-    void init(object_pool_t* pool) {
+    void init(object_pool_t* pools) {
         m_head = NULL;
         m_tail = NULL;
         m_size = 0;
-        m_pool = &pool[sizeof(list_node_t<T>)];
+
+        uint32 node_size = sizeof(list_node_t<T>);
+        if (node_size > SMALL_POOL_SIZE) {
+            m_big_pool.init(node_size);
+            m_pool = &m_big_pool;
+        }
+        else {
+            m_pool = &pools[node_size];
+        }
         m_lock.init();
     }
 
@@ -265,6 +273,7 @@ private:
     uint32              m_size;
     object_pool_t*      m_pool;
     spinlock_t          m_lock;
+    object_pool_t       m_big_pool;
 };
 
 #endif

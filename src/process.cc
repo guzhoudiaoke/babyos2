@@ -306,7 +306,7 @@ file_t* process_t::get_file(int fd)
     return m_files[fd];
 }
 
-void process_t::close_file(int fd)
+void process_t::free_fd(int fd)
 {
     if (fd >= 0 && fd < MAX_OPEN_FILE) {
         current->m_files[fd] = NULL;

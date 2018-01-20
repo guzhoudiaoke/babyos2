@@ -203,6 +203,14 @@ int userlib_t::stat(const char* path, stat_t* st)
     return ret;
 }
 
+int userlib_t::pipe(int fd[2])
+{
+    uint32 ret = 0;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_PIPE), "b" (fd));
+    return ret;
+}
+
+
 void* userlib_t::memset(void *dst, uint32 c, uint32 n)
 {
     char* d = (char *) dst;

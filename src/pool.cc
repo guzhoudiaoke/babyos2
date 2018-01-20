@@ -10,7 +10,7 @@
 
 void object_pool_t::init(uint32 obj_size)
 {
-    if (obj_size <= 0 || obj_size > MAX_POOL_SIZE) {
+    if (obj_size == 0) {
         os()->panic("invalid pool size");
     }
 	m_obj_size = obj_size;

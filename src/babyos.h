@@ -16,9 +16,12 @@
 #include "file.h"
 #include "block_dev.h"
 #include "hd.h"
+#include "pipe.h"
+
 
 enum pool_type_e {
 	VMA_POOL = 0,
+    PIPE_POOL,
 	MAX_POOL,
 };
 
@@ -61,7 +64,7 @@ private:
     mm_t			m_mm;
     arch_t			m_arch;
 	object_pool_t	m_pools[MAX_POOL];
-	object_pool_t	m_pool_of_size[MAX_POOL_SIZE+1];
+	object_pool_t	m_pool_of_size[SMALL_POOL_SIZE+1];
 	atomic_t	    m_next_pid;
     file_system_t   m_fs;
     dev_op_t        m_devices[MAX_DEV];

@@ -56,8 +56,8 @@ public:
     void        calc_sig_pending();
 
     int         alloc_fd(file_t* file);
+    void        free_fd(int fd);
     file_t*     get_file(int fd);
-    void        close_file(int fd);
     void        set_cwd(inode_t* inode);
 
 private:

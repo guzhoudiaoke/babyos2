@@ -19,8 +19,9 @@ file_t* file_table_t::alloc()
     file_t* file = NULL;
     m_lock.lock();
     for (int i = 0; i < MAX_FILE_NUM; i++) {
-        if (m_file_table[i].m_type == file_t::TYPE_NONE) {
+        if (m_file_table[i].m_ref == 0) {
             file = &m_file_table[i];
+            file->m_ref = 1;
             break;
         }
     }
@@ -47,7 +48,10 @@ int file_table_t::free(file_t* file)
     file->m_type = file_t::TYPE_NONE;
     m_lock.unlock();
 
-    if (f.m_type == file_t::TYPE_INODE) {
+    if (f.m_type == file_t::TYPE_PIPE) {
+        f.m_pipe->close(f.m_writeable);
+    }
+    else if (f.m_type == file_t::TYPE_INODE) {
         os()->get_fs()->put_inode(f.m_inode);
     }
 

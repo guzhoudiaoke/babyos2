@@ -9,8 +9,7 @@
 #include "types.h"
 #include "spinlock.h"
 
-#define MAX_POOL_SIZE   64
-
+#define SMALL_POOL_SIZE 64
 
 typedef struct object_pool_obj_s {
 	struct object_pool_obj_s*	m_next;
