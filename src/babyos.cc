@@ -52,6 +52,11 @@ object_pool_t* babyos_t::get_obj_pool(uint32 type)
     return &m_pools[type];
 }
 
+object_pool_t*  babyos_t::get_obj_pool_of_size()
+{
+    return m_pool_of_size;
+}
+
 dev_op_t* babyos_t::get_dev(uint32 type)
 {
     if (type >= MAX_DEV) {
@@ -99,6 +104,9 @@ void babyos_t::start_init_proc()
 void babyos_t::init_pools()
 {
     m_pools[VMA_POOL].init(sizeof(vm_area_t));
+    for (uint32 i = 1; i <= MAX_POOL_SIZE; i++) {
+        m_pool_of_size[i].init(i);
+    }
 }
 
 void print_list(list_t<int>& list) {
@@ -114,7 +122,7 @@ int data[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 void test_list()
 {
     list_t<int> list;
-    list.init();
+    list.init(os()->get_obj_pool_of_size());
 
     console()->kprintf(WHITE, "test list...\n");
     if (list.empty()) {
@@ -210,11 +218,12 @@ void babyos_t::run()
     m_console.kprintf(YELLOW,   "Author:\tguzhoudiaoke@126.com\n");
 
     m_mm.init();
+    init_pools();
+
     m_arch.init();
     m_hd.init();
     m_block_dev.init(1);
 
-    init_pools();
 
 
     sti();
@@ -241,7 +250,8 @@ void babyos_t::update(uint32 tick)
 
 void babyos_t::panic(const char* s)
 {
-    m_console.kprintf(RED, "[BABYOS PANIC], %s\n", s);
+    cli();
+    m_console.kprintf(RED, "[BABYOS PANICED], %s\n", s);
     while (1) {
         halt();
     }

@@ -74,22 +74,22 @@ public:
         list_node_t<T>* m_ptr;
     };
 
-    void init() {
+    void init(object_pool_t* pool) {
         m_head = NULL;
         m_tail = NULL;
         m_size = 0;
-        m_pool.init(sizeof(list_node_t<T>));
+        m_pool = &pool[sizeof(list_node_t<T>)];
         m_lock.init();
     }
 
     list_node_t<T>* alloc_node(const T& data) {
-        list_node_t<T>* node = (list_node_t<T> *) m_pool.alloc_from_pool();
+        list_node_t<T>* node = (list_node_t<T> *) m_pool->alloc_from_pool();
         node->init(data);
         return node;
     }
 
     void free_node(list_node_t<T>* node) {
-        m_pool.free_object((void *) node);
+        m_pool->free_object((void *) node);
     }
 
     bool empty() {
@@ -143,7 +143,7 @@ public:
             m_tail = m_tail->m_prev;
             m_tail->m_next = NULL;
         }
-        m_pool.free_object((void *) del);
+        free_node(del);
         return true;
     }
 
@@ -161,7 +161,7 @@ public:
             m_head = m_head->m_next;
             m_head->m_prev = NULL;
         }
-        m_pool.free_object((void *) del);
+        free_node(del);
         return true;
     }
 
@@ -263,7 +263,7 @@ private:
     list_node_t<T>*     m_head;
     list_node_t<T>*     m_tail;
     uint32              m_size;
-    object_pool_t       m_pool;
+    object_pool_t*      m_pool;
     spinlock_t          m_lock;
 };
 

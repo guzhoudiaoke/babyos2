@@ -17,7 +17,6 @@
 #include "block_dev.h"
 #include "hd.h"
 
-
 enum pool_type_e {
 	VMA_POOL = 0,
 	MAX_POOL,
@@ -43,6 +42,7 @@ public:
     mm_t*           get_mm();
     arch_t*         get_arch();
 	object_pool_t*  get_obj_pool(uint32 type);
+	object_pool_t*  get_obj_pool_of_size();
     uint32          get_next_pid();
     file_system_t*  get_fs();
     dev_op_t*       get_dev(uint32 type);
@@ -61,6 +61,7 @@ private:
     mm_t			m_mm;
     arch_t			m_arch;
 	object_pool_t	m_pools[MAX_POOL];
+	object_pool_t	m_pool_of_size[MAX_POOL_SIZE+1];
 	atomic_t	    m_next_pid;
     file_system_t   m_fs;
     dev_op_t        m_devices[MAX_DEV];

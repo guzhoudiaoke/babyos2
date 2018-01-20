@@ -32,7 +32,7 @@ process_t* process_t::fork(trap_frame_t* frame)
 
     // signal
     p->m_signal.copy(m_signal);
-    m_sig_queue.init();
+    m_sig_queue.init(os()->get_obj_pool_of_size());
     m_sig_mask_lock.init();
 
     // file
@@ -56,7 +56,7 @@ process_t* process_t::fork(trap_frame_t* frame)
     p->m_need_resched = 0;
     p->m_timeslice = 2;
 
-    p->m_children.init();
+    p->m_children.init(os()->get_obj_pool_of_size());
     p->m_wait_child.init();
     p->m_parent = this;
 

@@ -20,7 +20,7 @@ void request_t::init(uint32 dev, uint32 lba, uint32 cmd, io_buffer_t* b)
 void hard_disk_t::init()
 {
     m_lock.init();
-    m_req_list.init();
+    m_req_list.init(os()->get_obj_pool_of_size());
     m_current = NULL;
 
     os()->get_arch()->get_8259a()->enable_irq(IRQ_HARDDISK);

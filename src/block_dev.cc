@@ -18,8 +18,8 @@
 void block_dev_t::init(uint32 dev)
 {
     m_lock.init();
-    m_used_list.init();
-    m_free_list.init();
+    m_used_list.init(os()->get_obj_pool_of_size());
+    m_free_list.init(os()->get_obj_pool_of_size());
 
     m_dev = dev;
     m_buf_num = PAGE_SIZE * BUFFER_PAGES / sizeof(io_buffer_t);

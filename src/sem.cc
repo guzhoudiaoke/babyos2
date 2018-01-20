@@ -11,7 +11,7 @@ void semaphore_t::init(uint32 count)
 {
     m_count = count;
     m_lock.init();
-    m_wait_list.init();
+    m_wait_list.init(os()->get_obj_pool_of_size());
 }
 
 void semaphore_t::down()

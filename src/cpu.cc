@@ -151,7 +151,7 @@ void cpu_t::init_idle_process()
     m_idle_process->m_need_resched = 0;
 
     /* signal */
-    m_idle_process->m_sig_queue.init();
+    m_idle_process->m_sig_queue.init(os()->get_obj_pool_of_size());
     m_idle_process->m_sig_pending = 0;
     m_idle_process->m_signal.init();
 
@@ -161,7 +161,7 @@ void cpu_t::init_idle_process()
 
     m_idle_process->m_vmm.init();
     m_idle_process->m_vmm.set_pg_dir(os()->get_mm()->get_kernel_pg_dir());
-    m_idle_process->m_children.init();
+    m_idle_process->m_children.init(os()->get_obj_pool_of_size());
     m_idle_process->m_wait_child.init();
     m_proc_list.push_back(m_idle_process);
 
@@ -178,8 +178,8 @@ void cpu_t::init()
 
     m_init_process = NULL;
     m_rq_lock.init();
-    m_timer_list.init();
-    m_proc_list.init();
+    m_timer_list.init(os()->get_obj_pool_of_size());
+    m_proc_list.init(os()->get_obj_pool_of_size());
 
     init_idle_process();
 }

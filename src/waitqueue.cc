@@ -10,7 +10,7 @@
 void wait_queue_t::init()
 {
     m_lock.init();
-    m_procs.init();
+    m_procs.init(os()->get_obj_pool_of_size());
 }
 
 void wait_queue_t::add(process_t* proc)
