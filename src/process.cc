@@ -271,6 +271,7 @@ int32 process_t::exit()
     /* adope children to init */
     adope_children();
 
+    /* set state as sleep */
     m_state = PROCESS_ST_ZOMBIE;
 
     /* let parent wake up, and mourn us */

@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "file.h"
+#include "file_table.h"
 #include "inode.h"
 
 #define ROOT_DEV 1
@@ -17,7 +18,6 @@
 
 #define MAX_PATH 14
 #define MAX_INODE_CACHE 64
-#define MAX_FILE_NUM 256
 
 typedef struct super_block_s {
     uint32 m_size;      /* total num of blocks */
@@ -42,6 +42,7 @@ typedef struct stat_s {
 class fs_tester_t;
 class file_system_t {
     friend class fs_tester_t;
+
 public:
     void     init();
     inode_t* get_root();
@@ -63,7 +64,9 @@ public:
 
     inode_t* dup_inode(inode_t* inode);
     void     put_inode(inode_t* inode);
+
     file_t*  dup_file(file_t* file);
+    file_t*  alloc_file();
     int      close_file(file_t* file);
 
 private:
@@ -89,8 +92,6 @@ private:
     inode_t* namei(const char* path, int parent, char* name);
     inode_t* create(const char* path, uint16 type, uint16 major, uint16 minor);
 
-    file_t*  alloc_file();
-
 private:
     uint32          m_dev;
     uint32          m_super_block_lba;
@@ -102,8 +103,9 @@ private:
     spinlock_t      m_inodes_lock;
     inode_t         m_inodes[MAX_INODE_CACHE];
 
-    spinlock_t      m_file_table_lock;
-    file_t          m_file_table[MAX_FILE_NUM];
+    //spinlock_t      m_file_table_lock;
+    //file_t          m_file_table[MAX_FILE_NUM];
+    file_table_t    m_file_table;
 };
 
 

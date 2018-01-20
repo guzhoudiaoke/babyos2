@@ -24,12 +24,13 @@ void file_system_t::init()
     m_inode_lba = 2;
 
     m_inodes_lock.init();
-    m_file_table_lock.init();
+    m_file_table.init();
+    //m_file_table_lock.init();
 
     read_super_block();
 
     memset(m_inodes, 0, sizeof(inode_t) * MAX_INODE_CACHE);
-    memset(m_file_table, 0, sizeof(file_t) * MAX_FILE_NUM);
+    //memset(m_file_table, 0, sizeof(file_t) * MAX_FILE_NUM);
 }
 
 inode_t* file_system_t::get_root()
@@ -502,44 +503,17 @@ inode_t* file_system_t::create(const char* path, uint16 type, uint16 major, uint
 
 file_t* file_system_t::alloc_file()
 {
-    m_file_table_lock.lock();
-    for (int i = 0; i < MAX_FILE_NUM; i++) {
-        if (m_file_table[i].m_type == file_t::TYPE_NONE) {
-            m_file_table_lock.unlock();
-            return &m_file_table[i];
-        }
-    }
-    m_file_table_lock.unlock();
-    return NULL;
+    return m_file_table.alloc();
 }
 
 int file_system_t::close_file(file_t* file)
 {
-    m_file_table_lock.lock();
-    if (file->m_ref < 1) {
-        m_file_table_lock.unlock();
-        return -1;
-    }
-
-    if (--file->m_ref > 0) {
-        m_file_table_lock.unlock();
-        return 0;
-    }
-    m_file_table_lock.unlock();
-
-    if (file->m_type == file_t::TYPE_INODE) {
-        file->m_type = file_t::TYPE_NONE;
-        put_inode(file->m_inode);
-    }
+    return m_file_table.free(file);
 }
 
 file_t* file_system_t::dup_file(file_t* file)
 {
-    m_file_table_lock.lock();
-    file->m_ref++;
-    m_file_table_lock.unlock();
-
-    return file;
+    return m_file_table.dup_file(file);
 }
 
 int file_system_t::do_open(const char* path, int mode)
