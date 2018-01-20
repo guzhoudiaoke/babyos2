@@ -81,23 +81,18 @@ inline void delay_print(char* s)
     }
 }
 
-void test_syscall()
+void babyos_t::start_init_proc()
 {
     int32 ret = 0;
-
-    // fork
     __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_FORK));
 
     if (ret == 0) {
-        // exec
-        //__asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" (1024), "c" (32), "d" ("init"));
         __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" ("/bin/init"), "c" (0));
     }
 
-    //delay_print("P,");
-
+    /* idle process */
     while (true) {
-        os()->get_arch()->get_cpu()->schedule();
+        m_arch.get_cpu()->schedule();
     }
 }
 
@@ -221,23 +216,18 @@ void babyos_t::run()
 
     init_pools();
 
-    // test list
-    //test_list();
 
-    //m_console.kprintf(WHITE, "sti()\n");
     sti();
-
     m_fs.init();
     m_arch.get_cpu()->get_idle()->set_cwd(m_fs.get_root());
 
-    test_fs();
-
     //test_draw_time();
-    test_syscall();
+    //test_list();
+    //test_fs();
+    
+    start_init_proc();
 
-    while (1) {
-        halt();
-    }
+    panic("idle process ended!");
 }
 
 void babyos_t::update(uint32 tick)
@@ -247,6 +237,14 @@ void babyos_t::update(uint32 tick)
 
     // console
     m_console.update();
+}
+
+void babyos_t::panic(const char* s)
+{
+    m_console.kprintf(RED, "[BABYOS PANIC], %s\n", s);
+    while (1) {
+        halt();
+    }
 }
 
 uint32 babyos_t::get_next_pid()

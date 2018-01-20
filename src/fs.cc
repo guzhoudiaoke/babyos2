@@ -666,8 +666,7 @@ bool file_system_t::dir_empty(inode_t* inode)
     dir_entry_t de;
     for (uint32 off = 2*sizeof(de); off < inode->m_size; off += sizeof(de)) {
         if (read_inode(inode, &de, off, sizeof(de)) != sizeof(de)) {
-            // FIXME: panic
-            return false;
+            os()->panic("failed to read inode");
         }
 
         if (de.m_inum != 0) {

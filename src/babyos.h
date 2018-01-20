@@ -35,18 +35,19 @@ public:
 
     void run();
 	void update(uint32 tick);
+    void panic(const char* s);
+    void start_init_proc();
 
-    screen_t*   get_screen();
-    console_t*  get_console();
-    mm_t*       get_mm();
-    arch_t*     get_arch();
-	object_pool_t* get_obj_pool(uint32 type);
-    object_pool_t* get_obj_pool_of_size(uint32 size);
-    uint32      get_next_pid();
-    file_system_t* get_fs();
-    dev_op_t*   get_dev(uint32 type);
-    hard_disk_t* get_hd();
-    block_dev_t* get_block_dev();
+    screen_t*       get_screen();
+    console_t*      get_console();
+    mm_t*           get_mm();
+    arch_t*         get_arch();
+	object_pool_t*  get_obj_pool(uint32 type);
+    uint32          get_next_pid();
+    file_system_t*  get_fs();
+    dev_op_t*       get_dev(uint32 type);
+    hard_disk_t*    get_hd();
+    block_dev_t*    get_block_dev();
 
     static babyos_t* get_os();
 
@@ -71,3 +72,4 @@ private:
 #define console()   os()->get_console()
 
 #endif
+

@@ -35,8 +35,7 @@ int file_table_t::free(file_t* file)
 
     m_lock.lock();
     if (file->m_ref < 1) {
-        m_lock.unlock();
-        return -1;
+        os()->panic("ref < 1 when file free");
     }
 
     if (--file->m_ref > 0) {
@@ -58,6 +57,9 @@ int file_table_t::free(file_t* file)
 file_t* file_table_t::dup_file(file_t* file)
 {
     m_lock.lock();
+    if (file->m_ref < 1) {
+        os()->panic("ref < 1 when file dup");
+    }
     file->m_ref++;
     m_lock.unlock();
 
