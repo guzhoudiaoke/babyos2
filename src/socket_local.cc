@@ -1,0 +1,242 @@
+/*
+ * guzhoudiaoke@126.com
+ * 2018-01-20
+ */
+
+#include "socket_local.h"
+#include "string.h"
+#include "babyos.h"
+
+spinlock_t      socket_local_t::s_lock;
+socket_local_t  socket_local_t::s_local_sockets[MAX_LOCAL_SOCKET];
+
+/*********************************************************************/
+
+bool sock_addr_local_t::operator == (const sock_addr_local_t& addr)
+{
+    return (m_family == addr.m_family) && (strcmp(m_path, addr.m_path) == 0);
+}
+
+/*********************************************************************/
+
+socket_local_t::socket_local_t()
+{
+}
+
+void socket_local_t::init_local_sockets()
+{
+    socket_local_t tmp;
+
+    s_lock.init();
+    for (int i = 0; i < MAX_LOCAL_SOCKET; i++) {
+        memcpy(&s_local_sockets[i], &tmp, sizeof(socket_local_t));
+        s_local_sockets[i].init();
+    }
+}
+
+socket_t* socket_local_t::alloc_local_socket()
+{
+    locker_t locker(s_lock);
+
+    socket_local_t* socket = s_local_sockets;
+    for (int i = 0; i < MAX_LOCAL_SOCKET; i++, socket++) {
+        if (socket->m_ref == 0) {
+            socket->m_ref = 1;
+            return socket;
+        }
+    }
+
+    return NULL;
+}
+
+void socket_local_t::release_local_socket(socket_t* socket)
+{
+    locker_t locker(s_lock);
+
+    uint32 old_state = socket->m_state;
+    if (socket->m_state != socket_t::SS_UNCONNECTED) {
+        socket->m_state = socket_t::SS_DISCONNECTING;
+    }
+
+    socket->release();
+}
+
+socket_local_t* socket_local_t::look_up_local_socket(sock_addr_local_t* addr)
+{
+    locker_t locker(s_lock);
+
+    socket_local_t* socket = s_local_sockets;
+    for (int i = 0; i < MAX_LOCAL_SOCKET; i++, socket++) {
+        if (socket->m_addr == *addr) {
+            return socket;
+        }
+    }
+
+    return NULL;
+}
+
+int32 socket_local_t::bind_local_socket(socket_local_t* socket, sock_addr_local_t* addr)
+{
+    locker_t locker(s_lock);
+
+    socket_local_t* s = s_local_sockets;
+    for (int i = 0; i < MAX_LOCAL_SOCKET; i++, s++) {
+        if (s->m_addr == *addr) {
+            return -1;
+        }
+    }
+
+    memcpy(&socket->m_addr, addr, sizeof(sock_addr_local_t));
+    return 0;
+}
+
+/**********************************************************************/
+
+void socket_local_t::init()
+{
+    m_ref = 0;
+}
+
+int32 socket_local_t::create(uint32 family, uint32 type, uint32 protocol)
+{
+    socket_t::create(family, type, protocol);
+    m_ref = 1;
+    m_sock_buf.init(this);
+
+    return 0;
+}
+
+int32 socket_local_t::dup(socket_t* socket)
+{
+    return create(socket->m_family, socket->m_type, socket->m_protocol);
+}
+
+int32 socket_local_t::get_name(sock_addr_t* addr)
+{
+    sock_addr_local_t* local_addr = (sock_addr_local_t *) addr;
+    memcpy(local_addr, &m_addr, sizeof(sock_addr_local_t));
+
+    return 0;
+}
+
+int32 socket_local_t::release()
+{
+    return 0;
+}
+
+int32 socket_local_t::bind(sock_addr_t* myaddr)
+{
+    sock_addr_local_t* addr = (sock_addr_local_t *) myaddr;
+    return socket_local_t::bind_local_socket(this, addr);
+}
+
+int32 socket_local_t::listen(uint32 backlog)
+{
+    /* nothing to do */
+    return 0;
+}
+
+int32 socket_local_t::accept(socket_t* server_socket)
+{
+    /* wait for connect */
+    while (server_socket->m_connecting_list.empty()) {
+        server_socket->m_flags |= socket_t::SF_WAITDATA;
+        server_socket->m_wait_connect_sem.down();
+        console()->kprintf(YELLOW, "wait connect waked up\n");
+        server_socket->m_flags &= ~socket_t::SF_WAITDATA;
+    }
+
+    /* get a connect */
+    socket_t* client_socket = NULL;
+
+    spinlock_t* lock = server_socket->m_connecting_list.get_lock();
+    lock->lock_irqsave();
+    client_socket = *(server_socket->m_connecting_list.begin());
+    server_socket->m_connecting_list.pop_front();
+    lock->unlock_irqrestore();
+
+    client_socket->m_connected_socket = this;
+    client_socket->m_state = socket_t::SS_CONNECTED;
+    this->m_connected_socket = client_socket;
+    this->m_state = socket_t::SS_CONNECTED;
+
+    /* wake up client that accepted */
+    client_socket->m_wait_accept_sem.up();
+
+    return 0;
+}
+
+int32 socket_local_t::connect(sock_addr_t* server_addr)
+{
+    /* check state */
+    if (m_state == SS_CONNECTING) {
+        return -EINPROGRESS;
+    }
+    if (m_state == SS_CONNECTED) {
+        return -EISCONN;
+    }
+
+    /* check server addr */
+    if (server_addr->m_family != AF_LOCAL) {
+        return -EINVAL;
+    }
+
+    /* get server socket */
+    socket_t* server_socket = socket_local_t::look_up_local_socket((sock_addr_local_t *) server_addr);
+    if (server_socket == NULL) {
+        return -EINVAL;
+    }
+
+    /* check server */
+    if (!(server_socket->m_flags & SF_ACCEPTCON)) {
+        return -EINVAL;
+    }
+
+    /* add this to server socket's connecting list */
+    spinlock_t* lock = server_socket->m_connecting_list.get_lock();
+    lock->lock_irqsave();
+    server_socket->m_connecting_list.push_back(this);
+    lock->unlock_irqrestore();
+
+    /* notify server there is a new connect */
+    server_socket->m_wait_connect_sem.up();
+
+    /* wait for server finish accept */
+    m_wait_accept_sem.down();
+
+    /* check if connect correctly */
+    if (this->m_state != SS_CONNECTED) {
+        return m_connected_socket ? -EINTR : -EACCES;
+    }
+
+    return 0;
+}
+
+int32 socket_local_t::read(void* buf, uint32 size)
+{
+    char* p = (char *) buf;
+    char ch;
+    for (uint32 i = 0; i < size; i++) {
+        if (m_sock_buf.get_char(ch) < 0) {
+            return -1;
+        }
+        *p++ = ch;
+    }
+
+    return size;
+}
+
+int32 socket_local_t::write(void* buf, uint32 size)
+{
+    sock_buffer_t* connect_sock_buf = &((socket_local_t *) (m_connected_socket))->m_sock_buf;
+    char* p = (char *) buf;
+    for (uint32 i = 0; i < size; i++) {
+        //if (m_connected_socket->m_sock_buf.put_char(*p++) < 0) {
+        if (connect_sock_buf->put_char(*p++) < 0) {
+            return -1;
+        }
+    }
+
+    return size;
+}
+

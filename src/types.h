@@ -6,6 +6,8 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+#include "errno.h"
+
 #define NULL				(0)
 
 typedef unsigned char       uint8;

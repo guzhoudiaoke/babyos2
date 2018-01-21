@@ -9,6 +9,7 @@
 #include "vm.h"
 #include "list.h"
 #include "fs_test.h"
+#include "sys_socket.h"
 
 extern babyos_t babyos;
 babyos_t* babyos_t::get_os()
@@ -225,6 +226,7 @@ void babyos_t::run()
     m_arch.init();
     m_hd.init();
     m_block_dev.init(1);
+    sys_socket_t::init();
 
 
 

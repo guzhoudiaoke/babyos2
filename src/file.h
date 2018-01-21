@@ -10,6 +10,8 @@
 
 class inode_t;
 class pipe_t;
+class socket_t;
+
 class file_t {
 public:
     enum {
@@ -22,9 +24,11 @@ public:
         TYPE_NONE,
         TYPE_PIPE,
         TYPE_INODE,
+        TYPE_SOCKET,
     };
 
     void init(uint32 type, inode_t* inode, pipe_t* pipe, uint32 offset, uint16 readable, uint16 writeable);
+    void init(uint32 type, socket_t* socket);
 
 public:
     uint32      m_type;
@@ -33,6 +37,7 @@ public:
     uint16      m_writeable;
     inode_t*    m_inode;
     pipe_t*     m_pipe;
+    socket_t*   m_socket;
     uint32      m_offset;
 };
 

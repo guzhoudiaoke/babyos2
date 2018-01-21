@@ -7,6 +7,7 @@
 #include "userlib.h"
 #include "file.h"
 #include "types.h"
+#include "socket_local.h"
 
 #define MAX_CMD_LEN 128
 
@@ -99,7 +100,7 @@ void do_cmd(const char* cmd_line)
 }
 
 // only for test
-void test_fork_exec_wait_exit(const char* times)
+static void test_fork_exec_wait_exit(const char* times)
 {
     int t = 0;
     while (*times != '\0') {
@@ -126,7 +127,7 @@ void test_fork_exec_wait_exit(const char* times)
     }
 }
 
-void test_pipe()
+static void test_pipe()
 {
     int fd[2];
     if (userlib_t::pipe(fd) < 0) {
@@ -160,6 +161,115 @@ void test_pipe()
     }
 }
 
+void socket_server()
+{
+    int listen_fd = userlib_t::socket(socket_t::AF_LOCAL, 0, 0);
+    if (listen_fd < 0) {
+        userlib_t::printf("server create socket failed, error %u\n", listen_fd);
+        return;
+    }
+
+    sock_addr_local_t addr;
+    addr.m_family = socket_t::AF_LOCAL;
+    userlib_t::strcpy(addr.m_path, "/test_socket");
+
+    int ret = 0;
+    if ((ret = userlib_t::bind(listen_fd, &addr)) < 0) {
+        userlib_t::printf("server bind to %u failed, error %u\n", listen_fd, ret);
+        return;
+    }
+
+    if ((ret = userlib_t::listen(listen_fd, 1)) < 0) {
+        userlib_t::printf("server listen failed, error %u\n", ret);
+    }
+
+    int conn_fd = -1;
+    sock_addr_local_t client_addr;
+    for (int i = 0; i < 1; i++) {
+        if ((conn_fd = userlib_t::accept(listen_fd, &client_addr)) < 0) {
+            userlib_t::printf("accept failed.\n");
+            continue;
+        }
+
+        userlib_t::printf("server accept success: %u\n", conn_fd);
+
+        if (userlib_t::fork() == 0) {
+            userlib_t::close(listen_fd);
+            int data = 1234;
+            for (int j = 0; j < 5; j++) {
+                userlib_t::write(conn_fd, &data, sizeof(int));
+                userlib_t::printf("server write %d to client.\n", data);
+
+                userlib_t::read(conn_fd, &data, sizeof(int));
+                userlib_t::printf("server read %d from client.\n", data);
+                data++;
+            }
+        }
+
+        userlib_t::close(conn_fd);
+    }
+}
+
+void socket_client()
+{
+    int sock_fd = userlib_t::socket(socket_t::AF_LOCAL, 0, 0);
+    if (sock_fd < 0) {
+        userlib_t::printf("client create socket failed, error %u\n", sock_fd);
+        return;
+    }
+    userlib_t::printf("client create socket success, fd: %u\n", sock_fd);
+
+
+    sock_addr_local_t addr;
+    addr.m_family = socket_t::AF_LOCAL;
+    userlib_t::strcpy(addr.m_path, "/test_socket");
+
+    int ret = 0;
+    if ((ret = userlib_t::connect(sock_fd, &addr)) < 0) {
+        userlib_t::printf("client connect to fd: %u failed, error %u\n", sock_fd, ret);
+        return;
+    }
+
+    userlib_t::printf("client connect success\n");
+
+    int data = 0;
+    for (int i = 0; i < 5; i++) {
+        userlib_t::read(sock_fd, &data, sizeof(int));
+        userlib_t::printf("client read %d from server.\n", data);
+        data++;
+
+        userlib_t::write(sock_fd, &data, sizeof(int));
+        userlib_t::printf("client write %d to server.\n", data);
+    }
+}
+
+static void test_socket()
+{
+    int32 pid1 = -1; 
+    int32 pid2 = -1;
+
+    pid1 = userlib_t::fork();
+    if (pid1 == 0) {
+        /* server */
+        socket_server();
+        userlib_t::exit(0);
+    }
+    else {
+        userlib_t::sleep(1);
+
+        pid2 = userlib_t::fork();
+        if (pid2 == 0) {
+            /* client */
+            socket_client();
+            userlib_t::exit(0);
+        }
+    }
+
+    /* shell */
+    userlib_t::wait(pid1);
+    userlib_t::wait(pid2);
+}
+
 char cmd_line[MAX_CMD_LEN] = {0};
 int main()
 {
@@ -182,6 +292,10 @@ int main()
         }
         if (userlib_t::strncmp(cmd_line, "testpipe", 8) == 0) {
             test_pipe();
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "testsocket", 10) == 0) {
+            test_socket();
             continue;
         }
 

@@ -8,6 +8,7 @@
 #include "console.h"
 #include "string.h"
 #include "block_dev.h"
+#include "socket.h"
 
 
 void file_system_t::read_super_block()
@@ -25,12 +26,9 @@ void file_system_t::init()
 
     m_inodes_lock.init();
     m_file_table.init();
-    //m_file_table_lock.init();
 
     read_super_block();
-
     memset(m_inodes, 0, sizeof(inode_t) * MAX_INODE_CACHE);
-    //memset(m_file_table, 0, sizeof(file_t) * MAX_FILE_NUM);
 }
 
 inode_t* file_system_t::get_root()
@@ -577,6 +575,9 @@ int file_system_t::do_read(int fd, void* buffer, uint32 count)
     if (file->m_type == file_t::TYPE_PIPE) {
         return file->m_pipe->read(buffer, count);
     }
+    if (file->m_type == file_t::TYPE_SOCKET) {
+        return file->m_socket->read(buffer, count);
+    }
     if (file->m_type == file_t::TYPE_INODE) {
         int nbyte = 0;
         if ((nbyte = read_inode(file->m_inode, (char *) buffer, file->m_offset, count)) > 0) {
@@ -597,6 +598,9 @@ int file_system_t::do_write(int fd, void* buffer, uint32 count)
 
     if (file->m_type == file_t::TYPE_PIPE) {
         return file->m_pipe->write(buffer, count);
+    }
+    if (file->m_type == file_t::TYPE_SOCKET) {
+        return file->m_socket->write(buffer, count);
     }
     if (file->m_type == file_t::TYPE_INODE) {
         int nbyte = 0;

@@ -16,21 +16,14 @@
 #define GDT_LEN			    (6)
 #define IDT_LEN				(256)
 
-
 #define	SECT_SIZE			(512)
-#define LOADER_SECT_NUM     (1)
-#define KERNEL_SECT_NUM	    (1024)
-
-/* address of temp kernel */
-#define TMP_KERNEL_ADDR	    (0x10000)
-
 #define KSTACK_SIZE         (4096)
 #define STACK_BOOT			(0x1000)
 #define STACK_PM_BOTTOM     (0x10000)
 
 
 /* boot information */
-#define BOOT_INFO_ADDR		(0x90000)
+#define BOOT_INFO_ADDR		(0x9000)
 #define BOOT_INFO_SEG		(BOOT_INFO_ADDR >> 4)
 
 #define GDT_ADDR			(BOOT_INFO_ADDR)
@@ -45,8 +38,13 @@
 #define MEMORY_INFO_SIZE	(4+256)
 
 
+/* address of temp kernel */
+#define TMP_KERNEL_ADDR	    (0x10000)
+#define KERNEL_SECT_NUM	    (1136)
+
 /* load addresses */
 #define LOADER_ADDR         (TMP_KERNEL_ADDR)
+#define LOADER_SECT_NUM     (1)
 
 #define ELF_BASE_ADDR       (LOADER_ADDR + LOADER_SECT_NUM * SECT_SIZE)
 #define ELF_SECT_NUM        (KERNEL_SECT_NUM - 2 - 8)

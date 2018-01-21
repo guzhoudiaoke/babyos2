@@ -7,11 +7,9 @@
 #include "syscall.h"
 #include "babyos.h"
 #include "string.h"
-#include "elf.h"
 #include "x86.h"
-#include "timer.h"
+#include "sys_socket.h"
 
-char syscall_t::s_print_buffer[1024] = {0};
 int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
     syscall_t::sys_print,
     syscall_t::sys_fork,
@@ -35,30 +33,24 @@ int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
     syscall_t::sys_stat,
     syscall_t::sys_chdir,
     syscall_t::sys_pipe,
+    syscall_t::sys_socket,
 };
 
 int32 syscall_t::sys_print(trap_frame_t* frame)
 {
-    char* va = (char *) PA2VA(os()->get_mm()->va_2_pa((void *) frame->ebx));
-    strcpy(s_print_buffer, va);
-    console()->kprintf(GREEN, "%s", s_print_buffer);
+    char* s = (char *) PA2VA(os()->get_mm()->va_2_pa((void *) frame->ebx));
+    console()->kprintf(GREEN, "%s", s);
     return 0;
 }
 
 int32 syscall_t::sys_fork(trap_frame_t* frame)
 {
     process_t* proc = os()->get_arch()->get_cpu()->fork(frame);
-    //console()->kprintf(PINK, "sys_fork, eip: %p esp: %p pid: %p\n", frame->eip, frame->esp, current->m_pid);
-    if (proc == NULL) {
-        return -1;
-    }
-    return proc->m_pid;
+    return proc == NULL ? -1 : proc->m_pid;
 }
 
 int32 syscall_t::sys_exec(trap_frame_t* frame)
 {
-    //console()->kprintf(YELLOW, "sys_exec, eip: %p esp: %p pid: %p, name: %s\n", 
-    //        frame->eip, frame->esp, current->m_pid, frame->edx);
     return current->exec(frame);
 }
 
@@ -185,6 +177,11 @@ int32 syscall_t::sys_pipe(trap_frame_t* frame)
 {
     int* fd = (int *) frame->ebx;
     return os()->get_fs()->do_pipe(fd);
+}
+
+int32 syscall_t::sys_socket(trap_frame_t* frame)
+{
+    return sys_socket_t::do_sys_socket(frame);
 }
 
 void syscall_t::do_syscall(trap_frame_t* frame)

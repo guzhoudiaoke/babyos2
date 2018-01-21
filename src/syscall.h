@@ -32,6 +32,7 @@ enum {
     SYS_STAT,
     SYS_CHDIR,
     SYS_PIPE,
+    SYS_SOCKET,
     MAX_SYSCALL,
 };
 
@@ -61,9 +62,9 @@ public:
     static int32 sys_stat(trap_frame_t* frame);
     static int32 sys_chdir(trap_frame_t* frame);
     static int32 sys_pipe(trap_frame_t* frame);
+    static int32 sys_socket(trap_frame_t* frame);
 
 private:
-    static char s_print_buffer[1024];
     static int32 (*s_system_call_table[])(trap_frame_t* frame);
 };
 

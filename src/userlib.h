@@ -10,6 +10,8 @@
 #include "syscall.h"
 #include "signal.h"
 #include "fs.h"
+#include "socket.h"
+#include "sys_socket.h"
 
 #define PROT_NONE           0x0       /* page can not be accessed */
 #define PROT_READ           0x1       /* page can be read */
@@ -61,11 +63,16 @@ public:
     static int  mknod(const char* path, int major, int minor);
     static int  dup(int fd);
     static int  chdir(const char* path);
-
     static int  fstat(int fd, stat_t* st);
     static int  stat(const char* path, stat_t* st);
-
     static int  pipe(int fd[2]);
+
+    /* socket */
+    static int  socket(int domain, int type, int protocol);
+    static int  bind(int sockfd, const sock_addr_t* addr);
+    static int  listen(int sockfd, int backlog);
+    static int  connect(int sockfd, const sock_addr_t* addr);
+    static int  accept(int sockfd, sock_addr_t* addr);
 
 private:
     static int  sprint_int(char* buffer, int n, int width, int base, bool sign);

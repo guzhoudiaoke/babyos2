@@ -14,5 +14,17 @@ void file_t::init(uint32 type, inode_t* inode, pipe_t* pipe, uint32 offset, uint
     m_inode = inode;
     m_pipe = pipe;
     m_offset = 0;
+    m_socket = NULL;
 }
 
+void file_t::init(uint32 type, socket_t* socket)
+{
+    m_type = TYPE_SOCKET;
+    m_ref = 1;
+    m_readable = 1;
+    m_writeable = 1;
+    m_inode = NULL;
+    m_pipe = NULL;
+    m_offset = 0;
+    m_socket = socket;
+}

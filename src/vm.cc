@@ -403,8 +403,8 @@ sig_segv:
             current->m_name, addr, frame->err, vma, vma->m_start, vma->m_end);
 
     //console()->kprintf(RED, "errno: %x, eip: %x, cs: %x, esp: %x\n", frame->err, frame->eip, frame->cs, frame->esp);
-    send_sig_segv();
-    //current->exit();
+    //send_sig_segv();
+    current->exit();
     return -1;
 }
 
