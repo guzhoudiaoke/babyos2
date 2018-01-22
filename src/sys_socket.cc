@@ -31,11 +31,12 @@ socket_t* sys_socket_t::alloc_socket(uint32 family)
     return NULL;
 }
 
-void sys_socket_t::release_socket(socket_t* socket)
+int32 sys_socket_t::release_socket(socket_t* socket)
 {
-    if (socket->m_family == socket_t::AF_LOCAL) {
-        socket_local_t::release_local_socket(socket);
+    if (socket != NULL) {
+        socket->release();
     }
+    return 0;
 }
 
 socket_t* sys_socket_t::look_up_socket(int fd)
@@ -56,6 +57,7 @@ socket_t* sys_socket_t::look_up_socket(int fd)
 
 int32 sys_socket_t::socket(uint32 family, uint32 type, uint32 protocol)
 {
+    //console()->kprintf(WHITE, "socket, pid: %u\n", current->m_pid);
     if (family >= socket_t::AF_MAX) {
         return -EINVAL;
     }
@@ -88,6 +90,7 @@ int32 sys_socket_t::socket(uint32 family, uint32 type, uint32 protocol)
 
 int32 sys_socket_t::bind(int fd, sock_addr_t* myaddr)
 {
+    //console()->kprintf(WHITE, "bind, pid: %u, fd: %u\n", current->m_pid, fd);
     socket_t* socket = look_up_socket(fd);
     if (socket == NULL) {
         return -EBADF;
@@ -98,6 +101,7 @@ int32 sys_socket_t::bind(int fd, sock_addr_t* myaddr)
 
 int32 sys_socket_t::listen(int fd, uint32 backlog)
 {
+    //console()->kprintf(WHITE, "listen, pid: %u, fd: %u\n", current->m_pid, fd);
     socket_t* socket = look_up_socket(fd);
     if (socket == NULL) {
         return -EBADF;
@@ -115,6 +119,7 @@ int32 sys_socket_t::listen(int fd, uint32 backlog)
 
 int32 sys_socket_t::accept(int fd, sock_addr_t* client_addr)
 {
+    //console()->kprintf(WHITE, "accept, pid: %u, fd: %u\n", current->m_pid, fd);
     socket_t* socket = look_up_socket(fd);
 
     /* not find a socket */
@@ -155,6 +160,7 @@ int32 sys_socket_t::accept(int fd, sock_addr_t* client_addr)
         return -ENOSR;
     }
 
+    //console()->kprintf(PINK, "server socket: %p, create new socket: %p to wait for connect.\n", socket, new_socket);
     uint32 ret = new_socket->accept(socket);
     if (ret < 0) {
         return ret;
@@ -171,6 +177,7 @@ int32 sys_socket_t::accept(int fd, sock_addr_t* client_addr)
 
 int32 sys_socket_t::connect(int fd, sock_addr_t* user_addr)
 {
+    //console()->kprintf(WHITE, "connect, pid: %u, fd: %u\n", current->m_pid, fd);
     socket_t* socket = look_up_socket(fd);
     if (socket == NULL) {
         return -EBADF;
@@ -238,3 +245,8 @@ int32 sys_socket_t::do_sys_socket(trap_frame_t* frame)
     }
 }
 
+//int32 sys_socket_t::close_socket(socket_t* socket)
+//{
+//    return release_socket(socket);
+//}
+//

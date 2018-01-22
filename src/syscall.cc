@@ -38,8 +38,13 @@ int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
 
 int32 syscall_t::sys_print(trap_frame_t* frame)
 {
-    char* s = (char *) PA2VA(os()->get_mm()->va_2_pa((void *) frame->ebx));
-    console()->kprintf(GREEN, "%s", s);
+    color_ref_t color = frame->ebx;
+
+    char buffer[512] = {0};
+    char* va = (char *) PA2VA(os()->get_mm()->va_2_pa((void *) frame->ecx));
+    strcpy(buffer, va);
+    console()->kprintf(color, "%s", buffer);
+
     return 0;
 }
 

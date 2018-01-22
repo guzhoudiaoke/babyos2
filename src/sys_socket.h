@@ -25,6 +25,7 @@ public:
 
     static void      init();
     static int32     do_sys_socket(trap_frame_t* frame);
+    //static int32     close_socket(socket_t* socket);
 
 private:
     static int32     sys_socket(trap_frame_t* frame);
@@ -40,7 +41,7 @@ private:
     static int32     connect(int fd, sock_addr_t* user_addr);
 
     static socket_t* alloc_socket(uint32 family);
-    static void      release_socket(socket_t* socket);
+    static int32     release_socket(socket_t* socket);
 
     static socket_t* look_up_socket(int fd);
 

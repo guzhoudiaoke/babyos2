@@ -11,31 +11,7 @@
 
 #define MAX_CMD_LEN 128
 
-void gets(char* buf, uint32 max)
-{
-    userlib_t::memset(buf, 0, max);
-    int i = 0;
-    while (i < max) {
-        char c;
-        int n = userlib_t::read(0, &c, 1);
-        if (n == 1) {
-            if (c == '\n') {
-                break;
-            }
-            *buf++ = c;
-            i++;
-        }
-    }
-}
-
-void puts(char* buf)
-{
-    userlib_t::write(0, buf, userlib_t::strlen(buf));
-}
-
-static char command[MAX_CMD_LEN] = {0};
-static argument_t argument;
-
+#if 0
 const char* parse_cmd(const char* cmd_line, char* cmd)
 {
     userlib_t::memset(cmd, 0, MAX_CMD_LEN);
@@ -85,6 +61,7 @@ void parse_cmd_line(const char* cmd_line, char* cmd, argument_t* arg)
     }
 }
 
+static char command[MAX_CMD_LEN] = {0};
 void do_cmd(const char* cmd_line)
 {
     parse_cmd_line(cmd_line, command, &argument);
@@ -98,8 +75,10 @@ void do_cmd(const char* cmd_line)
 
     userlib_t::wait(pid);
 }
+#endif
 
 // only for test
+argument_t argument;
 static void test_fork_exec_wait_exit(const char* times)
 {
     int t = 0;
@@ -127,47 +106,65 @@ static void test_fork_exec_wait_exit(const char* times)
     }
 }
 
-static void test_pipe()
+//static void test_pipe()
+//{
+//    int fd[2];
+//    if (userlib_t::pipe(fd) < 0) {
+//        userlib_t::printf("failed to create pipe\n");
+//        return;
+//    }
+//
+//    userlib_t::printf("succ to create pipe: %d, %d\n", fd[0], fd[1]);
+//
+//    int32 pid = userlib_t::fork();
+//    if (pid == 0) {
+//        userlib_t::close(fd[0]);
+//
+//        char ch = 'a';
+//        for (int i = 0; i < 10; i++, ch++) {
+//            userlib_t::write(fd[1], &ch, 1);
+//            userlib_t::printf("child write %c to pipe\n", ch);
+//            userlib_t::sleep(1);
+//        }
+//        userlib_t::exit(0);
+//    }
+//    else {
+//        userlib_t::close(fd[1]);
+//
+//        char ch = '\0';
+//        for (int i = 0; i < 10; i++) {
+//            userlib_t::read(fd[0], &ch, 1);
+//            userlib_t::printf("parent read %c from pipe\n", ch);
+//        }
+//        userlib_t::wait(pid);
+//    }
+//}
+
+static void do_server(int sockfd)
 {
-    int fd[2];
-    if (userlib_t::pipe(fd) < 0) {
-        userlib_t::printf("failed to create pipe\n");
+    int data = 1024;
+    if (userlib_t::write(sockfd, &data, sizeof(int)) < 0) {
+        userlib_t::printf("server write error.\n");
         return;
     }
+    userlib_t::printf("server write %d to   client.\n", data);
 
-    userlib_t::printf("succ to create pipe: %d, %d\n", fd[0], fd[1]);
-
-    int32 pid = userlib_t::fork();
-    if (pid == 0) {
-        userlib_t::close(fd[0]);
-
-        char ch = 'a';
-        for (int i = 0; i < 10; i++, ch++) {
-            userlib_t::write(fd[1], &ch, 1);
-            userlib_t::printf("child write %c to pipe\n", ch);
-            userlib_t::sleep(1);
-        }
-        userlib_t::exit(0);
+    if (userlib_t::read(sockfd, &data, sizeof(int)) < 0) {
+        userlib_t::printf("server read error.\n");
+        return;
     }
-    else {
-        userlib_t::close(fd[1]);
-
-        char ch = '\0';
-        for (int i = 0; i < 10; i++) {
-            userlib_t::read(fd[0], &ch, 1);
-            userlib_t::printf("parent read %c from pipe\n", ch);
-        }
-        userlib_t::wait(pid);
-    }
+    userlib_t::printf("server read  %d from client.\n", data);
+    data++;
 }
 
-void socket_server()
+static void socket_server()
 {
     int listen_fd = userlib_t::socket(socket_t::AF_LOCAL, 0, 0);
     if (listen_fd < 0) {
-        userlib_t::printf("server create socket failed, error %u\n", listen_fd);
+        userlib_t::printf("err, server create socket failed, error %u\n", listen_fd);
         return;
     }
+    userlib_t::printf("server create socket succ: %u\n", listen_fd);
 
     sock_addr_local_t addr;
     addr.m_family = socket_t::AF_LOCAL;
@@ -175,42 +172,50 @@ void socket_server()
 
     int ret = 0;
     if ((ret = userlib_t::bind(listen_fd, &addr)) < 0) {
-        userlib_t::printf("server bind to %u failed, error %u\n", listen_fd, ret);
+        userlib_t::printf("err, server bind to %u failed, error %u\n", listen_fd, ret);
         return;
     }
+    userlib_t::printf("server bind succ\n");
 
     if ((ret = userlib_t::listen(listen_fd, 1)) < 0) {
-        userlib_t::printf("server listen failed, error %u\n", ret);
+        userlib_t::printf("err, server listen failed, error %u\n", ret);
+        return;
     }
+    userlib_t::printf("server listen succ\n");
 
     int conn_fd = -1;
     sock_addr_local_t client_addr;
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 2; i++) {
         if ((conn_fd = userlib_t::accept(listen_fd, &client_addr)) < 0) {
             userlib_t::printf("accept failed.\n");
             continue;
         }
 
         userlib_t::printf("server accept success: %u\n", conn_fd);
-
         if (userlib_t::fork() == 0) {
             userlib_t::close(listen_fd);
-            int data = 1234;
-            for (int j = 0; j < 5; j++) {
-                userlib_t::write(conn_fd, &data, sizeof(int));
-                userlib_t::printf("server write %d to client.\n", data);
-
-                userlib_t::read(conn_fd, &data, sizeof(int));
-                userlib_t::printf("server read %d from client.\n", data);
-                data++;
-            }
+            do_server(conn_fd);
+            userlib_t::sleep(1);
+            userlib_t::exit(0);
         }
-
-        userlib_t::close(conn_fd);
+        else {
+            userlib_t::close(conn_fd);
+        }
     }
 }
 
-void socket_client()
+static void do_client(int sockfd)
+{
+    int data = 0;
+    userlib_t::read(sockfd, &data, sizeof(int));
+    userlib_t::printf("client read  %d from server.\n", data);
+    data++;
+
+    userlib_t::write(sockfd, &data, sizeof(int));
+    userlib_t::printf("client write %d to   server.\n", data);
+}
+
+static void socket_client()
 {
     int sock_fd = userlib_t::socket(socket_t::AF_LOCAL, 0, 0);
     if (sock_fd < 0) {
@@ -231,22 +236,14 @@ void socket_client()
     }
 
     userlib_t::printf("client connect success\n");
-
-    int data = 0;
-    for (int i = 0; i < 5; i++) {
-        userlib_t::read(sock_fd, &data, sizeof(int));
-        userlib_t::printf("client read %d from server.\n", data);
-        data++;
-
-        userlib_t::write(sock_fd, &data, sizeof(int));
-        userlib_t::printf("client write %d to server.\n", data);
-    }
+    do_client(sock_fd);
 }
 
 static void test_socket()
 {
     int32 pid1 = -1; 
     int32 pid2 = -1;
+    int32 pid3 = -1;
 
     pid1 = userlib_t::fork();
     if (pid1 == 0) {
@@ -254,30 +251,41 @@ static void test_socket()
         socket_server();
         userlib_t::exit(0);
     }
-    else {
-        userlib_t::sleep(1);
 
-        pid2 = userlib_t::fork();
-        if (pid2 == 0) {
-            /* client */
-            socket_client();
-            userlib_t::exit(0);
-        }
+    userlib_t::sleep(1);
+    pid2 = userlib_t::fork();
+    if (pid2 == 0) {
+        /* client */
+        socket_client();
+        userlib_t::sleep(1);
+        userlib_t::exit(0);
+    }
+
+    userlib_t::sleep(1);
+    pid3 = userlib_t::fork();
+    if (pid3 == 0) {
+        /* client */
+        socket_client();
+        userlib_t::sleep(1);
+        userlib_t::exit(0);
     }
 
     /* shell */
     userlib_t::wait(pid1);
     userlib_t::wait(pid2);
+    userlib_t::wait(pid3);
 }
 
-char cmd_line[MAX_CMD_LEN] = {0};
+
 int main()
 {
+    char cmd_line[MAX_CMD_LEN] = {0};
     userlib_t::printf("This is printed by shell.\n");
 
     while (true) {
-        puts("liuruyi $ ");
-        gets(cmd_line, MAX_CMD_LEN);
+        //userlib_t::puts("liuruyi $ ");
+        userlib_t::color_print(GREEN, "liuruyi $ ");
+        userlib_t::gets(cmd_line, MAX_CMD_LEN);
         if (userlib_t::strncmp(cmd_line, "cd ", 3) == 0) {
             if (userlib_t::chdir(cmd_line + 3) < 0) {
                 userlib_t::printf("can't cd %s\n", cmd_line+3);
@@ -290,16 +298,16 @@ int main()
             test_fork_exec_wait_exit(cmd_line + 5);
             continue;
         }
-        if (userlib_t::strncmp(cmd_line, "testpipe", 8) == 0) {
-            test_pipe();
-            continue;
-        }
-        if (userlib_t::strncmp(cmd_line, "testsocket", 10) == 0) {
+        //if (userlib_t::strncmp(cmd_line, "testpipe", 8) == 0) {
+        //    test_pipe();
+        //    continue;
+        //}
+        if (userlib_t::strncmp(cmd_line, "ts", 2) == 0) {
             test_socket();
             continue;
         }
 
-        do_cmd(cmd_line);
+        //do_cmd(cmd_line);
     }
 
     userlib_t::exit(0);

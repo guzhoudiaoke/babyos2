@@ -324,7 +324,6 @@ int console_t::read(void* buf, int size)
     while (left > 0) {
         if (m_input_buffer.m_read_index == m_input_buffer.m_write_index) {
             current->sleep_on(&m_wait_queue);
-            //break;
         }
         char c = m_input_buffer.m_buffer[m_input_buffer.m_read_index++ % BUFFER_SIZE];
         *(char *) buf++ = c;
@@ -339,9 +338,12 @@ int console_t::read(void* buf, int size)
 
 int console_t::write(void* buf, int size)
 {
+    m_lock.lock_irqsave();
     for (int i = 0; i < size; i++) {
         putc(((char *) buf)[i], WHITE);
     }
+    m_lock.unlock_irqrestore();
+
     return size;
 }
 

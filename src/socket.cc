@@ -48,6 +48,8 @@ int sock_buffer_t::put_char(char ch)
     return ret;
 }
 
+/*********************************************************************/
+
 int32 socket_t::create(uint32 family, uint32 type, uint32 protocol)
 {
     m_family    = family;

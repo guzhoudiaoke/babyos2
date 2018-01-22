@@ -12,6 +12,7 @@
 #include "fs.h"
 #include "socket.h"
 #include "sys_socket.h"
+#include "screen.h"
 
 #define PROT_NONE           0x0       /* page can not be accessed */
 #define PROT_READ           0x1       /* page can be read */
@@ -21,14 +22,21 @@
 
 #define BUFFER_SIZE     1024
 
+#define  _AUPBND         (sizeof (uint32) - 1)
+#define  _ADNBND         (sizeof (uint32) - 1)
 typedef char* va_list;
-#define va_start(ap,p)      (ap = (char *) (&(p)+1))
-#define va_arg(ap, type)    ((type *) (ap += sizeof(type)))[-1]
-#define va_end(ap)
+#define _bnd(X, bnd)    (((sizeof (X)) + (bnd)) & (~(bnd)))
+#define va_arg(ap, T)   (*(T *)(((ap) += (_bnd (T, _AUPBND))) - (_bnd (T,_ADNBND))))
+#define va_end(ap)      (void) 0
+#define va_start(ap, A) (void) ((ap) = (((char *) &(A)) + (_bnd (A,_AUPBND))))
 
 #define CHARACTER(ch)       (ch & 0xff)
 
 class userlib_t {
+    static const int fd_stdin  = 0;
+    static const int fd_stdout = 1;
+    static const int fd_error  = 2;
+
 public:
     static int fork();
     static int exec(const char* path, argument_t* arg);
@@ -38,8 +46,12 @@ public:
     static void kill(uint32 pid, uint32 sig);
     static void signal(uint32 sig, sighandler_t handler);
 
+    static int  vsprintf(char *buffer, const char *fmt, va_list args);
     static int  sprintf(char* buffer, const char* fmt, ...);
 	static int  printf(const char* fmt, ...);
+    static void gets(char* buf, uint32 max);
+    static void puts(char* buf);
+    static int  color_print(color_ref_t color, const char *str);
 
     static void loop_delay(int32 loop);
     static void sleep(uint32 second);
@@ -78,8 +90,6 @@ private:
     static int  sprint_int(char* buffer, int n, int width, int base, bool sign);
     static int  sprint_str(char* buffer, char* s, int width);
     static bool is_digit(char c);
-    static int  print(const char *str);
-    static void print_int(int32 n, int32 base, int32 sign);
 };
 
 #endif

@@ -13,10 +13,13 @@
 
 #define BUFFER_SIZE     1024
 
+#define  _AUPBND         (sizeof (uint32) - 1)
+#define  _ADNBND         (sizeof (uint32) - 1)
 typedef char* va_list;
-#define va_start(ap,p)      (ap = (char *) (&(p)+1))
-#define va_arg(ap, type)    ((type *) (ap += sizeof(type)))[-1]
-#define va_end(ap)
+#define _bnd(X, bnd)    (((sizeof (X)) + (bnd)) & (~(bnd)))
+#define va_arg(ap, T)   (*(T *)(((ap) += (_bnd (T, _AUPBND))) - (_bnd (T,_ADNBND))))
+#define va_end(ap)      (void) 0
+#define va_start(ap, A) (void) ((ap) = (((char *) &(A)) + (_bnd (A,_AUPBND))))
 
 #define CHARACTER(ch)       (ch & 0xff)
 #define MAX_ROW             48

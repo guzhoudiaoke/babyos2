@@ -21,10 +21,10 @@ int userlib_t::exec(const char* path, argument_t* arg)
     return ret;
 }
 
-int userlib_t::print(const char *str)
+int userlib_t::color_print(color_ref_t color, const char *str)
 {
     int ret = 0;
-    __asm__ volatile("int $0x80" : "=a" (ret) : "b" (str), "a" (SYS_PRINT));
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_PRINT), "b" (color), "c" (str) );
     return ret;
 }
 
@@ -57,37 +57,6 @@ char* userlib_t::strrev(char* str, int len)
     }
 
     return str;
-}
-
-void userlib_t::print_int(int32 n, int32 base, int32 sign)
-{
-    char buffer[16] = {0};
-
-    uint32 num = (uint32)n;
-    if (sign && (sign = (n < 0))) {
-        num = -n;
-    }
-
-    int i = 0;
-    do {
-        buffer[i++] = digits[num % base];
-        num /= base;
-    } while (num != 0);
-
-    if (base == 16) {
-        while (i < 8) {
-            buffer[i++] = '0';
-        }
-        buffer[i++] = 'x';
-        buffer[i++] = '0';
-    }
-
-    if (sign) {
-        buffer[i++] = '-';
-    }
-
-    strrev(buffer, i);
-    print(buffer);
 }
 
 void userlib_t::loop_delay(int32 loop)
@@ -392,7 +361,7 @@ bool userlib_t::is_digit(char c)
 }
 
 static char str_null[] = "NULL";
-int userlib_t::sprintf(char* buffer, const char *fmt, ...)
+int userlib_t::vsprintf(char *buffer, const char *fmt, va_list ap)
 {
     buffer[0] = '\0';
     if (fmt == NULL) {
@@ -400,18 +369,15 @@ int userlib_t::sprintf(char* buffer, const char *fmt, ...)
     }
 
     int total = 0;
-    char sprintf_buf[BUFFER_SIZE];
-    memset(sprintf_buf, 0, BUFFER_SIZE);
-
-    va_list ap;
-    va_start(ap, fmt);
+    //va_list ap = args;
+    //va_start(ap, fmt);
 
     char c;
     int width = 0;
     char* s = NULL;
     for (int i = 0; (c = CHARACTER(fmt[i])) != 0; i++) {
         if (c != '%') {
-            sprintf_buf[total++] = c;
+            buffer[total++] = c;
             continue;
         }
 
@@ -431,102 +397,80 @@ int userlib_t::sprintf(char* buffer, const char *fmt, ...)
         }
 
         switch (c) {
-            case 'd':
-                total += sprint_int(sprintf_buf + total, va_arg(ap, int32), width, 10, true);
-                break;
-            case 'u':
-                total += sprint_int(sprintf_buf + total, va_arg(ap, int32), width, 10, false);
-                break;
-            case 'x':
-            case 'p':
-                total += sprint_int(sprintf_buf + total, va_arg(ap, int32), width, 16, false);
-                break;
-            case 'c':
-                sprintf_buf[total++] = (char) CHARACTER(va_arg(ap, int32));
-                break;
-            case 's':
-                total += sprint_str(buffer + total, va_arg(ap, char *), width);
-                break;
-            case '%':
-                sprintf_buf[total++] = '%';
-                break;
-            default:
-                sprintf_buf[total++] = '%';
-                sprintf_buf[total++] = c;
-                break;
+        case 'd':
+            total += sprint_int(buffer + total, va_arg(ap, int32), width, 10, true);
+            break;
+        case 'u':
+            total += sprint_int(buffer + total, va_arg(ap, int32), width, 10, false);
+            break;
+        case 'x':
+        case 'p':
+            total += sprint_int(buffer + total, va_arg(ap, int32), width, 16, false);
+            break;
+        case 'c':
+            buffer[total++] = (char) CHARACTER(va_arg(ap, int32));
+            break;
+        case 's':
+            total += sprint_str(buffer + total, va_arg(ap, char *), width);
+            break;
+        case '%':
+            buffer[total++] = '%';
+            break;
+        default:
+            buffer[total++] = '%';
+            buffer[total++] = c;
+            break;
         }
     }
 
+    //va_end(ap);
+    return total;
+}
+
+int userlib_t::sprintf(char* buffer, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    int total = vsprintf(buffer, fmt, ap);
     va_end(ap);
-    strcpy(buffer, sprintf_buf);
 
     return total;
 }
 
-// only support %d %u %x %p %c %s, and seems enough for now
+/* only support %d %u %x %p %c %s */
 int userlib_t::printf(const char *fmt, ...)
 {
-    int total = 0;
     char buffer[BUFFER_SIZE] = {0};
-    if (fmt == NULL) {
-        return 0;
-    }
 
     va_list ap;
     va_start(ap, fmt);
+    int total = vsprintf(buffer, fmt, ap);
+    va_end(ap);
 
-    char c;
-    for (int i = 0; (c = CHARACTER(fmt[i])) != 0; i++) {
-        if (c != '%') {
-            buffer[total++] = c;
-            continue;
-        }
+    write(fd_stdout, buffer, total);
+    return total;
+}
 
-        c = CHARACTER(fmt[++i]);
-        if (c == '\0') {
-            break;
-        }
 
-        int width = 0;
-        while (c != '\0' && is_digit(c)) {
-            width = width * 10 + c - '0';
-            c = CHARACTER(fmt[++i]);
-        }
-
-        if (c == '\0') {
-            break;
-        }
-
-        switch (c) {
-            case 'd':
-                total += sprint_int(buffer + total, va_arg(ap, int32), width, 10, true);
+void userlib_t::gets(char* buf, uint32 max)
+{
+    userlib_t::memset(buf, 0, max);
+    int i = 0;
+    while (i < max) {
+        char c;
+        int n = userlib_t::read(fd_stdin, &c, 1);
+        if (n == 1) {
+            if (c == '\n') {
                 break;
-            case 'u':
-                total += sprint_int(buffer + total, va_arg(ap, int32), width, 10, false);
-                break;
-            case 'x':
-            case 'p':
-                total += sprint_int(buffer + total, va_arg(ap, int32), width, 16, false);
-                break;
-            case 'c':
-                buffer[total++] = (char) CHARACTER(va_arg(ap, int32));
-                break;
-            case 's':
-                total += sprint_str(buffer + total, va_arg(ap, char *), width);
-                break;
-            case '%':
-                buffer[total++] = '%';
-                break;
-            default:
-                buffer[total++] = '%';
-                buffer[total++] = c;
-                break;
+            }
+            *buf++ = c;
+            i++;
         }
     }
+}
 
-    va_end(ap);
-    print(buffer);
-
-    return total;
+void userlib_t::puts(char* buf)
+{
+    userlib_t::write(fd_stdout, buf, userlib_t::strlen(buf));
 }
 

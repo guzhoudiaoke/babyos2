@@ -257,6 +257,8 @@ end_wait:
 
 int32 process_t::exit()
 {
+    //console()->kprintf(PURPLE, "process: %u exiting\n", current->m_pid);
+
     /* remove the mem resource */
     m_vmm.release();
 

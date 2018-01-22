@@ -7,6 +7,7 @@
 #include "file_table.h"
 #include "string.h"
 #include "babyos.h"
+#include "socket.h"
 
 void file_table_t::init()
 {
@@ -50,6 +51,9 @@ int file_table_t::free(file_t* file)
 
     if (f.m_type == file_t::TYPE_PIPE) {
         f.m_pipe->close(f.m_writeable);
+    }
+    else if (f.m_type == file_t::TYPE_SOCKET) {
+        f.m_socket->release();
     }
     else if (f.m_type == file_t::TYPE_INODE) {
         os()->get_fs()->put_inode(f.m_inode);

@@ -51,14 +51,6 @@ socket_t* socket_local_t::alloc_local_socket()
 
 void socket_local_t::release_local_socket(socket_t* socket)
 {
-    locker_t locker(s_lock);
-
-    uint32 old_state = socket->m_state;
-    if (socket->m_state != socket_t::SS_UNCONNECTED) {
-        socket->m_state = socket_t::SS_DISCONNECTING;
-    }
-
-    socket->release();
 }
 
 socket_local_t* socket_local_t::look_up_local_socket(sock_addr_local_t* addr)
@@ -81,7 +73,8 @@ int32 socket_local_t::bind_local_socket(socket_local_t* socket, sock_addr_local_
 
     socket_local_t* s = s_local_sockets;
     for (int i = 0; i < MAX_LOCAL_SOCKET; i++, s++) {
-        if (s->m_addr == *addr) {
+        if (s->m_addr == *addr && s->m_ref != 0) {
+            //console()->kprintf(RED, "socket %p, path: %s, ref: %u\n", s, s->m_addr.m_path, s->m_ref);
             return -1;
         }
     }
@@ -100,8 +93,10 @@ void socket_local_t::init()
 int32 socket_local_t::create(uint32 family, uint32 type, uint32 protocol)
 {
     socket_t::create(family, type, protocol);
+
     m_ref = 1;
     m_sock_buf.init(this);
+    memset(m_addr.m_path, 0, sizeof(m_addr.m_path));
 
     return 0;
 }
@@ -121,6 +116,33 @@ int32 socket_local_t::get_name(sock_addr_t* addr)
 
 int32 socket_local_t::release()
 {
+    uint32 old_state = m_state;
+    if (m_state != socket_t::SS_UNCONNECTED) {
+        m_state = socket_t::SS_DISCONNECTING;
+    }
+
+    /* wake up sockets who are waiting for accept */
+    spinlock_t* lock = m_connecting_list.get_lock();
+    lock->lock_irqsave();
+    list_t<socket_t *>::iterator it = m_connecting_list.begin();
+    while (it != m_connecting_list.end()) {
+        (*it)->m_wait_accept_sem.up();
+    }
+    lock->unlock_irqrestore();
+
+    /* set peer state */
+    socket_local_t* peer = (socket_local_t *) m_connected_socket;
+    if (old_state == socket_t::SS_CONNECTED && peer != NULL) {
+        peer->m_state = socket_t::SS_DISCONNECTING;
+    }
+
+    m_ref--;
+    if (peer != NULL) {
+        peer->m_ref--;
+        //console()->kprintf(PINK, "socket %p ref = %u, %s\n", peer, peer->m_ref, peer->m_addr.m_path);
+    }
+    //console()->kprintf(PINK, "socket %p release, ref = %u, %s\n", this, m_ref, m_addr.m_path);
+
     return 0;
 }
 
@@ -142,7 +164,7 @@ int32 socket_local_t::accept(socket_t* server_socket)
     while (server_socket->m_connecting_list.empty()) {
         server_socket->m_flags |= socket_t::SF_WAITDATA;
         server_socket->m_wait_connect_sem.down();
-        console()->kprintf(YELLOW, "wait connect waked up\n");
+        //console()->kprintf(YELLOW, "wait connect waked up\n");
         server_socket->m_flags &= ~socket_t::SF_WAITDATA;
     }
 
@@ -157,8 +179,11 @@ int32 socket_local_t::accept(socket_t* server_socket)
 
     client_socket->m_connected_socket = this;
     client_socket->m_state = socket_t::SS_CONNECTED;
+
     this->m_connected_socket = client_socket;
     this->m_state = socket_t::SS_CONNECTED;
+    this->m_ref++;
+    //console()->kprintf(PINK, "inc ref, socket %p ref: %u\n", this, m_ref);
 
     /* wake up client that accepted */
     client_socket->m_wait_accept_sem.up();
@@ -183,7 +208,7 @@ int32 socket_local_t::connect(sock_addr_t* server_addr)
 
     /* get server socket */
     socket_t* server_socket = socket_local_t::look_up_local_socket((sock_addr_local_t *) server_addr);
-    if (server_socket == NULL) {
+    if (server_socket == NULL || server_socket->m_state != socket_t::SS_UNCONNECTED) {
         return -EINVAL;
     }
 
@@ -209,6 +234,8 @@ int32 socket_local_t::connect(sock_addr_t* server_addr)
         return m_connected_socket ? -EINTR : -EACCES;
     }
 
+    m_ref++;
+    //console()->kprintf(PINK, "inc ref, socket %p ref: %u\n", this, m_ref);
     return 0;
 }
 
@@ -231,7 +258,6 @@ int32 socket_local_t::write(void* buf, uint32 size)
     sock_buffer_t* connect_sock_buf = &((socket_local_t *) (m_connected_socket))->m_sock_buf;
     char* p = (char *) buf;
     for (uint32 i = 0; i < size; i++) {
-        //if (m_connected_socket->m_sock_buf.put_char(*p++) < 0) {
         if (connect_sock_buf->put_char(*p++) < 0) {
             return -1;
         }
