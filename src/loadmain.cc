@@ -8,30 +8,82 @@
 #include "elf.h"
 #include "x86.h"
 
-extern "C" 
-void loadmain(void)
-{
-    elf_hdr_t *elf = (elf_hdr_t *) (ELF_BASE_ADDR);
-    uint8 *base = (uint8 *) elf;
+#define HD_STATE_READY  0x40
+#define HD_STATE_BUSY   0x80
+#define IO_CMD_READ     0x20
 
-    /* check if it's a valid elf file */
+
+typedef void (*kernel_entry_t)(void);
+
+void wait_disk()
+{
+    while ((inb(0x1f7) & (HD_STATE_BUSY | HD_STATE_READY)) != HD_STATE_READY) {
+        ;
+    }
+}
+
+void read_sector(void* buf, uint32 lba)
+{
+    wait_disk();
+
+    outb(0x1f2, 1);                     /* sector num */
+    outb(0x1f3, lba & 0xff);
+    outb(0x1f4, (lba >> 8)  & 0xff);
+    outb(0x1f5, (lba >> 16) & 0xff);
+    outb(0x1f6, 0xe0 | ((lba >> 24) & 0xff));
+    outb(0x1f7, IO_CMD_READ);
+
+    wait_disk();
+    insl(0x1f0, buf, SECT_SIZE / 4);
+}
+
+/* pa: the buffer to read data, will be aligned by SECT_SIZE
+ * offset: where to read from disk (byte)
+ * size: how many byte to read
+ */
+void read_segment(void* pa, uint32 offset, uint32 size)
+{
+    uint8* p = (uint8 *) pa - (offset % SECT_SIZE);;
+    uint32 lba = offset / SECT_SIZE;
+    uint8* end = p + size;
+
+    for (; p < end; p += SECT_SIZE, lba++) {
+        read_sector(p, lba);
+    }
+}
+
+extern "C" 
+void loadmain()
+{
+    /* boot is the first sector, then is loader's LOADER_SECT_NUM sectors
+     * then is the elf kernel */
+    uint32 elf_lba = 1 + LOADER_SECT_NUM;
+
+    elf_hdr_t* elf = (elf_hdr_t *) ELF_BASE_ADDR;
+    read_sector(elf, elf_lba);
     if (elf->magic != ELF_MAGIC) {
         return;
     }
 
-    /* load program segments */
-    prog_hdr_t *ph = (prog_hdr_t *)(base + elf->phoff);
-    prog_hdr_t *end_ph = ph + elf->phnum;
-    for (; ph < end_ph; ph++) {
-        uint8 *pa = (uint8 *)ph->paddr;
-        movsb(pa, base + ph->off, ph->filesz);
+    /* read segments */
+    uint32 elf_offset = SECT_SIZE * elf_lba;
+    prog_hdr_t* ph = (prog_hdr_t *) ((uint8 *)elf + elf->phoff);
+    for (int i = 0; i < elf->phnum; i++, ph++) {
+        read_segment((void *) ph->paddr, elf_offset + ph->off, ph->filesz);
         if (ph->memsz > ph->filesz) {
-            stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
+            stosb((void *) ph->paddr + ph->filesz, 0, ph->memsz - ph->filesz);
         }
     }
 
+    /* load font */
+    uint8* font_addr = (uint8 *) FONT_ASC16_ADDR;
+    uint32 font_lba = (ELF_SECT_NUM + elf_lba);
+    for (int i = 0; i < FONT_ASC16_SIZE / SECT_SIZE; i++, font_addr += SECT_SIZE, font_lba++) {
+        read_sector(font_addr, font_lba);
+    }
+
     /* find entry from elf, and call */
-    void (*entry)(void) = (void(*)(void))(elf->entry);
+    kernel_entry_t entry = (kernel_entry_t) elf->entry;
     entry();
 }
 

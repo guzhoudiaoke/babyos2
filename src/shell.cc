@@ -142,19 +142,19 @@ static void test_fork_exec_wait_exit(const char* times)
 
 static void do_server(int sockfd)
 {
-    int data = 1024;
-    if (userlib_t::write(sockfd, &data, sizeof(int)) < 0) {
-        userlib_t::printf("server write error.\n");
-        return;
-    }
-    userlib_t::printf("server write %d to   client.\n", data);
-
+    int data = 0;
     if (userlib_t::read(sockfd, &data, sizeof(int)) < 0) {
         userlib_t::printf("server read error.\n");
         return;
     }
     userlib_t::printf("server read  %d from client.\n", data);
     data++;
+
+    if (userlib_t::write(sockfd, &data, sizeof(int)) < 0) {
+        userlib_t::printf("server write error.\n");
+        return;
+    }
+    userlib_t::printf("server write %d to   client.\n", data);
 }
 
 static void socket_server()
@@ -204,18 +204,16 @@ static void socket_server()
     }
 }
 
-static void do_client(int sockfd)
+static void do_client(int sockfd, int data)
 {
-    int data = 0;
-    userlib_t::read(sockfd, &data, sizeof(int));
-    userlib_t::printf("client read  %d from server.\n", data);
-    data++;
-
     userlib_t::write(sockfd, &data, sizeof(int));
     userlib_t::printf("client write %d to   server.\n", data);
+
+    userlib_t::read(sockfd, &data, sizeof(int));
+    userlib_t::printf("client read  %d from server.\n", data);
 }
 
-static void socket_client()
+static void socket_client(int data)
 {
     int sock_fd = userlib_t::socket(socket_t::AF_LOCAL, 0, 0);
     if (sock_fd < 0) {
@@ -236,7 +234,7 @@ static void socket_client()
     }
 
     userlib_t::printf("client connect success\n");
-    do_client(sock_fd);
+    do_client(sock_fd, data);
 }
 
 static void test_socket()
@@ -256,7 +254,7 @@ static void test_socket()
     pid2 = userlib_t::fork();
     if (pid2 == 0) {
         /* client */
-        socket_client();
+        socket_client(1234);
         userlib_t::sleep(1);
         userlib_t::exit(0);
     }
@@ -265,7 +263,7 @@ static void test_socket()
     pid3 = userlib_t::fork();
     if (pid3 == 0) {
         /* client */
-        socket_client();
+        socket_client(5678);
         userlib_t::sleep(1);
         userlib_t::exit(0);
     }
@@ -302,7 +300,7 @@ int main()
         //    test_pipe();
         //    continue;
         //}
-        if (userlib_t::strncmp(cmd_line, "ts", 2) == 0) {
+        if (userlib_t::strncmp(cmd_line, "testsocket", 10) == 0) {
             test_socket();
             continue;
         }

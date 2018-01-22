@@ -122,10 +122,11 @@ load_kernel:
     movl    %eax,               (disk_addr_packet + 6)
 
 	incw	%cx
-	cmpw	$KERNEL_SECT_NUM,	%cx
+	#cmpw	$KERNEL_SECT_NUM,	%cx
+	cmpw	$3,	%cx
 	jne		1b
 
-	# move first sector(the loader) to 0x0000
+	# move the loader to 0x0000
 	cld													# si, di increment
 	movw	$TMP_KERNEL_ADDR>>4,				%ax
 	movw	%ax,								%ds		# DS:SI src
@@ -133,7 +134,7 @@ load_kernel:
 	movw	$0x00,								%ax
 	movw	%ax,								%es		# ES:DI dst
 	xorw	%di,								%di
-	movw	$(LOADER_SECT_NUM*SECT_SIZE) >> 2,	%cx		# 512/4 times 
+	movw	$(LOADER_SECT_NUM*SECT_SIZE) >> 2,	%cx
 	rep		movsl										# 4 bytes per time
 
     ret

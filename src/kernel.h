@@ -44,10 +44,10 @@
 
 /* load addresses */
 #define LOADER_ADDR         (TMP_KERNEL_ADDR)
-#define LOADER_SECT_NUM     (1)
+#define LOADER_SECT_NUM     (2)
 
 #define ELF_BASE_ADDR       (LOADER_ADDR + LOADER_SECT_NUM * SECT_SIZE)
-#define ELF_SECT_NUM        (KERNEL_SECT_NUM - 2 - 8)
+#define ELF_SECT_NUM        (KERNEL_SECT_NUM - 3 - 8)
 
 #define FONT_ASC16_ADDR     (ELF_BASE_ADDR + ELF_SECT_NUM * SECT_SIZE)
 #define FONT_ASC16_SIZE     (4096)
