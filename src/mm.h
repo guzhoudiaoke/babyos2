@@ -63,7 +63,7 @@ public:
 	void map_pages(pde_t *pg_dir, void *va, uint32 pa, uint32 size, uint32 perm);
 
     void* alloc_pages(uint32 order);
-    void free_pages(void* addr, uint32 order);
+    void  free_pages(void* addr, uint32 order);
 
     void inc_page_ref(uint32 phy_addr);
     uint32 dec_page_ref(uint32 phy_addr);
@@ -96,6 +96,7 @@ private:
     uint32 m_usable_phy_mem_end;
 
     free_area_t m_free_area;
+    atomic_t m_free_page_num;
 };
 
 #endif

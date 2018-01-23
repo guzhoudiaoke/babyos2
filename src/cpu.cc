@@ -433,6 +433,7 @@ void cpu_t::release_process(process_t* proc)
         it++;
     }
 
+    os()->get_mm()->free_pages(proc->m_vmm.get_pg_dir(), 0);
     os()->get_mm()->free_pages(proc, 1);
 }
 

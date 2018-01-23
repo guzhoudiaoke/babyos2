@@ -149,7 +149,9 @@ int32 process_t::exec(trap_frame_t* frame)
     init_user_stack(frame, arg);
 
     // free arg
-    os()->get_mm()->free_pages(arg, 0);
+    if (arg != NULL) {
+        os()->get_mm()->free_pages(arg, 0);
+    }
 
     return 0;
 }
@@ -257,12 +259,10 @@ end_wait:
 
 int32 process_t::exit()
 {
-    //console()->kprintf(PURPLE, "process: %u exiting\n", current->m_pid);
-
     /* remove the mem resource */
     m_vmm.release();
 
-    /* files */
+    /* close all opend files */
     os()->get_fs()->put_inode(m_cwd);
     for (int i = 0; i < MAX_OPEN_FILE; i++) {
         if (m_files[i] != NULL && m_files[i]->m_type != file_t::TYPE_NONE) {
@@ -279,6 +279,7 @@ int32 process_t::exit()
     /* let parent wake up, and mourn us */
     notify_parent();
 
+    /* schedule other process */
     os()->get_arch()->get_cpu()->schedule();
 
     return 0;

@@ -47,6 +47,12 @@ int sys_unlink(char* path)
     return fs.do_unlink(path);
 }
 
+void halt()
+{
+    while (1) {
+    }
+}
+
 void get_name(char* path, char* name)
 {
     char* p = path + strlen(path);
@@ -62,27 +68,29 @@ void get_name(char* path, char* name)
     strncpy(name, p+1, end-p);
 }
 
-void check(char* path)
+void check(char* path, char* dpath)
 {
-    int fd = sys_open(path, file_t::MODE_RDWR);
+    int fd = sys_open(dpath, file_t::MODE_RDWR);
     if (fd < 0) {
-        printf("failed to open %s\n", path);
-        return;
+        printf("failed to open %s\n", dpath);
+        halt();
     }
 
-    char name[128] = {0};
-    get_name(path, name);
-    FILE* fp = fopen(name, "w");
+    FILE* fp = fopen(path, "r");
     if (fp == NULL) {
-        printf("failed to open %s\n", name);
-        return;
+        printf("failed to open %s\n", path);
+        halt();
     }
 
-    char buffer[512];
+    char buffer[512], buffer1[512];
     int nbyte;
     do {
         nbyte = sys_read(fd, buffer, 512);
-        fwrite(buffer, 1, nbyte, fp);
+        fread(buffer1, 1, nbyte, fp);
+        if (memcmp(buffer, buffer1, nbyte) != 0) {
+            printf("file error %s\n", path);
+            halt();
+        }
     } while (nbyte > 0);
 
     fclose(fp);
@@ -146,7 +154,7 @@ void write_file(char* path)
     sys_close(fd);
     fclose(fp);
 
-    check(disk_path);
+    check(path, disk_path);
 }
 
 int main(int argc, char **argv)

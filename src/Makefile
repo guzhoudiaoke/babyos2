@@ -33,6 +33,7 @@ OBJS = \
 	sys_socket.o\
 	socket.o\
 	socket_local.o\
+	math.o\
 
 AS = as --32
 CC = gcc -m32
@@ -55,7 +56,8 @@ babyos: boot loader kernel init shell ls cat ln mkdir rm cp mv
 	dd if=kernel            of=baby_hd.img ibs=512 seek=3           conv=notrunc
 	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=2040        conv=notrunc
 	cp fs.img.bak1 fs.img
-	../tool/mkfs ./init ./shell ./ls ./cat ./ln ./mkdir ./rm ./cp ./mv
+	#../tool/mkfs ./init ./shell ./ls ./cat ./ln ./mkdir ./rm ./cp ./mv
+	../tool/mkfs ./init ./shell ./ls
 
 boot: boot.S
 	${CPP} ${CPPFLAGS} -c boot.S

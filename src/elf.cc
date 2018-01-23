@@ -6,17 +6,7 @@
 #include "elf.h"
 #include "babyos.h"
 #include "string.h"
-
-static uint32 log(int32 x, int32 n)
-{
-    int32 ret = 0, num = 1;
-    while (num < n) {
-        num *= x;
-        ret++;
-    }
-
-    return ret;
-}
+#include "math.h"
 
 static int32 read_file_from(int fd, void* buffer, uint32 offset, uint32 size)
 {
@@ -58,7 +48,7 @@ static int32 load_elf_binary(elf_hdr_t* elf, int fd)
         }
 
         /* alloc mem and do map pages */
-        void* mem = os()->get_mm()->alloc_pages(log(2, len / PAGE_SIZE));
+        void* mem = os()->get_mm()->alloc_pages(math_t::log(2, len / PAGE_SIZE));
         os()->get_mm()->map_pages(pg_dir, vaddr, VA2PA(mem), len, PTE_W | PTE_U);
 
         /* read data */

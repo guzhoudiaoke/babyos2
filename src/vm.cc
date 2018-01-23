@@ -347,6 +347,7 @@ uint32 vmm_t::do_protection_fault(vm_area_t* vma, uint32 addr, uint32 write)
     /* this page is shared, now only COW can share page */
     void* mem = os()->get_mm()->alloc_pages(0);
     os()->get_mm()->copy_page(mem, (void *) addr);
+
     os()->get_mm()->free_pages((void *) (PA2VA(pa)), 0);
     os()->get_mm()->map_pages(m_pg_dir, (void*) addr, VA2PA(mem), PAGE_SIZE, PTE_W | PTE_U);
 

@@ -10,6 +10,7 @@
 #include "console.h"
 #include "string.h"
 #include "process.h"
+#include "math.h"
 
 __attribute__ ((__aligned__(2*PAGE_SIZE)))
 uint8 kernel_stack[KSTACK_SIZE*2] = {
@@ -208,13 +209,24 @@ void mm_t::init_mem_range()
 
 void mm_t::init_pages()
 {
-    uint32 size = ((uint32)m_mem_end + PAGE_SIZE - 1) / PAGE_SIZE * sizeof(page_t);
-    m_pages = (page_t *) boot_mem_alloc(size, 0);
-    memset(m_pages, 0, size);
+    //uint32 size = ((uint32)m_mem_end + PAGE_SIZE - 1) / PAGE_SIZE * sizeof(page_t);
+    //m_pages = (page_t *) boot_mem_alloc(size, 0);
+    //memset(m_pages, 0, size);
 
-    for (uint32 addr = KERNEL_BASE; addr < (uint32)m_mem_end; addr += PAGE_SIZE) {
-        inc_page_ref(VA2PA(addr));
+    //for (uint32 addr = KERNEL_BASE; addr < (uint32)m_mem_end; addr += PAGE_SIZE) {
+    //    inc_page_ref(VA2PA(addr));
+    //}
+
+    uint32 page_num = (uint32) (m_mem_end - KERNEL_BASE) / PAGE_SIZE;
+    uint32 size = page_num * sizeof(page_t);
+    m_pages = (page_t *) boot_mem_alloc(size, 0);
+
+    for (uint32 i = 0; i < page_num; i++) {
+        atomic_set(&m_pages[i].ref, 1);
     }
+
+    console()->kprintf(YELLOW, "m_mem_end: %x, page_num: %u\n", m_mem_end, page_num);
+    console()->kprintf(GREEN, "m_pages[32617] = %u\n", m_pages[32617].ref.counter);
 }
 
 void mm_t::init_free_area()
@@ -232,9 +244,10 @@ void mm_t::init_free_area()
         memset((void *) m_mem_start, 0, bitmap_size);
         m_mem_start += bitmap_size;
     }
-    m_free_area.base = (uint8*)(((uint32)m_mem_start + ~mask) & mask);
 
     init_pages();
+
+    m_free_area.base = (uint8*)(((uint32)m_mem_start + ~mask) & mask);
     free_boot_mem();
 }
 
@@ -262,6 +275,8 @@ void mm_t::free_pages(void* addr, uint32 order)
     if (!dec_page_ref(VA2PA(addr))) {
         return;
     }
+
+    atomic_add(math_t::pow(2, order), &m_free_page_num);
 
     uint32 address = (uint32) addr;
     uint32 index = MAP_NR(address - (uint32)m_free_area.base) >> (1 + order);
@@ -293,12 +308,19 @@ void* mm_t::expand(free_list_t* addr, uint32 low, uint32 high)
         mark_used((uint32) addr, high);
         addr = (free_list_t *) (size + (uint32) addr);
     }
-    inc_page_ref(VA2PA(addr));
+
+    void* p = addr;
+    for (uint32 i = 0; i < math_t::pow(2, low); i++, p += PAGE_SIZE) {
+        inc_page_ref(VA2PA(p));
+    }
     return addr;
 }
 
 void* mm_t::alloc_pages(uint32 order)
 {
+    atomic_sub(math_t::pow(2, order), &m_free_page_num);
+    //console()->kprintf(YELLOW, "alloc order: %u, free page num: %u\n", order, atomic_read(&m_free_page_num));
+
     free_list_t* queue = m_free_area.free_list + order;
     uint32 new_order = order;
     do {
@@ -318,6 +340,7 @@ void* mm_t::alloc_pages(uint32 order)
 
 void mm_t::free_boot_mem()
 {
+    atomic_set(&m_free_page_num, 0);
     for (uint8 *p = m_free_area.base; p < m_mem_end; p += PAGE_SIZE) {
         free_pages(p, 0);
     }
@@ -327,15 +350,14 @@ void mm_t::inc_page_ref(uint32 phy_addr)
 {
     page_t* page = &m_pages[phy_addr >> PAGE_SHIFT];
     atomic_inc(&page->ref);
-
-    //if (page->ref.counter > 1) {
-    //    console()->kprintf(BLUE, "inc page ref, addr: %x, ref: %u\n", phy_addr, page->ref.counter);
-    //}
 }
 
 uint32 mm_t::dec_page_ref(uint32 phy_addr)
 {
     page_t* page = &m_pages[phy_addr >> PAGE_SHIFT];
+    if (page->ref.counter <= 0) {
+        os()->panic("ref count <= 0 when dec ref");
+    }
     return atomic_dec_and_test(&page->ref);
 }
 

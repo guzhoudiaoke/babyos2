@@ -11,7 +11,8 @@
 
 #define MAX_CMD_LEN 128
 
-#if 0
+argument_t argument;
+
 const char* parse_cmd(const char* cmd_line, char* cmd)
 {
     userlib_t::memset(cmd, 0, MAX_CMD_LEN);
@@ -75,10 +76,8 @@ void do_cmd(const char* cmd_line)
 
     userlib_t::wait(pid);
 }
-#endif
 
 // only for test
-argument_t argument;
 static void test_fork_exec_wait_exit(const char* times)
 {
     int t = 0;
@@ -106,39 +105,39 @@ static void test_fork_exec_wait_exit(const char* times)
     }
 }
 
-//static void test_pipe()
-//{
-//    int fd[2];
-//    if (userlib_t::pipe(fd) < 0) {
-//        userlib_t::printf("failed to create pipe\n");
-//        return;
-//    }
-//
-//    userlib_t::printf("succ to create pipe: %d, %d\n", fd[0], fd[1]);
-//
-//    int32 pid = userlib_t::fork();
-//    if (pid == 0) {
-//        userlib_t::close(fd[0]);
-//
-//        char ch = 'a';
-//        for (int i = 0; i < 10; i++, ch++) {
-//            userlib_t::write(fd[1], &ch, 1);
-//            userlib_t::printf("child write %c to pipe\n", ch);
-//            userlib_t::sleep(1);
-//        }
-//        userlib_t::exit(0);
-//    }
-//    else {
-//        userlib_t::close(fd[1]);
-//
-//        char ch = '\0';
-//        for (int i = 0; i < 10; i++) {
-//            userlib_t::read(fd[0], &ch, 1);
-//            userlib_t::printf("parent read %c from pipe\n", ch);
-//        }
-//        userlib_t::wait(pid);
-//    }
-//}
+static void test_pipe()
+{
+    int fd[2];
+    if (userlib_t::pipe(fd) < 0) {
+        userlib_t::printf("failed to create pipe\n");
+        return;
+    }
+
+    userlib_t::printf("succ to create pipe: %d, %d\n", fd[0], fd[1]);
+
+    int32 pid = userlib_t::fork();
+    if (pid == 0) {
+        userlib_t::close(fd[0]);
+
+        char ch = 'a';
+        for (int i = 0; i < 10; i++, ch++) {
+            userlib_t::write(fd[1], &ch, 1);
+            userlib_t::printf("child write %c to pipe\n", ch);
+            userlib_t::sleep(1);
+        }
+        userlib_t::exit(0);
+    }
+    else {
+        userlib_t::close(fd[1]);
+
+        char ch = '\0';
+        for (int i = 0; i < 10; i++) {
+            userlib_t::read(fd[0], &ch, 1);
+            userlib_t::printf("parent read %c from pipe\n", ch);
+        }
+        userlib_t::wait(pid);
+    }
+}
 
 static void do_server(int sockfd)
 {
@@ -296,16 +295,16 @@ int main()
             test_fork_exec_wait_exit(cmd_line + 5);
             continue;
         }
-        //if (userlib_t::strncmp(cmd_line, "testpipe", 8) == 0) {
-        //    test_pipe();
-        //    continue;
-        //}
+        if (userlib_t::strncmp(cmd_line, "testpipe", 8) == 0) {
+            test_pipe();
+            continue;
+        }
         if (userlib_t::strncmp(cmd_line, "testsocket", 10) == 0) {
             test_socket();
             continue;
         }
 
-        //do_cmd(cmd_line);
+        do_cmd(cmd_line);
     }
 
     userlib_t::exit(0);
