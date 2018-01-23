@@ -37,40 +37,34 @@
 #define MEMORY_INFO_OFFSET  (MEMORY_INFO_ADDR - BOOT_INFO_ADDR)
 #define MEMORY_INFO_SIZE	(4+256)
 
+/* font */
+#define FONT_ASC16_ADDR     (0x10000)
 
-/* address of temp kernel */
-#define TMP_KERNEL_ADDR	    (0x10000)
-#define KERNEL_SECT_NUM	    (1136)
 
-/* load addresses */
-#define LOADER_ADDR         (TMP_KERNEL_ADDR)
+/* struct of boot disk */
 #define LOADER_SECT_NUM     (2)
+#define ELF_SECT_NUM        (1126)
+#define FONT_ASC16_SECT_NUM (8)
 
-#define ELF_BASE_ADDR       (LOADER_ADDR + LOADER_SECT_NUM * SECT_SIZE)
-#define ELF_SECT_NUM        (KERNEL_SECT_NUM - 3 - 8)
-
-#define FONT_ASC16_ADDR     (ELF_BASE_ADDR + ELF_SECT_NUM * SECT_SIZE)
-#define FONT_ASC16_SIZE     (4096)
-
+#define BOOT_LBA            (0)
+#define LOADER_LBA          (1)
+#define KERNEL_ELF_LBA      (3)
+#define FONT_ASC16_LBA      (2040)
 
 /* memory */
 #define KERNEL_BASE		    0xc0000000  // 3GB
 #define EXTENED_MEM         0x100000    // 1MB
 #define KERNEL_LOAD         (KERNEL_BASE+EXTENED_MEM)
 #define MAX_PHY_MEM         0x10000000  // 256MB
-
 #define USER_STACK_TOP      0xc0000000
-
 
 /* page table, page directory entry flag */
 #define PTE_P               0x001		// present
 #define PTE_W               0x002		// writeable
 #define PTE_U               0x004		// user
 
-
 /* for cr0 */
 #define CR0_PE              0x00000001
-#define CR0_WP              0x00010000
 #define CR0_PG              0x80000000
 
 #endif

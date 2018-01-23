@@ -49,11 +49,11 @@ all: babyos
 babyos: boot loader kernel init shell ls cat ln mkdir rm cp mv
 	../tool/checksize boot 1
 	../tool/checksize loader 2
-	../tool/checksize kernel 1126
+	../tool/checksize kernel 2037
 	dd if=boot              of=baby_hd.img ibs=512 seek=0   count=1 conv=notrunc
 	dd if=loader            of=baby_hd.img ibs=512 seek=1   count=2 conv=notrunc
 	dd if=kernel            of=baby_hd.img ibs=512 seek=3           conv=notrunc
-	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=1128        conv=notrunc
+	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=2040        conv=notrunc
 	cp fs.img.bak1 fs.img
 	../tool/mkfs ./init ./shell ./ls ./cat ./ln ./mkdir ./rm ./cp ./mv
 

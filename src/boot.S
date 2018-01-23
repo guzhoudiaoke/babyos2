@@ -89,55 +89,25 @@ set_vga_0x13:
 disk_addr_packet:
     .byte   0x10                        # [0] size of packet 16 bytes
     .byte   0x00                        # [1] reserved always 0
-    .word   0x01                        # [2] blocks to read
+    .word   0x00                        # [2] blocks to read
     .word   0x00                        # [4] transfer buffer(16 bit offset)
     .word   0x00                        # [6] transfer buffer(16 bit segment)
-    .long   0x01                        # [8] starting LBA
+    .long   0x00                        # [8] starting LBA
     .long   0x00                        # [12]used for upper part of 48 bit LBAs
 
 # function to read a sect from hd
 read_a_sect_hd:
+
+# function to load the kernel
+load_loader:
     lea     disk_addr_packet,   %si
+    movw    $2,                 2(%si)
+    movw    $1,                 8(%si)
     movb    $0x42,              %ah
     movb    $0x80,              %dl
     int     $0x13
     ret
 
-# function to load the kernel
-load_kernel:
-    lea     disk_addr_packet,   %si
-    movw    $TMP_KERNEL_ADDR>>4,6(%si)
-    xorw    %cx,                %cx
-
-1:
-    call    read_a_sect_hd
-
-    lea     disk_addr_packet,   %si
-    movl    8(%si),             %eax
-    addl    $0x01,              %eax
-    movl    %eax,               (disk_addr_packet + 8)
-
-    movl    6(%si),             %eax
-    addl    $512>>4,            %eax
-    movl    %eax,               (disk_addr_packet + 6)
-
-	incw	%cx
-	#cmpw	$KERNEL_SECT_NUM,	%cx
-	cmpw	$3,	%cx
-	jne		1b
-
-	# move the loader to 0x0000
-	cld													# si, di increment
-	movw	$TMP_KERNEL_ADDR>>4,				%ax
-	movw	%ax,								%ds		# DS:SI src
-	xorw	%si,								%si
-	movw	$0x00,								%ax
-	movw	%ax,								%es		# ES:DI dst
-	xorw	%di,								%di
-	movw	$(LOADER_SECT_NUM*SECT_SIZE) >> 2,	%cx
-	rep		movsl										# 4 bytes per time
-
-    ret
 
 # function to copy gdt and video info to a safe position
 copy_gdt_and_video_info:
@@ -225,7 +195,7 @@ main:
 	call	clear_screen
 	call	set_video_mode
 	call	get_memory_info
-	call	load_kernel
+	call	load_loader
 	call	copy_gdt_and_video_info
 	call	begin_protected_mode
 

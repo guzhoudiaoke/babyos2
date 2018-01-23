@@ -55,18 +55,15 @@ void read_segment(void* pa, uint32 offset, uint32 size)
 extern "C" 
 void loadmain()
 {
-    /* boot is the first sector, then is loader's LOADER_SECT_NUM sectors
-     * then is the elf kernel */
-    uint32 elf_lba = 1 + LOADER_SECT_NUM;
-
-    elf_hdr_t* elf = (elf_hdr_t *) ELF_BASE_ADDR;
-    read_sector(elf, elf_lba);
+    char buf[512] = {0};
+    elf_hdr_t* elf = (elf_hdr_t *) buf;
+    read_sector(elf, KERNEL_ELF_LBA);
     if (elf->magic != ELF_MAGIC) {
         return;
     }
 
     /* read segments */
-    uint32 elf_offset = SECT_SIZE * elf_lba;
+    uint32 elf_offset = SECT_SIZE * KERNEL_ELF_LBA;
     prog_hdr_t* ph = (prog_hdr_t *) ((uint8 *)elf + elf->phoff);
     for (int i = 0; i < elf->phnum; i++, ph++) {
         read_segment((void *) ph->paddr, elf_offset + ph->off, ph->filesz);
@@ -77,8 +74,8 @@ void loadmain()
 
     /* load font */
     uint8* font_addr = (uint8 *) FONT_ASC16_ADDR;
-    uint32 font_lba = (ELF_SECT_NUM + elf_lba);
-    for (int i = 0; i < FONT_ASC16_SIZE / SECT_SIZE; i++, font_addr += SECT_SIZE, font_lba++) {
+    uint32 font_lba = FONT_ASC16_LBA;
+    for (int i = 0; i < FONT_ASC16_SECT_NUM; i++, font_addr += SECT_SIZE, font_lba++) {
         read_sector(font_addr, font_lba);
     }
 
