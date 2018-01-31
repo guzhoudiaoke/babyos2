@@ -63,34 +63,6 @@ typedef uint32  pde_t;
 typedef uint32  pte_t;
 
 
-typedef struct trap_frame_s {
-    uint32 ebx;
-    uint32 ecx;
-    uint32 edx;
-    uint32 esi;
-    uint32 edi;
-    uint32 ebp;
-    uint32 eax;
-
-    uint16 gs, padding4;
-    uint16 fs, padding3;
-    uint16 ds, padding1;
-    uint16 es, padding2;
-
-    uint32 trapno;
-
-    // pushed by x86 hardware
-    uint32 err;
-    uint32 eip;
-    uint16 cs;
-    uint16 padding5;
-    uint32 eflags;
-
-    // cross rings
-    uint32 esp;
-    uint16 ss, padding6;
-} trap_frame_t;
-
 #define MAX_ARGS 16
 #define MAX_ARG_LEN 32
 

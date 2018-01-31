@@ -8,44 +8,7 @@
 #include "arch.h"
 #include "x86.h"
 
-i8254_t::i8254_t()
-{
-}
-i8254_t::~i8254_t()
-{
-}
 
-void i8254_t::init()
-{
-    m_tick = 0;
-
-    uint32 val = CLOCK_TICK_RATE / HZ;
-
-    /* control */
-    outb(0x43, 0x36);
-
-    /* clock 0 */
-    outb(0x40, uint8(val & 0xff));
-    outb(0x40, uint8(val >> 8));
-
-	os()->get_arch()->get_8259a()->enable_irq(IRQ_TIMER);		/* enable keyboard interrupt */
-}
-
-void i8254_t::do_irq()
-{
-    m_tick++;
-    os()->update(m_tick);
-
-    /* EOI */
-    outb(0x20, 0x20);
-}
-
-uint64 i8254_t::get_tick()
-{
-    return m_tick;
-}
-
-/***************************************** timer_t ********************************************/
 timer_t::timer_t()
 {
 }

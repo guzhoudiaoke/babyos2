@@ -7,10 +7,10 @@
 #define _SYS_SOCKET_H_
 
 #include "types.h"
+#include "traps.h"
 #include "spinlock.h"
 #include "socket.h"
 #include "socket_local.h"
-
 
 class sys_socket_t {
 public:

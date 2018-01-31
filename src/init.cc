@@ -8,12 +8,6 @@
 
 int main()
 {
-    uint32 cs = 0xffffffff;
-    __asm__ volatile("movl %%cs, %%eax" : "=a" (cs));
-
-    // print cs to show work in user mode
-    userlib_t::printf("This is printed by init, cs = 0x%8x\n", cs);
-
     if (userlib_t::open("/dev/console", file_t::MODE_RDWR) < 0) {
         userlib_t::mkdir("/dev/");
         userlib_t::mknod("/dev/console", 0, 1);
@@ -21,6 +15,13 @@ int main()
     }
     userlib_t::dup(0); // stdout
     userlib_t::dup(0); // stderr
+
+    uint32 cs = 0xffffffff;
+    __asm__ volatile("movl %%cs, %%eax" : "=a" (cs));
+
+    // print cs to show work in user mode
+    userlib_t::printf("This is printed by init, cs = 0x%8x\n", cs);
+
 
     int32 pid = userlib_t::fork();
     if (pid == 0) {

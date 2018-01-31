@@ -151,5 +151,22 @@ static inline int change_bit(int nr, void* addr)
     return oldbit;
 }
 
+#define rdtsc(low,high) \
+     __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (high))
+
+#define rdtsc64(val) \
+     __asm__ __volatile__("rdtsc" : "=A" (val))
+
+#define rdmsr(msr,val1,val2) \
+	__asm__ __volatile__("rdmsr" \
+			  : "=a" (val1), "=d" (val2) \
+			  : "c" (msr))
+
+#define wrmsr(msr,val1,val2) \
+	__asm__ __volatile__("wrmsr" \
+			  : /* no outputs */ \
+			  : "c" (msr), "a" (val1), "d" (val2))
+
+
 #endif
 

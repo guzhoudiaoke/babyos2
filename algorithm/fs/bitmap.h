@@ -17,6 +17,7 @@ public:
     int  getnext();
     void setbits(unsigned char* buffer, unsigned index, unsigned count);
     void dump();
+    unsigned char* buffer() { return m_set; }
 
 private:
     unsigned int    m_num;

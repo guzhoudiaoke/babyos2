@@ -7,6 +7,7 @@
 #define _VM_H_
 
 #include "types.h"
+#include "traps.h"
 #include "mm.h"
 
 #define USER_VM_SIZE		(0xc0000000)

@@ -85,6 +85,7 @@ unsigned file_system_t::alloc_block(unsigned dev)
 {
     unsigned char buffer[BSIZE] = {0};
     unsigned int index = 3 + (m_super_block.m_ninodes * sizeof(disk_inode_t)) / BSIZE;
+    //unsigned int index = 2 + (m_super_block.m_ninodes * sizeof(disk_inode_t) + BSIZE - 1) / BSIZE;
     for (unsigned int i = 0; i < m_super_block.m_nblocks; i += BSIZE*8) {
         read_block(index, buffer);
         unsigned n = BSIZE*8;
@@ -110,6 +111,7 @@ void file_system_t::free_block(unsigned dev, unsigned b)
 {
     //printf("free block : %u\n", b);
     unsigned int index = 3 + (m_super_block.m_ninodes * sizeof(disk_inode_t)) / BSIZE;
+    //unsigned int index = 2 + (m_super_block.m_ninodes * sizeof(disk_inode_t) + BSIZE - 1) / BSIZE;
     unsigned block = index + b / (BSIZE * 8);
     unsigned offset = b % (BSIZE * 8);
 
@@ -139,6 +141,7 @@ void file_system_t::init()
 
     unsigned char buffer[BSIZE] = {0};
     unsigned int index = 3 + (m_super_block.m_ninodes * sizeof(disk_inode_t)) / BSIZE;
+    //unsigned int index = 2 + (m_super_block.m_ninodes * sizeof(disk_inode_t) + BSIZE - 1) / BSIZE;
     for (unsigned int i = 0; i < m_super_block.m_nblocks; i += BSIZE*8) {
         read_block(index, buffer);
         unsigned n = BSIZE*8;

@@ -38,23 +38,23 @@ class userlib_t {
     static const int fd_error  = 2;
 
 public:
-    static int fork();
-    static int exec(const char* path, argument_t* arg);
-    static void *mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags);
-    static void exit(int val);
-    static void wait(uint32 pid);
-    static void kill(uint32 pid, uint32 sig);
-    static void signal(uint32 sig, sighandler_t handler);
+    static int   fork();
+    static int   exec(const char* path, argument_t* arg);
+    static void* mmap(uint32 addr, uint32 len, uint32 prot, uint32 flags);
+    static void  exit(int val);
+    static void  wait(uint32 pid);
+    static void  kill(uint32 pid, uint32 sig);
+    static void  signal(uint32 sig, sighandler_t handler);
 
-    static int  vsprintf(char *buffer, const char *fmt, va_list args);
-    static int  sprintf(char* buffer, const char* fmt, ...);
-	static int  printf(const char* fmt, ...);
-    static void gets(char* buf, uint32 max);
-    static void puts(char* buf);
-    static int  color_print(color_ref_t color, const char *str);
+    static int   vsprintf(char *buffer, const char *fmt, va_list args);
+    static int   sprintf(char* buffer, const char* fmt, ...);
+	static int   printf(const char* fmt, ...);
+    static void  gets(char* buf, uint32 max);
+    static void  puts(char* buf);
+    static int   color_print(color_ref_t color, const char *str);
 
-    static void loop_delay(int32 loop);
-    static void sleep(uint32 second);
+    static void  loop_delay(int32 loop);
+    static void  sleep(uint32 second);
 
     static char* strrev(char* str, int len);
     static void* memset(void* dst, uint32 c, uint32 n);
@@ -65,31 +65,31 @@ public:
     static int   strncmp(const char* s1, const char *s2, int n);
     static char* strcat(char* dst, const char* src);
 
-    static int  open(const char* path, int mode);
-    static int  close(int fd);
-    static int  read(int fd, void* buf, uint32 size);
-    static int  write(int fd, void* buf, uint32 size);
-    static int  mkdir(const char* path);
-    static int  link(const char* path_old, const char* path_new);
-    static int  unlink(const char* path);
-    static int  mknod(const char* path, int major, int minor);
-    static int  dup(int fd);
-    static int  chdir(const char* path);
-    static int  fstat(int fd, stat_t* st);
-    static int  stat(const char* path, stat_t* st);
-    static int  pipe(int fd[2]);
+    static int   open(const char* path, int mode);
+    static int   close(int fd);
+    static int   read(int fd, void* buf, uint32 size);
+    static int   write(int fd, void* buf, uint32 size);
+    static int   mkdir(const char* path);
+    static int   link(const char* path_old, const char* path_new);
+    static int   unlink(const char* path);
+    static int   mknod(const char* path, int major, int minor);
+    static int   dup(int fd);
+    static int   chdir(const char* path);
+    static int   fstat(int fd, stat_t* st);
+    static int   stat(const char* path, stat_t* st);
+    static int   pipe(int fd[2]);
 
     /* socket */
-    static int  socket(int domain, int type, int protocol);
-    static int  bind(int sockfd, const sock_addr_t* addr);
-    static int  listen(int sockfd, int backlog);
-    static int  connect(int sockfd, const sock_addr_t* addr);
-    static int  accept(int sockfd, sock_addr_t* addr);
+    static int   socket(int domain, int type, int protocol);
+    static int   bind(int sockfd, const sock_addr_t* addr);
+    static int   listen(int sockfd, int backlog);
+    static int   connect(int sockfd, const sock_addr_t* addr);
+    static int   accept(int sockfd, sock_addr_t* addr);
 
 private:
-    static int  sprint_int(char* buffer, int n, int width, int base, bool sign);
-    static int  sprint_str(char* buffer, char* s, int width);
-    static bool is_digit(char c);
+    static int   sprint_int(char* buffer, int n, int width, int base, bool sign);
+    static int   sprint_str(char* buffer, char* s, int width);
+    static bool  is_digit(char c);
 };
 
 #endif

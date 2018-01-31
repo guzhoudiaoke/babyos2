@@ -7,6 +7,7 @@
 #define _SIGNAL_H_
 
 #include "types.h"
+#include "traps.h"
 #include "spinlock.h"
 #include "atomic.h"
 

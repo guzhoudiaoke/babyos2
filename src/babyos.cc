@@ -190,14 +190,14 @@ void test_list()
 
 void babyos_t::test_fs()
 {
-    fs_tester_t tester;
-    tester.init(&m_fs);
+    //fs_tester_t tester;
+    //tester.init(&m_fs);
 
-    m_console.kprintf(PINK, "**************** test fs ****************\n");
+    //m_console.kprintf(PINK, "**************** test fs ****************\n");
     //tester.dump_super_block();
     //tester.test_read_inode();
     //tester.test_ls("/");
-    tester.test_read_bitmap();
+    //tester.test_read_bitmap();
     //tester.test_read_dir_entry();
     //tester.test_namei();
     //tester.test_create();
@@ -207,7 +207,7 @@ void babyos_t::test_fs()
     //tester.test_link();
     //tester.test_unlink();
     //tester.test_ls("/bin");
-    m_console.kprintf(PINK, "**************** test fs ****************\n");
+    //m_console.kprintf(PINK, "**************** test fs ****************\n");
 }
 
 void babyos_t::run()

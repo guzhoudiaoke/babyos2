@@ -14,6 +14,7 @@
 #include "timer.h"
 #include "list.h"
 #include "process.h"
+#include "local_apic.h"
 
 
 #define TRAP_GATE_FLAG      (0x00008f0000000000ULL)
@@ -80,6 +81,8 @@ public:
     int32 send_signal_to(uint32 pid, uint32 sig);
     void do_signal(trap_frame_t* frame);
 
+    local_apic_t* get_local_apic();
+
 private:
     void init_gdt();
     void init_idt();
@@ -111,6 +114,7 @@ private:
     spinlock_t          m_rq_lock;
     list_t<timer_t*>    m_timer_list;
     list_t<process_t*>  m_proc_list;
+    local_apic_t        m_local_apic;
 };
 
 #endif

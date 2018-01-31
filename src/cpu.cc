@@ -181,6 +181,8 @@ void cpu_t::init()
     m_timer_list.init(os()->get_obj_pool_of_size());
     m_proc_list.init(os()->get_obj_pool_of_size());
 
+    m_local_apic.init();
+
     init_idle_process();
 }
 
@@ -207,19 +209,23 @@ void cpu_t::do_exception(trap_frame_t* frame)
 
 void cpu_t::do_interrupt(uint32 trapno)
 {
-    int ch;
     switch (trapno) {
         case IRQ_0 + IRQ_KEYBOARD:
             os()->get_arch()->get_keyboard()->do_irq();
+            m_local_apic.eoi();
             break;
         case IRQ_0 + IRQ_TIMER:
             os()->get_arch()->get_8254()->do_irq();
             break;
         case IRQ_0 + IRQ_HARDDISK:
             os()->get_hd()->do_irq();
+            m_local_apic.eoi();
+            break;
+        case VEC_LOCAL_TIMER:
+            os()->get_arch()->get_cpu()->get_local_apic()->do_timer_irq();
             break;
         default:
-            console()->kprintf(RED, "Interrupt: %x\n", trapno);
+            console()->kprintf(RED, "Interrupt: %x not known.\n", trapno);
             break;
     }
 }
@@ -235,15 +241,16 @@ void cpu_t::do_common_isr(trap_frame_t* frame)
     if (trapno < IRQ_0) {
         do_exception(frame);
     }
-    else if (trapno < IRQ_0 + IRQ_NUM) {
-        do_interrupt(trapno);
-    }
     else if (trapno == IRQ_SYSCALL) {
         do_syscall(frame);
     }
+    //else if (trapno < IRQ_0 + IRQ_NUM) {
     else {
-        console()->kprintf(RED, "Interrupt: %x, NOT KNOWN\n", frame->trapno);
+        do_interrupt(trapno);
     }
+    //else {
+    //    console()->kprintf(RED, "Interrupt: %x, NOT KNOWN\n", frame->trapno);
+    //}
 }
 
 /* pass args by: eax, edx, ecx */
@@ -484,5 +491,10 @@ void cpu_t::do_signal(trap_frame_t* frame)
         current->calc_sig_pending();
         current->m_signal.handle_signal(frame, si);
     }
+}
+
+local_apic_t* cpu_t::get_local_apic()
+{
+    return &m_local_apic;
 }
 

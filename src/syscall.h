@@ -7,7 +7,7 @@
 #define _SYSCALL_H_
 
 #include "types.h"
-
+#include "traps.h"
 
 enum {
     SYS_PRINT = 0,

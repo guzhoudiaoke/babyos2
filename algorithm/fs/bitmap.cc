@@ -10,8 +10,10 @@
 
 void bitmap_t::init(unsigned int num)
 {
-    m_num = num;
+    m_num = (num + 4095) & (~4095);
+    int size = m_num / 8;
     m_set = (unsigned char*) malloc(sizeof(unsigned char) * (m_num/8));
+    memset(m_set, 0, size);
 }
 
 bool bitmap_t::testbit(unsigned int index)
@@ -78,14 +80,20 @@ void bitmap_t::setbits(unsigned char* buffer, unsigned index, unsigned count)
 void bitmap_t::dump()
 {
     printf("m_size: %u\n", m_num);
-    for (int i = 0; i < m_num; i++) {
-        if (testbit(i)) {
-            printf("1 ");
-        }
-        else {
-            printf("0 ");
-        }
+    //for (int i = 0; i < m_num; i++) {
+    //    if (testbit(i)) {
+    //        printf("1 ");
+    //    }
+    //    else {
+    //        printf("0 ");
+    //    }
+    //}
+    unsigned *u = (unsigned *) m_set;
+    for (int i = 0; i < m_num / 8 / 4; i++) {
+        printf("%x, ", *u);
+        u++;
     }
+
     printf("\n");
 }
 

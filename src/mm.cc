@@ -11,6 +11,7 @@
 #include "string.h"
 #include "process.h"
 #include "math.h"
+#include "local_apic.h"
 
 __attribute__ ((__aligned__(2*PAGE_SIZE)))
 uint8 kernel_stack[KSTACK_SIZE*2] = {
@@ -24,6 +25,10 @@ pte_t entry_pg_table0[NR_PTE_PER_PAGE] = {
 };
 __attribute__ ((__aligned__(PAGE_SIZE)))
 pte_t entry_pg_table_vram[NR_PTE_PER_PAGE] = {
+    [0] = (0) | PTE_P | PTE_W,
+};
+__attribute__ ((__aligned__(PAGE_SIZE)))
+pte_t entry_pg_table_apic[NR_PTE_PER_PAGE] = {
     [0] = (0) | PTE_P | PTE_W,
 };
 
@@ -172,6 +177,13 @@ void mm_t::init_paging()
     uint32 screen_vram = (uint32)os()->get_screen()->vram();
     m_kernel_pg_dir[((uint32)screen_vram)>>22] = ((uint32)(VA2PA(entry_pg_table_vram)) | (PTE_P | PTE_W));
 
+    // map apic base
+    entry_pg_table_apic[PT_INDEX(APIC_BASE)] = APIC_BASE | (PTE_P | PTE_W);
+    m_kernel_pg_dir[PD_INDEX(APIC_BASE)] = ((uint32)(VA2PA(entry_pg_table_apic)) | (PTE_P | PTE_W));
+
+    entry_pg_table_apic[PT_INDEX(IO_APIC_BASE)] = IO_APIC_BASE | (PTE_P | PTE_W);
+
+
     set_cr3(VA2PA(m_kernel_pg_dir));
 
     // FIXME: debug
@@ -209,14 +221,6 @@ void mm_t::init_mem_range()
 
 void mm_t::init_pages()
 {
-    //uint32 size = ((uint32)m_mem_end + PAGE_SIZE - 1) / PAGE_SIZE * sizeof(page_t);
-    //m_pages = (page_t *) boot_mem_alloc(size, 0);
-    //memset(m_pages, 0, size);
-
-    //for (uint32 addr = KERNEL_BASE; addr < (uint32)m_mem_end; addr += PAGE_SIZE) {
-    //    inc_page_ref(VA2PA(addr));
-    //}
-
     uint32 page_num = (uint32) (m_mem_end - KERNEL_BASE) / PAGE_SIZE;
     uint32 size = page_num * sizeof(page_t);
     m_pages = (page_t *) boot_mem_alloc(size, 0);
@@ -224,9 +228,6 @@ void mm_t::init_pages()
     for (uint32 i = 0; i < page_num; i++) {
         atomic_set(&m_pages[i].ref, 1);
     }
-
-    console()->kprintf(YELLOW, "m_mem_end: %x, page_num: %u\n", m_mem_end, page_num);
-    console()->kprintf(GREEN, "m_pages[32617] = %u\n", m_pages[32617].ref.counter);
 }
 
 void mm_t::init_free_area()

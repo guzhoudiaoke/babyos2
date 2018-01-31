@@ -7,6 +7,7 @@
 #define _ELF_H_
 
 #include "types.h"
+#include "traps.h"
 
 #define ELF_MAGIC   0x464c457FU   // "\x7FELF"
 #define PT_LOAD     1

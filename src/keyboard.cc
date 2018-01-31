@@ -24,12 +24,13 @@ void keyboard_t::do_irq()
     char ch = read();
     console()->do_input(ch);
 
-	outb(0x20, 0x20);
+	//outb(0x20, 0x20);
 }
 
 void keyboard_t::init()
 {
-	os()->get_arch()->get_8259a()->enable_irq(IRQ_KEYBOARD);		/* enable keyboard interrupt */
+	//os()->get_arch()->get_8259a()->enable_irq(IRQ_KEYBOARD);		/* enable keyboard interrupt */
+    os()->get_arch()->get_io_apic()->enable_irq(IRQ_KEYBOARD, 0);
     m_queue.init(os()->get_obj_pool_of_size());
 
 	m_shift_l = 0;

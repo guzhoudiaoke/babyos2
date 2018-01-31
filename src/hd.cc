@@ -23,7 +23,8 @@ void hard_disk_t::init()
     m_req_list.init(os()->get_obj_pool_of_size());
     m_current = NULL;
 
-    os()->get_arch()->get_8259a()->enable_irq(IRQ_HARDDISK);
+    //os()->get_arch()->get_8259a()->enable_irq(IRQ_HARDDISK);
+    os()->get_arch()->get_io_apic()->enable_irq(IRQ_HARDDISK, 0);
     wait();
     outb(0x1f6, 0xe0 | (1 << 4));
 }

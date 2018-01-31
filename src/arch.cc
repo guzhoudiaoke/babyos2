@@ -18,10 +18,11 @@ arch_t::~arch_t()
 
 void arch_t::init()
 {
-    m_cpu.init();
     m_8259a.init();
-    m_keyboard.init();
     m_8254.init();
+    m_cpu.init();
+    m_io_apic.init();
+    m_keyboard.init();
     m_rtc.init();
 }
 
@@ -54,5 +55,10 @@ i8254_t* arch_t::get_8254()
 rtc_t* arch_t::get_rtc()
 {
     return &m_rtc;
+}
+
+io_apic_t* arch_t::get_io_apic()
+{
+    return &m_io_apic;
 }
 
