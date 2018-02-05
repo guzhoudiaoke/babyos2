@@ -61,58 +61,58 @@ int local_apic_t::check()
     uint32 edx = 0, ecx = 0;
     __asm__ volatile("cpuid" : "=d" (edx), "=c" (ecx) : "a" (0x1) : "memory", "cc");
 
-    console()->kprintf(YELLOW, "**************** check apic **********************\n");
-    console()->kprintf(YELLOW, "local_apic check, ecx: %x, edx: %x\n", ecx, edx);
-    console()->kprintf(YELLOW, "support APIC:   %s\n", (edx & (1 << 9))  ? "YES" : "NO");
-    console()->kprintf(YELLOW, "support x2APIC: %s\n", (ecx & (1 << 21)) ? "YES" : "NO");
-    console()->kprintf(YELLOW, "**************** check apic **********************\n");
-    console()->kprintf(YELLOW, "\n");
+    //console()->kprintf(YELLOW, "**************** check apic **********************\n");
+    //console()->kprintf(YELLOW, "local_apic check, ecx: %x, edx: %x\n", ecx, edx);
+    //console()->kprintf(YELLOW, "support APIC:   %s\n", (edx & (1 << 9))  ? "YES" : "NO");
+    //console()->kprintf(YELLOW, "support x2APIC: %s\n", (ecx & (1 << 21)) ? "YES" : "NO");
+    //console()->kprintf(YELLOW, "**************** check apic **********************\n");
+    //console()->kprintf(YELLOW, "\n");
 
-    console()->kprintf(CYAN, "**************** MSR IA_32_APICBASE ***************\n");
+    //console()->kprintf(CYAN, "**************** MSR IA_32_APICBASE ***************\n");
     uint32 l, h;
     rdmsr(MSR_IA32_APICBASE, l, h);
-    console()->kprintf(CYAN, "MSR IA_32_APICBASE: %x, %x\n", h, l);
-    console()->kprintf(CYAN, "**************** MSR IA_32_APICBASE ***************\n");
-    console()->kprintf(CYAN, "\n");
+    //console()->kprintf(CYAN, "MSR IA_32_APICBASE: %x, %x\n", h, l);
+    //console()->kprintf(CYAN, "**************** MSR IA_32_APICBASE ***************\n");
+    //console()->kprintf(CYAN, "\n");
 
-    console()->kprintf(WHITE, "******************** local APIC register *****************\n");
+    //console()->kprintf(WHITE, "******************** local APIC register *****************\n");
     uint32 val = 0;
     val = apic_read(APIC_ID);
-    console()->kprintf(WHITE, "APIC ID:                                 %x\n", val);
+    //console()->kprintf(WHITE, "APIC ID:                                 %x\n", val);
     val = apic_read(APIC_LVR);
-    console()->kprintf(WHITE, "APIC version:                            %x\n", val);
+    //console()->kprintf(WHITE, "APIC version:                            %x\n", val);
     val = apic_read(APIC_SPIV);
-    console()->kprintf(WHITE, "APIC Spurious interrupt vertor register: %x\n", val);
-    console()->kprintf(WHITE, "******************** local APIC register *****************\n");
-    console()->kprintf(WHITE, "\n");
+    //console()->kprintf(WHITE, "APIC Spurious interrupt vertor register: %x\n", val);
+    //console()->kprintf(WHITE, "******************** local APIC register *****************\n");
+    //console()->kprintf(WHITE, "\n");
 
-    console()->kprintf(GREEN, "******************** local vector table *****************\n");
+    //console()->kprintf(GREEN, "******************** local vector table *****************\n");
     val = apic_read(APIC_LVT_CMCI);
-    console()->kprintf(GREEN, "lvt machine check:       %x\n", val);
+    //console()->kprintf(GREEN, "lvt machine check:       %x\n", val);
     val = apic_read(APIC_LVT_TIMER);
-    console()->kprintf(GREEN, "lvt timer:               %x\n", val);
+    //console()->kprintf(GREEN, "lvt timer:               %x\n", val);
     val = apic_read(APIC_LVT_THMR);
-    console()->kprintf(GREEN, "lvt thermal sensor       %x\n", val);
+    //console()->kprintf(GREEN, "lvt thermal sensor       %x\n", val);
     val = apic_read(APIC_LVT_PMCR);
-    console()->kprintf(GREEN, "lvt performance monitor: %x\n", val);
+    //console()->kprintf(GREEN, "lvt performance monitor: %x\n", val);
     val = apic_read(APIC_LVT_LINT0);
-    console()->kprintf(GREEN, "lvt lint0:               %x\n", val);
+    //console()->kprintf(GREEN, "lvt lint0:               %x\n", val);
     val = apic_read(APIC_LVT_LINT1);
-    console()->kprintf(GREEN, "lvt lint1:               %x\n", val);
+    //console()->kprintf(GREEN, "lvt lint1:               %x\n", val);
     val = apic_read(APIC_LVT_ERROR);
-    console()->kprintf(GREEN, "lvt error:               %x\n", val);
-    console()->kprintf(GREEN, "******************** local vector table *****************\n");
-    console()->kprintf(GREEN, "\n");
+    //console()->kprintf(GREEN, "lvt error:               %x\n", val);
+    //console()->kprintf(GREEN, "******************** local vector table *****************\n");
+    //console()->kprintf(GREEN, "\n");
 
-    console()->kprintf(PINK, "*************************** timer ************************\n");
+    //console()->kprintf(PINK, "*************************** timer ************************\n");
     val = apic_read(APIC_TIMER_ICT);
-    console()->kprintf(PINK, "timer initial count register:        %x\n", val); 
+    //console()->kprintf(PINK, "timer initial count register:        %x\n", val); 
     val = apic_read(APIC_TIMER_CCT);
-    console()->kprintf(PINK, "timer current count register:        %x\n", val);
+    //console()->kprintf(PINK, "timer current count register:        %x\n", val);
     val = apic_read(APIC_TIMER_DCR);
-    console()->kprintf(PINK, "timer divide configuration register: %x\n", val);
-    console()->kprintf(PINK, "*************************** timer ************************\n");
-    console()->kprintf(PINK, "\n");
+    //console()->kprintf(PINK, "timer divide configuration register: %x\n", val);
+    //console()->kprintf(PINK, "*************************** timer ************************\n");
+    //console()->kprintf(PINK, "\n");
 
     /* support APIC */
     if (edx & (1 << 9)) {
@@ -232,6 +232,8 @@ int local_apic_t::init_timer()
 
 int local_apic_t::init()
 {
+    m_tick = 0;
+
     if (check() != 0) {
         return -1;
     }
@@ -259,14 +261,8 @@ int local_apic_t::init()
 
 void local_apic_t::do_timer_irq()
 {
-    //static int x = 0;
-    //x++;
-    //if (x == 100) {
-    //    x = 0;
-    //    console()->kprintf(PINK, "8254 tick: %u\n", (uint32) os()->get_arch()->get_8254()->get_tick());
-    //}
-
-    eoi();
+    m_tick++;
+    os()->update(m_tick);
 }
 
 void local_apic_t::eoi()

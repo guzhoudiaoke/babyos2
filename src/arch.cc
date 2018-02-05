@@ -18,6 +18,7 @@ arch_t::~arch_t()
 
 void arch_t::init()
 {
+    m_mp_config.init();
     m_8259a.init();
     m_8254.init();
     m_cpu.init();

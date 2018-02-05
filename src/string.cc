@@ -41,6 +41,20 @@ void* memset(void *dst, uint32 c, uint32 n)
     return dst;
 }
 
+int memcmp(const void* b1, const void* b2, uint32 n)
+{
+    if (n == 0) {
+        return 0;
+    }
+
+    while (n-- && *((char *)b1) == *((char *)b2)) {
+        b1 = (char *) b1 + 1;
+        b2 = (char *) b2 + 1;
+    }
+
+    return (*((char *)b1) - *((char *)b2));
+}
+
 char* strcpy(char* dst, const char* src)
 {
 	char* d = dst;
@@ -80,5 +94,15 @@ int strlen(const char* s)
         len++;
     }
     return len;
+}
+  
+int strncmp(const char* s1, const char *s2, int n)
+{
+    while (*s1 && *s2 && *s1 == *s2 && --n >= 0) {
+        s1++;
+        s2++;
+    }
+
+    return n == 0 ? 0 : *s1 - *s2;
 }
 

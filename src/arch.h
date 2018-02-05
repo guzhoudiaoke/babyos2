@@ -13,6 +13,7 @@
 #include "i8259a.h"
 #include "i8254.h"
 #include "io_apic.h"
+#include "mp_config.h"
 
 class arch_t {
 public:
@@ -36,6 +37,7 @@ private:
     i8254_t     m_8254;
     rtc_t       m_rtc;
     io_apic_t   m_io_apic;
+    mp_config_t m_mp_config;
 };
 
 #endif

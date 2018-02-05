@@ -16,7 +16,7 @@ vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 
 # hard disk
 #ata0-master: type=disk, path="../harddisk/baby_hd.img", cylinders=162, heads=16, spt=63
-ata0-master: type=disk, path="./baby_hd.img", cylinders=162, heads=16, spt=63
+ata0-master: type=disk, path="./baby_hd.img"
 
 # choose the boot disk.
 #boot: floppy

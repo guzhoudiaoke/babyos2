@@ -29,7 +29,7 @@ public:
     int  init();
 
 private:
-
+    uint64 m_tick;
 };
 
 #endif

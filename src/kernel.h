@@ -23,7 +23,7 @@
 
 
 /* boot information */
-#define BOOT_INFO_ADDR		(0x9000)
+#define BOOT_INFO_ADDR		(0x7000)
 #define BOOT_INFO_SEG		(BOOT_INFO_ADDR >> 4)
 
 #define GDT_ADDR			(BOOT_INFO_ADDR)
@@ -38,7 +38,7 @@
 #define MEMORY_INFO_SIZE	(4+256)
 
 /* font */
-#define FONT_ASC16_ADDR     (0x10000)
+#define FONT_ASC16_ADDR     (0x10000)   /* 64k */
 
 
 /* struct of boot disk */

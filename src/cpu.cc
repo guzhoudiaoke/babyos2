@@ -223,6 +223,7 @@ void cpu_t::do_interrupt(uint32 trapno)
             break;
         case VEC_LOCAL_TIMER:
             os()->get_arch()->get_cpu()->get_local_apic()->do_timer_irq();
+            m_local_apic.eoi();
             break;
         default:
             console()->kprintf(RED, "Interrupt: %x not known.\n", trapno);

@@ -37,6 +37,7 @@ OBJS = \
 	local_apic.o\
 	i8254.o\
 	io_apic.o\
+	mp_config.o\
 
 AS = as --32
 CC = gcc -m32

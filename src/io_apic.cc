@@ -18,10 +18,10 @@ void io_apic_t::init()
     uint32 count = (read(IO_APIC_REG_VER) >> 16) & 0xff;
     uint32 id = (read(IO_APIC_REG_ID) >> 24);
 
-    console()->kprintf(GREEN, "****************** io apic ****************\n", id);
-    console()->kprintf(GREEN, "I/O APIC id: %u\n", id);
-    console()->kprintf(GREEN, "I/O APIC num of table: %u\n", count+1);
-    console()->kprintf(GREEN, "****************** io apic ****************\n", id);
+    //console()->kprintf(GREEN, "****************** io apic ****************\n", id);
+    //console()->kprintf(GREEN, "io apic id: %u\n", id);
+    //console()->kprintf(GREEN, "io apic num of table: %u\n", count);
+    //console()->kprintf(GREEN, "****************** io apic ****************\n", id);
 
     for (int i = 0; i <= count; i++) {
         write(IO_APIC_REG_TABLE + 2*i,     INT_DISABLED | (IRQ_0 + i));
