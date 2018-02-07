@@ -133,7 +133,6 @@ void cpu_t::init_tss()
         (((base) >> 24) & 0xff) << 56;				// base  31-24
 
     m_gdt[SEG_TSS] = des;
-    uint32 *p = (uint32 *)(&des);
     ltr(SEG_TSS << 3);
 }
 
@@ -282,24 +281,6 @@ void cpu_t::update()
         current->m_need_resched = 1;
         current->m_timeslice = 2;
     }
-}
-
-int32 cpu_t::send_signal_to(uint32 pid, uint32 sig)
-{
-    siginfo_t si;
-    si.m_sig = sig;
-    si.m_pid = current->m_pid;
-
-    spinlock_t* lock = os()->get_process_mgr()->get_proc_list_lock();
-    lock->lock_irqsave();
-    process_t* p = os()->get_process_mgr()->find_process(pid);
-    if (p != NULL) {
-        p->m_sig_queue.push_back(si);
-        p->calc_sig_pending();
-    }
-    lock->unlock_irqrestore();
-
-    return 0;
 }
 
 extern "C"

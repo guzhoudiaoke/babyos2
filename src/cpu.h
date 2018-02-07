@@ -15,50 +15,11 @@
 #include "list.h"
 #include "process.h"
 #include "local_apic.h"
-
+#include "tss.h"
 
 #define TRAP_GATE_FLAG      (0x00008f0000000000ULL)
 #define INTERRUPT_GATE_FLAG (0x00008e0000000000ULL)
 #define SYSTEM_GATE_FLAG    (0x0000ef0000000000ULL)
-
-#define IO_BITMAP_SIZE		(32)
-#define INVALID_IO_BITMAP	(0x8000)
-
-
-#define INT_PF				(14)
-
-
-/* tss struct defined in linux */
-typedef struct tss_s {
-    uint16	back_link,__blh;
-    uint32	esp0;
-    uint16	ss0,__ss0h;
-    uint32	esp1;
-    uint16	ss1,__ss1h;
-    uint32	esp2;
-    uint16	ss2,__ss2h;
-    uint32  __cr3;
-    uint32  eip;
-    uint32  eflags;
-    uint32  eax,ecx,edx,ebx;
-    uint32  esp;
-    uint32  ebp;
-    uint32  esi;
-    uint32  edi;
-    uint16	es, __esh;
-    uint16	cs, __csh;
-    uint16	ss, __ssh;
-    uint16	ds, __dsh;
-    uint16	fs, __fsh;
-    uint16	gs, __gsh;
-    uint16	ldt, __ldth;
-    uint16	trace, bitmap;
-    uint32	io_bitmap[IO_BITMAP_SIZE+1];
-    /*
-     * pads the TSS to be cacheline-aligned (size is 0x100)
-     */
-    uint32 __cacheline_filler[5];
-} tss_t;
 
 class cpu_t {
 public:
@@ -71,7 +32,6 @@ public:
     tss_t* get_tss() { return &m_tss; }
     void update();
 
-    int32 send_signal_to(uint32 pid, uint32 sig);
     void do_signal(trap_frame_t* frame);
 
     local_apic_t* get_local_apic();

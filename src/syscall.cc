@@ -100,7 +100,7 @@ int32 syscall_t::sys_kill(trap_frame_t* frame)
 {
     uint32 pid = frame->ebx;
     uint32 sig = frame->ecx;
-    return os()->get_arch()->get_cpu()->send_signal_to(pid, sig);
+    return os()->get_process_mgr()->send_signal_to(pid, sig);
 }
 
 int32 syscall_t::sys_open(trap_frame_t* frame)

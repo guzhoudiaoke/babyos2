@@ -156,3 +156,21 @@ void process_mgr_t::wake_up_process(process_t* proc)
     add_process_to_rq(proc);
 }
 
+int32 process_mgr_t::send_signal_to(uint32 pid, uint32 sig)
+{
+    siginfo_t si;
+    si.m_sig = sig;
+    si.m_pid = current->m_pid;
+
+    spinlock_t* lock = os()->get_process_mgr()->get_proc_list_lock();
+    lock->lock_irqsave();
+    process_t* p = os()->get_process_mgr()->find_process(pid);
+    if (p != NULL) {
+        p->m_sig_queue.push_back(si);
+        p->calc_sig_pending();
+    }
+    lock->unlock_irqrestore();
+
+    return 0;
+}
+

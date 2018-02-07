@@ -19,6 +19,7 @@
 #define VEC_SPURIOUS        (0xff)
 
 #define IRQ_SYSCALL         (0x80)
+#define INT_PF				(14)
 
 typedef struct trap_frame_s {
     uint32 ebx;
