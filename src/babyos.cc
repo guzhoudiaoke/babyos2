@@ -95,11 +95,6 @@ void babyos_t::start_init_proc()
     if (ret == 0) {
         __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_EXEC), "b" ("/bin/init"), "c" (0));
     }
-
-    /* idle process */
-    while (true) {
-        m_arch.get_cpu()->schedule();
-    }
 }
 
 void babyos_t::init_pools()
@@ -224,22 +219,23 @@ void babyos_t::run()
     init_pools();
 
     m_arch.init();
-    m_timer_mgr.init();
     m_hd.init();
     m_block_dev.init(1);
     sys_socket_t::init();
 
     sti();
     m_fs.init();
-    m_arch.get_cpu()->get_idle()->set_cwd(m_fs.get_root());
+    m_timer_mgr.init();
+    m_process_mgr.init();
 
     //test_draw_time();
-    //test_list();
     test_fs();
-    
     start_init_proc();
 
-    panic("idle process ended!");
+    /* idle process */
+    while (true) {
+        m_arch.get_cpu()->schedule();
+    }
 }
 
 void babyos_t::update(uint32 tick)
@@ -288,5 +284,10 @@ block_dev_t* babyos_t::get_block_dev()
 timer_mgr_t* babyos_t::get_timer_mgr()
 {
     return &m_timer_mgr;
+}
+
+process_mgr_t* babyos_t::get_process_mgr()
+{
+    return &m_process_mgr;
 }
 

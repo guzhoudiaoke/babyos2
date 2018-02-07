@@ -64,6 +64,6 @@ void semaphore_t::up_common()
     sem_waiter_t* waiter = *m_wait_list.begin();
     m_wait_list.pop_front();
     waiter->m_up = true;
-    os()->get_arch()->get_cpu()->wake_up_process(waiter->m_proc);
+    os()->get_process_mgr()->wake_up_process(waiter->m_proc);
 }
 

@@ -50,7 +50,7 @@ int32 syscall_t::sys_print(trap_frame_t* frame)
 
 int32 syscall_t::sys_fork(trap_frame_t* frame)
 {
-    process_t* proc = os()->get_arch()->get_cpu()->fork(frame);
+    process_t* proc = current->fork(frame);
     return proc == NULL ? -1 : proc->m_pid;
 }
 

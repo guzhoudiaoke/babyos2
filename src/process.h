@@ -48,7 +48,6 @@ public:
     process_t*  fork(trap_frame_t* frame);
     int32       exec(trap_frame_t* frame);
     void        sleep(uint32 ticks);
-    void        sleep();
     void        sleep_on(wait_queue_t* queue);
     void        set_state(uint32 state);
     int32       exit();

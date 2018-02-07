@@ -43,15 +43,15 @@ process_t* process_t::fork(trap_frame_t* frame)
         }
     }
 
-    // context
+    /* context */
     p->m_context.esp = (uint32) child_frame;
     p->m_context.esp0 = (uint32) (child_frame + 1);
     p->m_context.eip = (uint32) ret_from_isr;
 
-    // pid, need check if same with other process
+    /* pid, need check if same with other process */
     p->m_pid = os()->get_next_pid();
 
-    // change state
+    /* change state */
     p->m_state = PROCESS_ST_RUNNING;
     p->m_need_resched = 0;
     p->m_timeslice = 2;
@@ -59,6 +59,16 @@ process_t* process_t::fork(trap_frame_t* frame)
     p->m_children.init(os()->get_obj_pool_of_size());
     p->m_wait_child.init();
     p->m_parent = this;
+
+
+    /* link to run queue */
+    os()->get_process_mgr()->add_process_to_rq(p);
+
+    /* add to process list */
+    os()->get_process_mgr()->add_process_to_list(p);
+
+    /* add a child for current */
+    m_children.push_back(p);
 
     return p;
 }
@@ -158,7 +168,8 @@ int32 process_t::exec(trap_frame_t* frame)
 
 static void process_timeout(uint32 data)
 {
-    os()->get_arch()->get_cpu()->wake_up_process((process_t *) data);
+    process_t* proc = (process_t *) data;
+    os()->get_process_mgr()->wake_up_process(proc);
 }
 
 void process_t::sleep(uint32 ticks)
@@ -176,12 +187,6 @@ void process_t::sleep(uint32 ticks)
     os()->get_timer_mgr()->remove_timer(&timer);
 }
 
-void process_t::sleep()
-{
-    // FIXME: only test
-    __asm__("nop");
-}
-
 void process_t::sleep_on(wait_queue_t* queue)
 {
     queue->add(current);
@@ -197,7 +202,7 @@ void process_t::set_state(uint32 state)
 
 void process_t::adope_children()
 {
-    process_t* child_reaper = os()->get_arch()->get_cpu()->get_child_reaper();
+    process_t* child_reaper = os()->get_process_mgr()->get_child_reaper();
     list_t<process_t *>::iterator it = m_children.begin();
     while (it != m_children.end()) {
         (*it)->m_parent = child_reaper;
@@ -235,7 +240,7 @@ repeat:
         }
 
         /* this child has become ZOMBIE, free it */
-        os()->get_arch()->get_cpu()->release_process(p);
+        os()->get_process_mgr()->release_process(p);
 
         goto end_wait;
     }

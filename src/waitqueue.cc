@@ -39,7 +39,7 @@ void wait_queue_t::wake_up()
     m_lock.lock_irqsave();
     if (!m_procs.empty()) {
         list_t<process_t *>::iterator it = m_procs.begin();
-        os()->get_arch()->get_cpu()->wake_up_process((*it));
+        os()->get_process_mgr()->wake_up_process((*it));
     }
     m_lock.unlock_irqrestore();
 }
