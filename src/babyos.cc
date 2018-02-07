@@ -224,11 +224,10 @@ void babyos_t::run()
     init_pools();
 
     m_arch.init();
+    m_timer_mgr.init();
     m_hd.init();
     m_block_dev.init(1);
     sys_socket_t::init();
-
-
 
     sti();
     m_fs.init();
@@ -245,10 +244,13 @@ void babyos_t::run()
 
 void babyos_t::update(uint32 tick)
 {
-    // arch
+    /* arch */
     m_arch.update();
 
-    // console
+    /* timers */
+    m_timer_mgr.update();
+
+    /* console */
     m_console.update();
 }
 
@@ -281,5 +283,10 @@ hard_disk_t* babyos_t::get_hd()
 block_dev_t* babyos_t::get_block_dev()
 {
     return &m_block_dev;
+}
+
+timer_mgr_t* babyos_t::get_timer_mgr()
+{
+    return &m_timer_mgr;
 }
 

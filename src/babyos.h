@@ -17,6 +17,7 @@
 #include "block_dev.h"
 #include "hd.h"
 #include "pipe.h"
+#include "timer_mgr.h"
 
 
 enum pool_type_e {
@@ -51,6 +52,7 @@ public:
     dev_op_t*       get_dev(uint32 type);
     hard_disk_t*    get_hd();
     block_dev_t*    get_block_dev();
+    timer_mgr_t*    get_timer_mgr();
 
     static babyos_t* get_os();
 
@@ -70,6 +72,7 @@ private:
     dev_op_t        m_devices[MAX_DEV];
     hard_disk_t     m_hd;
     block_dev_t     m_block_dev;
+    timer_mgr_t     m_timer_mgr;
 };
 
 #define os()	    babyos_t::get_os()

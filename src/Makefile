@@ -38,6 +38,7 @@ OBJS = \
 	i8254.o\
 	io_apic.o\
 	mp_config.o\
+	timer_mgr.o\
 
 AS = as --32
 CC = gcc -m32

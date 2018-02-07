@@ -178,7 +178,6 @@ void cpu_t::init()
 
     m_init_process = NULL;
     m_rq_lock.init();
-    m_timer_list.init(os()->get_obj_pool_of_size());
     m_proc_list.init(os()->get_obj_pool_of_size());
 
     m_local_apic.init();
@@ -375,34 +374,6 @@ void cpu_t::update()
         current->m_need_resched = 1;
         current->m_timeslice = 2;
     }
-
-    list_t<timer_t*>::iterator it = m_timer_list.begin();
-    while (it != m_timer_list.end()) {
-        (*it)->update();
-        it++;
-    }
-}
-
-void cpu_t::add_timer(timer_t* timer)
-{
-    spinlock_t* lock = m_timer_list.get_lock();
-    lock->lock_irqsave();
-    m_timer_list.push_back(timer);
-    lock->unlock_irqrestore();
-}
-
-void cpu_t::remove_timer(timer_t* timer)
-{
-    spinlock_t* lock = m_timer_list.get_lock();
-    lock->lock_irqsave();
-    list_t<timer_t*>::iterator it = m_timer_list.begin();
-    while (it != m_timer_list.end()) {
-        if (timer == *it) {
-            m_timer_list.erase(it);
-            break;
-        }
-    }
-    lock->unlock_irqrestore();
 }
 
 void cpu_t::wake_up_process(process_t* proc)

@@ -166,14 +166,14 @@ void process_t::sleep(uint32 ticks)
     // add a timer to alarm after ticks
     timer_t timer;
     timer.init(ticks, (uint32) current, process_timeout);
-    os()->get_arch()->get_cpu()->add_timer(&timer);
+    os()->get_timer_mgr()->add_timer(&timer);
 
     current->m_state = PROCESS_ST_SLEEP;
 
     os()->get_arch()->get_cpu()->schedule();
 
     // remove the timer
-    os()->get_arch()->get_cpu()->remove_timer(&timer);
+    os()->get_timer_mgr()->remove_timer(&timer);
 }
 
 void process_t::sleep()

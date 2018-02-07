@@ -71,8 +71,6 @@ public:
     tss_t* get_tss() { return &m_tss; }
     process_t* fork(trap_frame_t* frame);
     void update();
-    void add_timer(timer_t* timer);
-    void remove_timer(timer_t* timer);
     void wake_up_process(process_t* proc);
     process_t* get_child_reaper();
     process_t* get_idle();
@@ -112,7 +110,6 @@ private:
     process_t*		    m_idle_process;
     process_t*		    m_init_process;
     spinlock_t          m_rq_lock;
-    list_t<timer_t*>    m_timer_list;
     list_t<process_t*>  m_proc_list;
     local_apic_t        m_local_apic;
 };
