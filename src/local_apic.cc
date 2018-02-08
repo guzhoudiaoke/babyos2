@@ -187,7 +187,6 @@ static void wait_8254_wraparound()
 uint32 local_apic_t::calibrate_clock()
 {
     uint64 tsc_begin, tsc_end;
-    console()->kprintf(CYAN, "calibrating APIC timer...\n");
 
     /* write a max value to APIC timeout */
     setup_lvt_timer(0xffffffff);
@@ -211,6 +210,7 @@ uint32 local_apic_t::calibrate_clock()
     uint32 clocks = (uint32) (apic_begin - apic_end);
     uint32 tsc_delta = (uint32) ((tsc_end - tsc_begin));
 
+    console()->kprintf(CYAN, "********** calibrate local APIC clock *********\n");
     console()->kprintf(CYAN, "tsc speed: %u.%u MHz.\n", 
             (tsc_delta/CALIBRATE_LOOP) / (1000000/HZ),
             (tsc_delta/CALIBRATE_LOOP) % (1000000/HZ));
@@ -218,6 +218,7 @@ uint32 local_apic_t::calibrate_clock()
     console()->kprintf(CYAN, "bus clock speed: %u.%u MHz.\n", 
             (clocks / CALIBRATE_LOOP) / (1000000/HZ),
             (clocks / CALIBRATE_LOOP) % (1000000/HZ));
+    console()->kprintf(CYAN, "********** calibrate local APIC clock *********\n");
 
     return clocks / CALIBRATE_LOOP;
 }

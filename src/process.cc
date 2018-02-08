@@ -181,7 +181,7 @@ void process_t::sleep(uint32 ticks)
 
     current->m_state = PROCESS_ST_SLEEP;
 
-    os()->get_arch()->get_cpu()->schedule();
+    os()->get_arch()->get_boot_processor()->schedule();
 
     // remove the timer
     os()->get_timer_mgr()->remove_timer(&timer);
@@ -191,7 +191,7 @@ void process_t::sleep_on(wait_queue_t* queue)
 {
     queue->add(current);
     current->m_state = PROCESS_ST_SLEEP;
-    os()->get_arch()->get_cpu()->schedule();
+    os()->get_arch()->get_boot_processor()->schedule();
     queue->remove(current);
 }
 
@@ -248,7 +248,7 @@ repeat:
     /* if find pid, or any child if pid == -1 */
     if (flag) {
         /* sleep to wait child exit */
-        os()->get_arch()->get_cpu()->schedule();
+        os()->get_arch()->get_boot_processor()->schedule();
 
         /* wake up by a exited child, repead to check */
         goto repeat;
@@ -285,7 +285,7 @@ int32 process_t::exit()
     notify_parent();
 
     /* schedule other process */
-    os()->get_arch()->get_cpu()->schedule();
+    os()->get_arch()->get_boot_processor()->schedule();
 
     return 0;
 }
@@ -324,5 +324,21 @@ void process_t::free_fd(int fd)
 void process_t::set_cwd(inode_t* inode)
 {
     m_cwd = inode;
+}
+
+extern "C"
+void do_signal(trap_frame_t* frame)
+{
+    current->do_signal(frame);
+}
+
+void process_t::do_signal(trap_frame_t* frame)
+{
+    if (!m_sig_queue.empty()) {
+        siginfo_t si = *current->m_sig_queue.begin();
+        m_sig_queue.pop_front();
+        calc_sig_pending();
+        m_signal.handle_signal(frame, si);
+    }
 }
 

@@ -58,6 +58,7 @@ public:
     void        free_fd(int fd);
     file_t*     get_file(int fd);
     void        set_cwd(inode_t* inode);
+    void        do_signal(trap_frame_t* frame);
 
 private:
     void        notify_parent();

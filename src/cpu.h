@@ -11,7 +11,6 @@
 #include "syscall.h"
 #include "vm.h"
 #include "spinlock.h"
-#include "timer.h"
 #include "list.h"
 #include "process.h"
 #include "local_apic.h"
@@ -21,20 +20,20 @@
 #define INTERRUPT_GATE_FLAG (0x00008e0000000000ULL)
 #define SYSTEM_GATE_FLAG    (0x0000ef0000000000ULL)
 
+#define FASTCALL(x)	x __attribute__((regparm(1)))
+
 class cpu_t {
 public:
-    cpu_t();
-    ~cpu_t();
-
     void init();
-    void do_common_isr(trap_frame_t* frame);
-    void schedule();
-    tss_t* get_tss() { return &m_tss; }
     void update();
-
-    void do_signal(trap_frame_t* frame);
-
+    void schedule();
+    void do_common_isr(trap_frame_t* frame);
+    tss_t*        get_tss() { return &m_tss; }
     local_apic_t* get_local_apic();
+
+    /* is boot strap processor */
+    void set_is_bsp(uint32 is_bsp);
+    void set_id(uint32 id);
 
 private:
     void init_gdt();
@@ -52,6 +51,8 @@ private:
     void do_syscall(trap_frame_t* frame);
 
 private:
+    uint32              m_is_bsp;
+    uint32              m_id;
     uint64			    m_gdt[GDT_LEN];
     uint64			    m_idt[IDT_LEN];
     tss_t			    m_tss;

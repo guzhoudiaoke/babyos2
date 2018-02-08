@@ -23,16 +23,15 @@
 
 
 /* boot information */
-#define BOOT_INFO_ADDR		(0x7000)
+#define BOOT_INFO_ADDR		(0x8000)    /* 0x8000, 32k */
 #define BOOT_INFO_SEG		(BOOT_INFO_ADDR >> 4)
 
-#define GDT_ADDR			(BOOT_INFO_ADDR)
-#define GDT_SIZE			(8 * GDT_LEN)
-
-#define VIDEO_INFO_ADDR	    (GDT_ADDR + GDT_SIZE)
+/* 1. video info */
+#define VIDEO_INFO_ADDR	    (BOOT_INFO_ADDR)
 #define VIDEO_INFO_OFFSET	(VIDEO_INFO_ADDR - BOOT_INFO_ADDR)
 #define VIDEO_INFO_SIZE	    (12)
 
+/* 2. memory info */
 #define MEMORY_INFO_ADDR	(VIDEO_INFO_ADDR + VIDEO_INFO_SIZE)
 #define MEMORY_INFO_OFFSET  (MEMORY_INFO_ADDR - BOOT_INFO_ADDR)
 #define MEMORY_INFO_SIZE	(4+256)

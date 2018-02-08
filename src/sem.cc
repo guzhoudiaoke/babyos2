@@ -50,7 +50,7 @@ void semaphore_t::down_common()
         current->m_state = PROCESS_ST_SLEEP;
         m_lock.unlock_irqrestore();
 
-        os()->get_arch()->get_cpu()->schedule();
+        os()->get_arch()->get_boot_processor()->schedule();
 
         m_lock.lock_irqsave();
         if (waiter.m_up) {

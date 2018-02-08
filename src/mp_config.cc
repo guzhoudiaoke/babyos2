@@ -200,6 +200,7 @@ void mp_config_t::parse_config_entries()
             {
                 mp_config_processor_entry_t* e = (mp_config_processor_entry_t *) config;
                 e->dump();
+                os()->get_arch()->add_processor(e->m_local_apic_id, e->m_cpu_flags & 0x2);
                 config += sizeof(mp_config_processor_entry_t);
             }
             break;

@@ -15,6 +15,8 @@
 #include "io_apic.h"
 #include "mp_config.h"
 
+#define MAX_CPU_NUM 32
+
 class arch_t {
 public:
     arch_t();
@@ -23,7 +25,10 @@ public:
     void init();
 	void update();
 
-    cpu_t*      get_cpu();
+    cpu_t*      get_cpu(uint32 id);
+    cpu_t*      get_boot_processor();
+    void        add_processor(uint32 id, uint32 is_bsp);
+
     i8259a_t*   get_8259a();
     keyboard_t* get_keyboard();
     i8254_t*    get_8254();
@@ -31,7 +36,10 @@ public:
     io_apic_t*  get_io_apic();
 
 private:
-    cpu_t		m_cpu;
+    uint32      m_cpu_num;
+    cpu_t		m_cpu[MAX_CPU_NUM];
+    cpu_t*      m_boot_processor;
+
     i8259a_t	m_8259a;
     keyboard_t  m_keyboard;
     i8254_t     m_8254;

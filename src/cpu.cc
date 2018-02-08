@@ -34,25 +34,56 @@ static const char* exception_msg[] = {
     "int17 #AC align check",
 };
 
+/***************************************************************************/
+
 extern "C" void do_common_isr(trap_frame_t* frame)
 {
-    os()->get_arch()->get_cpu()->do_common_isr(frame);
+    os()->get_arch()->get_boot_processor()->do_common_isr(frame);
 }
 
+extern "C" void schedule()
+{
+    os()->get_arch()->get_boot_processor()->schedule();
+}
 
-cpu_t::cpu_t()
+/* pass args by: eax, edx, ecx */
+extern "C" void FASTCALL(__switch_to(process_t* prev));
+#define switch_to(prev,next,last) do {					\
+    __asm__ volatile(									\
+            "pushl %%esi\n\t"							\
+            "pushl %%edi\n\t"							\
+            "pushl %%ebp\n\t"							\
+            "movl  %%esp,%0\n\t"	/* save ESP */		\
+            "movl  %2,%%esp\n\t"	/* restore ESP */	\
+            "movl  $1f,%1\n\t"		/* save EIP */		\
+            "pushl %3\n\t"			/* restore EIP */	\
+            "jmp __switch_to\n"						    \
+            "1:\t"										\
+            "popl %%ebp\n\t"							\
+            "popl %%edi\n\t"							\
+            "popl %%esi\n\t"							\
+            :"=m" (prev->m_context.esp),				\
+            "=m" (prev->m_context.eip)				    \
+            :"m" (next->m_context.esp),				    \
+            "m" (next->m_context.eip),				    \
+            "a" (next)            					    \
+            );											\
+} while (0)
+
+extern "C" void __switch_to(process_t* next)
 {
+    tss_t* tss = os()->get_arch()->get_boot_processor()->get_tss();
+    tss->esp0 = next->m_context.esp0;
 }
-cpu_t::~cpu_t()
-{
-}
+
+/***************************************************************************/
 
 void cpu_t::set_gate(uint32 index, uint32 addr, uint64 flag)
 {
     uint64 idt_item;
 
     idt_item = flag;                                            /* gate type */
-    idt_item |= (uint64)((SEG_KCODE << 3) << 16);               /* kernel code segment selector */
+    idt_item |= (uint64)((SEG_KCODE << 3) << 16);               /* code segment selector */
     idt_item |= ((uint64)addr << 32) & 0xffff000000000000ULL;   /* high 16 bits of address */
     idt_item |= ((uint64)addr) & 0xffff;                        /* low 16 bits of address */
 
@@ -182,7 +213,7 @@ void cpu_t::do_interrupt(uint32 trapno)
             m_local_apic.eoi();
             break;
         case VEC_LOCAL_TIMER:
-            os()->get_arch()->get_cpu()->get_local_apic()->do_timer_irq();
+            m_local_apic.do_timer_irq();
             m_local_apic.eoi();
             break;
         default:
@@ -208,39 +239,6 @@ void cpu_t::do_common_isr(trap_frame_t* frame)
     else {
         do_interrupt(trapno);
     }
-}
-
-/* pass args by: eax, edx, ecx */
-#define FASTCALL(x)	x __attribute__((regparm(1)))
-extern "C" void FASTCALL(__switch_to(process_t* prev));
-
-#define switch_to(prev,next,last) do {					\
-    __asm__ volatile(									\
-            "pushl %%esi\n\t"							\
-            "pushl %%edi\n\t"							\
-            "pushl %%ebp\n\t"							\
-            "movl  %%esp,%0\n\t"	/* save ESP */		\
-            "movl  %2,%%esp\n\t"	/* restore ESP */	\
-            "movl  $1f,%1\n\t"		/* save EIP */		\
-            "pushl %3\n\t"			/* restore EIP */	\
-            "jmp __switch_to\n"						\
-            "1:\t"										\
-            "popl %%ebp\n\t"							\
-            "popl %%edi\n\t"							\
-            "popl %%esi\n\t"							\
-            :"=m" (prev->m_context.esp),				\
-            "=m" (prev->m_context.eip)				\
-            :"m" (next->m_context.esp),				\
-            "m" (next->m_context.eip),				\
-            "a" (next)            					\
-            );													\
-} while (0)
-
-extern "C"
-void __switch_to(process_t* next)
-{
-    tss_t* tss = os()->get_arch()->get_cpu()->get_tss();
-    tss->esp0 = next->m_context.esp0;
 }
 
 void cpu_t::schedule()
@@ -269,12 +267,6 @@ void cpu_t::schedule()
     switch_to(prev, next, prev);
 }
 
-extern "C"
-void schedule()
-{
-    os()->get_arch()->get_cpu()->schedule();
-}
-
 void cpu_t::update()
 {
     if (--current->m_timeslice == 0) {
@@ -283,24 +275,18 @@ void cpu_t::update()
     }
 }
 
-extern "C"
-void do_signal(trap_frame_t* frame)
-{
-    os()->get_arch()->get_cpu()->do_signal(frame);
-}
-
-void cpu_t::do_signal(trap_frame_t* frame)
-{
-    if (!current->m_sig_queue.empty()) {
-        siginfo_t si = *current->m_sig_queue.begin();
-        current->m_sig_queue.pop_front();
-        current->calc_sig_pending();
-        current->m_signal.handle_signal(frame, si);
-    }
-}
-
 local_apic_t* cpu_t::get_local_apic()
 {
     return &m_local_apic;
+}
+
+void cpu_t::set_is_bsp(uint32 is_bsp)
+{
+    m_is_bsp = is_bsp;
+}
+
+void cpu_t::set_id(uint32 id)
+{
+    m_id = id;
 }
 

@@ -113,11 +113,12 @@ load_loader:
 copy_gdt_and_video_info:
 	xorw	%ax,						%ax
 	movw	%ax,						%ds		# DS:SI src
-	leaw	gdt,						%si
+	leaw	video_mode,					%si
 	movw	$BOOT_INFO_SEG,				%ax
 	movw	%ax,						%es		# ES:DI dst
 	xorw	%di,						%di
-	movw	$(GDT_SIZE+VIDEO_INFO_SIZE),%cx		# num of bytes to move
+	#movw	$(GDT_SIZE+VIDEO_INFO_SIZE),%cx		# num of bytes to move
+	movw	$(VIDEO_INFO_SIZE),         %cx		# num of bytes to move
 	rep		movsb
 
 	ret
@@ -211,6 +212,9 @@ gdt:
 .quad	0x0000000000000000
 .quad	0x0000000000000000
 .quad	0x0000000000000000
+gdt_ptr:
+.word	. - gdt - 1
+.long   gdt
 
 video_mode:
 .short  0
@@ -224,9 +228,6 @@ memory_model:
 .byte   0
 video_ram:
 .long	0
-gdt_ptr:
-.word	video_mode - gdt - 1
-.long	GDT_ADDR
 
 .org	0x1fe,	0x90	# nop
 .word	0xaa55

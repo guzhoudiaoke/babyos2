@@ -234,7 +234,7 @@ void babyos_t::run()
 
     /* idle process */
     while (true) {
-        m_arch.get_cpu()->schedule();
+        m_arch.get_boot_processor()->schedule();
     }
 }
 
