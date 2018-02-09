@@ -117,7 +117,6 @@ copy_gdt_and_video_info:
 	movw	$BOOT_INFO_SEG,				%ax
 	movw	%ax,						%es		# ES:DI dst
 	xorw	%di,						%di
-	#movw	$(GDT_SIZE+VIDEO_INFO_SIZE),%cx		# num of bytes to move
 	movw	$(VIDEO_INFO_SIZE),         %cx		# num of bytes to move
 	rep		movsb
 
@@ -209,9 +208,6 @@ gdt:
 .quad	0x0000000000000000
 .quad	0x00cf9a000000ffff
 .quad	0x00cf92000000ffff
-.quad	0x0000000000000000
-.quad	0x0000000000000000
-.quad	0x0000000000000000
 gdt_ptr:
 .word	. - gdt - 1
 .long   gdt

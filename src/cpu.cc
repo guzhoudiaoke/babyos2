@@ -38,7 +38,8 @@ static const char* exception_msg[] = {
 
 extern "C" void do_common_isr(trap_frame_t* frame)
 {
-    os()->get_arch()->get_boot_processor()->do_common_isr(frame);
+    //os()->get_arch()->get_boot_processor()->do_common_isr(frame);
+    os()->get_arch()->get_current_cpu()->do_common_isr(frame);
 }
 
 extern "C" void schedule()
@@ -148,7 +149,7 @@ void cpu_t::init_idt()
 void cpu_t::init_tss()
 {
     memset(&m_tss, 0, sizeof(tss_t));
-    m_tss.esp0 = (uint32)&kernel_stack + 2*KSTACK_SIZE;
+    m_tss.esp0 = (uint32)&kernel_stack + KSTACK_SIZE;
     m_tss.ss0 = SEG_KDATA << 3;
     m_tss.bitmap = INVALID_IO_BITMAP;
     memset(&m_tss.io_bitmap, ~0, sizeof(uint32) * (IO_BITMAP_SIZE + 1));
@@ -167,14 +168,31 @@ void cpu_t::init_tss()
     ltr(SEG_TSS << 3);
 }
 
-
-void cpu_t::init()
+void cpu_t::init(uint32 apic_id, uint32 is_bsp)
 {
+    m_is_bsp  = is_bsp;
+    m_apic_id = apic_id;
+    m_started = 0;
+}
+
+void cpu_t::startup()
+{
+    console()->kprintf(CYAN, "bsp id: %u\n", m_apic_id);
     init_gdt();
     init_idt();
     init_tss();
-
     m_local_apic.init();
+    m_started = 1;
+}
+
+void cpu_t::startup_ap()
+{
+    console()->kprintf(GREEN, "startup ap, %u\n", m_apic_id);
+    init_gdt();
+    init_idt();
+    init_tss();
+    m_local_apic.init();
+    m_started = 1;
 }
 
 void cpu_t::do_exception(trap_frame_t* frame)
@@ -280,13 +298,27 @@ local_apic_t* cpu_t::get_local_apic()
     return &m_local_apic;
 }
 
-void cpu_t::set_is_bsp(uint32 is_bsp)
+uint32 cpu_t::get_apic_id()
 {
-    m_is_bsp = is_bsp;
+    return m_apic_id;
 }
 
-void cpu_t::set_id(uint32 id)
+uint32 cpu_t::is_bsp()
 {
-    m_id = id;
+    return m_is_bsp;
 }
 
+uint32 cpu_t::is_started()
+{
+    return m_started;
+}
+
+void cpu_t::set_is_started(uint32 started)
+{
+    xchg(&m_started, started);
+}
+
+uint8* cpu_t::get_kstack()
+{
+    return m_kstack;
+}

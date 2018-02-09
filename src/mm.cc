@@ -14,7 +14,7 @@
 #include "local_apic.h"
 
 __attribute__ ((__aligned__(2*PAGE_SIZE)))
-uint8 kernel_stack[KSTACK_SIZE*2] = {
+uint8 kernel_stack[KSTACK_SIZE] = {
     0xff,
 };
 
@@ -27,13 +27,9 @@ __attribute__ ((__aligned__(PAGE_SIZE)))
 pte_t entry_pg_table_vram[NR_PTE_PER_PAGE] = {
     [0] = (0) | PTE_P | PTE_W,
 };
-__attribute__ ((__aligned__(PAGE_SIZE)))
-pte_t entry_pg_table_apic[NR_PTE_PER_PAGE] = {
-    [0] = (0) | PTE_P | PTE_W,
-};
 
 __attribute__ ((__aligned__(PAGE_SIZE)))
-pde_t entry_pg_dir[1024] = { 
+pde_t entry_pg_dir[NR_PDE_PER_PAGE] = { 
     [0] = (0) | PTE_P | PTE_W,
 };
 
@@ -178,11 +174,10 @@ void mm_t::init_paging()
     m_kernel_pg_dir[((uint32)screen_vram)>>22] = ((uint32)(VA2PA(entry_pg_table_vram)) | (PTE_P | PTE_W));
 
     // map apic base
-    entry_pg_table_apic[PT_INDEX(APIC_BASE)] = APIC_BASE | (PTE_P | PTE_W);
-    m_kernel_pg_dir[PD_INDEX(APIC_BASE)] = ((uint32)(VA2PA(entry_pg_table_apic)) | (PTE_P | PTE_W));
-
-    entry_pg_table_apic[PT_INDEX(IO_APIC_BASE)] = IO_APIC_BASE | (PTE_P | PTE_W);
-
+    pte_t* pg_table_apic = (pte_t *) boot_mem_alloc(PAGE_SIZE, 1);
+    pg_table_apic[PT_INDEX(APIC_BASE)] = APIC_BASE | (PTE_P | PTE_W);
+    pg_table_apic[PT_INDEX(IO_APIC_BASE)] = IO_APIC_BASE | (PTE_P | PTE_W);
+    m_kernel_pg_dir[PD_INDEX(APIC_BASE)] = ((uint32)(VA2PA(pg_table_apic)) | (PTE_P | PTE_W));
 
     set_cr3(VA2PA(m_kernel_pg_dir));
 

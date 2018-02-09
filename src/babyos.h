@@ -37,6 +37,7 @@ public:
     ~babyos_t();
 
     void run();
+    void run_ap(uint32 index);
 	void update(uint32 tick);
     void panic(const char* s);
     void start_init_proc();

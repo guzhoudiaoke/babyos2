@@ -11,10 +11,10 @@
 #include "socket.h"
 
 
-void file_system_t::read_super_block()
+void file_system_t::read_super_block(super_block_t* sb)
 {
     io_buffer_t* b = os()->get_block_dev()->read(m_super_block_lba);
-    memcpy(&m_super_block, b->m_buffer, sizeof(super_block_t));
+    memcpy(sb, b->m_buffer, sizeof(super_block_t));
     os()->get_block_dev()->release_block(b);
 }
 
@@ -27,7 +27,6 @@ void file_system_t::init()
     m_inodes_lock.init();
     m_file_table.init();
 
-    read_super_block();
     memset(m_inodes, 0, sizeof(inode_t) * MAX_INODE_CACHE);
 }
 
@@ -45,7 +44,9 @@ uint32 file_system_t::inode_block(uint32 id)
 
 uint32 file_system_t::bitmap_block()
 {
-    return 3 + (m_super_block.m_ninodes * sizeof(disk_inode_t)) / BSIZE;
+    super_block_t sb;
+    read_super_block(&sb);
+    return 3 + (sb.m_ninodes * sizeof(disk_inode_t)) / BSIZE;
 }
 
 uint32 file_system_t::inode_offset(uint32 id)
@@ -99,12 +100,14 @@ void file_system_t::zero_block(uint32 dev, uint32 block)
 
 unsigned file_system_t::alloc_block(uint32 dev)
 {
+    super_block_t sb;
+    read_super_block(&sb);
     uint32 index = bitmap_block();
-    for (unsigned int i = 0; i < m_super_block.m_nblocks; i += BSIZE*8) {
+    for (unsigned int i = 0; i < sb.m_nblocks; i += BSIZE*8) {
         io_buffer_t* b = os()->get_block_dev()->read(index);
         unsigned n = BSIZE*8;
-        if (i + BSIZE*8 > m_super_block.m_nblocks) {
-            n = m_super_block.m_nblocks - i;
+        if (i + BSIZE*8 > sb.m_nblocks) {
+            n = sb.m_nblocks - i;
         }
         for (unsigned bit = 0; bit < n; bit++) {
             unsigned flag = 1 << (bit % 8);
@@ -251,7 +254,9 @@ void file_system_t::put_inode(inode_t* inode)
 
 inode_t* file_system_t::alloc_inode(uint16 dev, uint16 type)
 {
-    for (int i = 1; i < m_super_block.m_ninodes; i++) {
+    super_block_t sb;
+    read_super_block(&sb);
+    for (int i = 1; i < sb.m_ninodes; i++) {
         unsigned block = 2 + i / (BSIZE / sizeof(disk_inode_t));
         unsigned offset = i % (BSIZE / sizeof(disk_inode_t));
         io_buffer_t* b = os()->get_block_dev()->read(block);

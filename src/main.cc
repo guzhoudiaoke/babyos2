@@ -4,6 +4,7 @@
  */
 
 #include "babyos.h"
+#include "delay.h"
 
 babyos_t babyos;
 
@@ -14,4 +15,10 @@ int main(void)
     return 0;
 }
 
+extern "C"
+int apmain(uint32 index)
+{
+    babyos.run_ap(index);
+    return 0;
+}
 

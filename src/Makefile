@@ -40,6 +40,7 @@ OBJS = \
 	mp_config.o\
 	timer_mgr.o\
 	process_mgr.o\
+	delay.o\
 
 AS = as --32
 CC = gcc -m32
@@ -72,8 +73,12 @@ loader: load.S loadmain.cc
 	${CPP} ${CPPFLAGS} -O -c loadmain.cc
 	${LD} ${LDFLAGS} --oformat binary -N -Ttext 0x0000 -o loader load.o loadmain.o
 
-kernel: ${OBJS} entry.o kernel.ld
-	${LD} ${LDFLAGS} -T kernel.ld -o kernel entry.o ${OBJS}
+start_ap: start_ap.S
+	${CPP} ${CPPFLAGS} -c start_ap.S
+	${LD} ${LDFLAGS} --oformat binary -N -Ttext 0x9000 -o start_ap start_ap.o
+
+kernel: ${OBJS} start_ap entry.o kernel.ld
+	${LD} ${LDFLAGS} -T kernel.ld -o kernel entry.o ${OBJS} -b binary start_ap
 
 userlib.o: userlib.cc
 	${CPP} ${CPPFLAGS} -O -c userlib.cc

@@ -30,7 +30,7 @@ void process_mgr_t::init_idle_process()
     memset(&m_idle_process->m_context, 0, sizeof(context_t));
     strcpy(m_idle_process->m_name, "idle");
 
-    m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + 2*KSTACK_SIZE);
+    m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + KSTACK_SIZE);
     m_idle_process->m_timeslice = 2;
     m_idle_process->m_need_resched = 0;
 

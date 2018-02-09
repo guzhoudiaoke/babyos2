@@ -82,6 +82,12 @@ static inline uint32 cmos_read(uint32 reg)
     return inb(CMOS_DATA_PORT);
 }
 
+static inline void cmos_write(uint32 reg, uint32 value)
+{
+    outb(CMOS_ADDR_PORT, reg);
+    outb(CMOS_DATA_PORT, value);
+}
+
 static inline uint32 nvram_read(uint32 reg)
 {
     return cmos_read(reg) | cmos_read(reg+1) << 8;
@@ -169,4 +175,9 @@ static inline int change_bit(int nr, void* addr)
 
 
 #endif
+
+static inline void nop(void)
+{
+    __asm__ __volatile__("rep; nop");
+}
 

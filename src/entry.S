@@ -81,7 +81,7 @@ entry:
 	movl %eax,								%cr0
 
 	# 8. set a new stack
-	movl $(kernel_stack + 2*KSTACK_SIZE),	%esp
+	movl $(kernel_stack + KSTACK_SIZE),		%esp
 
 	# 9. jump to main
 	mov $main,								%eax

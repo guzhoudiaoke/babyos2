@@ -6,10 +6,10 @@
 #include "local_apic.h"
 #include "babyos.h"
 #include "x86.h"
+#include "delay.h"
 
 #define CALIBRATE_LOOP              (HZ/10)
-
-#define MSR_IA32_APICBASE		    0x1b
+#define MSR_IA32_APICBASE		    (0x1b)
 #define MSR_IA32_APICBASE_ENABLE	(1<<11)
 
 #define	APIC_ID		0x20
@@ -20,6 +20,8 @@
 
 /* Local Vector Table */
 #define APIC_LVT_CMCI   0x2f0   /* LVT Machine Check */
+#define APIC_ICR_LOW    0x300   /* Interrupt Command Register 0-31 */
+#define APIC_ICR_HIGH   0x310   /* Interrupt Command Register 32-63 */
 #define	APIC_LVT_TIMER	0x320   /* LVT Timer register */
 #define	APIC_LVT_THMR	0x330   /* LVT Thermal Sensor register */
 #define	APIC_LVT_PMCR	0x340   /* LVT Performance Monitoring Counter register */
@@ -33,6 +35,12 @@
 #define	APIC_TIMER_DCR	0x3E0   /* Timer divide configuration register */
 
 #define MASKED          0x00010000   /* Interrupt masked */
+
+/* ICR */
+#define APIC_DM_INIT        0x500
+#define APIC_DM_STARTUP     0x600
+#define APIC_INT_ASSERT     0x4000
+#define APIC_INT_LEVEL_TRIG 0x8000
 
 
 static __inline void apic_write(uint32 reg, uint32 v)
@@ -69,47 +77,47 @@ int local_apic_t::check()
     //console()->kprintf(YELLOW, "\n");
 
     //console()->kprintf(CYAN, "**************** MSR IA_32_APICBASE ***************\n");
-    uint32 l, h;
-    rdmsr(MSR_IA32_APICBASE, l, h);
+    //uint32 l, h;
+    //rdmsr(MSR_IA32_APICBASE, l, h);
     //console()->kprintf(CYAN, "MSR IA_32_APICBASE: %x, %x\n", h, l);
     //console()->kprintf(CYAN, "**************** MSR IA_32_APICBASE ***************\n");
     //console()->kprintf(CYAN, "\n");
 
     //console()->kprintf(WHITE, "******************** local APIC register *****************\n");
-    uint32 val = 0;
-    val = apic_read(APIC_ID);
-    //console()->kprintf(WHITE, "APIC ID:                                 %x\n", val);
-    val = apic_read(APIC_LVR);
+    //uint32 val = 0;
+    m_id = apic_read(APIC_ID) >> 24;
+    //console()->kprintf(WHITE, "APIC ID:                                 %x\n", m_id);
+    //val = apic_read(APIC_LVR);
     //console()->kprintf(WHITE, "APIC version:                            %x\n", val);
-    val = apic_read(APIC_SPIV);
+    //val = apic_read(APIC_SPIV);
     //console()->kprintf(WHITE, "APIC Spurious interrupt vertor register: %x\n", val);
     //console()->kprintf(WHITE, "******************** local APIC register *****************\n");
     //console()->kprintf(WHITE, "\n");
 
     //console()->kprintf(GREEN, "******************** local vector table *****************\n");
-    val = apic_read(APIC_LVT_CMCI);
+    //val = apic_read(APIC_LVT_CMCI);
     //console()->kprintf(GREEN, "lvt machine check:       %x\n", val);
-    val = apic_read(APIC_LVT_TIMER);
+    //val = apic_read(APIC_LVT_TIMER);
     //console()->kprintf(GREEN, "lvt timer:               %x\n", val);
-    val = apic_read(APIC_LVT_THMR);
+    //val = apic_read(APIC_LVT_THMR);
     //console()->kprintf(GREEN, "lvt thermal sensor       %x\n", val);
-    val = apic_read(APIC_LVT_PMCR);
+    //val = apic_read(APIC_LVT_PMCR);
     //console()->kprintf(GREEN, "lvt performance monitor: %x\n", val);
-    val = apic_read(APIC_LVT_LINT0);
+    //val = apic_read(APIC_LVT_LINT0);
     //console()->kprintf(GREEN, "lvt lint0:               %x\n", val);
-    val = apic_read(APIC_LVT_LINT1);
+    //val = apic_read(APIC_LVT_LINT1);
     //console()->kprintf(GREEN, "lvt lint1:               %x\n", val);
-    val = apic_read(APIC_LVT_ERROR);
+    //val = apic_read(APIC_LVT_ERROR);
     //console()->kprintf(GREEN, "lvt error:               %x\n", val);
     //console()->kprintf(GREEN, "******************** local vector table *****************\n");
     //console()->kprintf(GREEN, "\n");
 
     //console()->kprintf(PINK, "*************************** timer ************************\n");
-    val = apic_read(APIC_TIMER_ICT);
+    //val = apic_read(APIC_TIMER_ICT);
     //console()->kprintf(PINK, "timer initial count register:        %x\n", val); 
-    val = apic_read(APIC_TIMER_CCT);
+    //val = apic_read(APIC_TIMER_CCT);
     //console()->kprintf(PINK, "timer current count register:        %x\n", val);
-    val = apic_read(APIC_TIMER_DCR);
+    //val = apic_read(APIC_TIMER_DCR);
     //console()->kprintf(PINK, "timer divide configuration register: %x\n", val);
     //console()->kprintf(PINK, "*************************** timer ************************\n");
     //console()->kprintf(PINK, "\n");
@@ -209,8 +217,11 @@ uint32 local_apic_t::calibrate_clock()
 
     uint32 clocks = (uint32) (apic_begin - apic_end);
     uint32 tsc_delta = (uint32) ((tsc_end - tsc_begin));
+    delay_t::init(tsc_delta / CALIBRATE_LOOP * HZ);
 
     console()->kprintf(CYAN, "********** calibrate local APIC clock *********\n");
+    uint32 id = apic_read(APIC_ID) >> 24;
+    console()->kprintf(WHITE, "APIC ID:                                 %x\n", id);
     console()->kprintf(CYAN, "tsc speed: %u.%u MHz.\n", 
             (tsc_delta/CALIBRATE_LOOP) / (1000000/HZ),
             (tsc_delta/CALIBRATE_LOOP) % (1000000/HZ));
@@ -263,6 +274,11 @@ int local_apic_t::init()
 void local_apic_t::do_timer_irq()
 {
     m_tick++;
+    if ((uint32)m_tick % 100 == 0) {
+        m_id = apic_read(APIC_ID) >> 24;
+        console()->kprintf(CYAN, "apic %u, tick %u\n", m_id, m_tick);
+    }
+
     os()->update(m_tick);
 }
 
@@ -271,3 +287,55 @@ void local_apic_t::eoi()
     apic_write(APIC_EOI, 0);
 }
 
+void local_apic_t::start_ap(uint32 id, uint32 addr)
+{
+    /* 
+     * The operating system places the address of a HLT
+     * instruction in the warm-reset vector (40:67), sets the CMOS shut-down code to 0Ah, then sends an
+     * INIT IPI to the AP. The INIT IPI causes the AP to enter the BIOS POST routine, where it
+     * immediately jumps to the warm-reset vector and executes the operating system’s HLT instruction.
+     * Only one processor can execute the shutdown routine at any given time, due to the use of the
+     * shutdown code. 
+     */
+    cmos_write(0xf, 0xa);
+    uint32* warm_reset_vec = (uint32 *) PA2VA(0x467);
+    *warm_reset_vec = (addr >> 4) << 16;
+
+    /* 
+     * An AP may be started either by the BSP or by another active AP. The operating system causes
+     * application processors to start executing their initial tasks in the operating system code by using the
+     * following universal algorithm. The algorithm detailed below consists of a sequence of
+     * interprocessor interrupts and short programmatic delays to allow the APs to respond to the wakeup
+     * commands. The algorithm shown here in pseudo-code assumes that the BSP is starting an AP for
+     * documentation convenience. The BSP must initialize BIOS shutdown code to 0AH and the warm
+     * reset vector (DWORD based at 40:67) to point to the AP startup code prior to executing the
+     * following sequence:
+     *      BSP sends AP an INIT IPI
+     *      BSP DELAYs (10mSec)
+     *      If (APIC_VERSION is not an 82489DX) {
+     *          BSP sends AP a STARTUP IPI
+     *          BSP DELAYs (200μSEC)
+     *          BSP sends AP a STARTUP IPI
+     *          BSP DELAYs (200μSEC)
+     *      }
+     *      BSP verifies synchronization with executing AP 
+     */
+    apic_write(APIC_ICR_HIGH, id << 24);
+    apic_write(APIC_ICR_LOW,  APIC_INT_LEVEL_TRIG | APIC_INT_ASSERT | APIC_DM_INIT);
+    delay_t::ms_delay(10);
+
+    apic_write(APIC_ICR_HIGH, id << 24);
+    apic_write(APIC_ICR_LOW,  APIC_INT_LEVEL_TRIG | APIC_DM_INIT);
+
+    for (int i = 0; i < 2; i++) {
+        apic_write(APIC_ICR_HIGH, id << 24);
+        apic_write(APIC_ICR_LOW,  APIC_DM_STARTUP | (addr >> 12));
+        delay_t::us_delay(200);
+    }
+}
+
+uint32 local_apic_t::get_apic_id()
+{
+    uint32 id = apic_read(APIC_ID) >> 24;
+    return id;
+}

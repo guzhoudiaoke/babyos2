@@ -17,7 +17,7 @@
 #define IDT_LEN				(256)
 
 #define	SECT_SIZE			(512)
-#define KSTACK_SIZE         (4096)
+#define KSTACK_SIZE         (8192)
 #define STACK_BOOT			(0x1000)
 #define STACK_PM_BOTTOM     (0x10000)
 
@@ -35,6 +35,14 @@
 #define MEMORY_INFO_ADDR	(VIDEO_INFO_ADDR + VIDEO_INFO_SIZE)
 #define MEMORY_INFO_OFFSET  (MEMORY_INFO_ADDR - BOOT_INFO_ADDR)
 #define MEMORY_INFO_SIZE	(4+256)
+
+/* ap start args */
+#define AP_PGDIR            (MEMORY_INFO_ADDR + MEMORY_INFO_SIZE)
+#define AP_KSTACK           (AP_PGDIR + 4)
+#define AP_MAIN             (AP_KSTACK + 4)
+#define AP_INDEX            (AP_MAIN + 4)
+
+#define AP_START_ADDR       (0x9000)    /* 36k, APs will start from here */
 
 /* font */
 #define FONT_ASC16_ADDR     (0x10000)   /* 64k */
@@ -65,6 +73,7 @@
 /* for cr0 */
 #define CR0_PE              0x00000001
 #define CR0_PG              0x80000000
+#define CR0_WP              0x00010000
 
 #endif
 

@@ -27,9 +27,13 @@ public:
     void test();
     int  init_timer();
     int  init();
+    void start_ap(uint32 id, uint32 addr);
+
+    static uint32 get_apic_id();
 
 private:
-    uint64 m_tick;
+    uint32  m_id;
+    uint64  m_tick;
 };
 
 #endif

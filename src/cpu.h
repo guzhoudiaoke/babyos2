@@ -24,7 +24,9 @@
 
 class cpu_t {
 public:
-    void init();
+    void init(uint32 id, uint32 is_bsp);
+    void startup();
+    void startup_ap();
     void update();
     void schedule();
     void do_common_isr(trap_frame_t* frame);
@@ -32,8 +34,11 @@ public:
     local_apic_t* get_local_apic();
 
     /* is boot strap processor */
-    void set_is_bsp(uint32 is_bsp);
-    void set_id(uint32 id);
+    uint32  get_apic_id();
+    uint32  is_bsp();
+    uint32  is_started();
+    void    set_is_started(uint32 started);
+    uint8*  get_kstack();
 
 private:
     void init_gdt();
@@ -52,11 +57,13 @@ private:
 
 private:
     uint32              m_is_bsp;
-    uint32              m_id;
+    uint32              m_apic_id;
     uint64			    m_gdt[GDT_LEN];
     uint64			    m_idt[IDT_LEN];
     tss_t			    m_tss;
     local_apic_t        m_local_apic;
+    volatile uint32     m_started;
+    uint8               m_kstack[KSTACK_SIZE];
 };
 
 #endif

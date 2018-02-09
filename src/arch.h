@@ -27,13 +27,16 @@ public:
 
     cpu_t*      get_cpu(uint32 id);
     cpu_t*      get_boot_processor();
-    void        add_processor(uint32 id, uint32 is_bsp);
+    cpu_t*      get_current_cpu();
 
     i8259a_t*   get_8259a();
     keyboard_t* get_keyboard();
     i8254_t*    get_8254();
     rtc_t*      get_rtc();
     io_apic_t*  get_io_apic();
+
+    void        add_processor(uint32 id, uint32 is_bsp);
+    void        start_ap();
 
 private:
     uint32      m_cpu_num;

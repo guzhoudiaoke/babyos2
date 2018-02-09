@@ -10,6 +10,7 @@
 #include "list.h"
 #include "fs_test.h"
 #include "sys_socket.h"
+#include "delay.h"
 
 extern babyos_t babyos;
 babyos_t* babyos_t::get_os()
@@ -223,18 +224,43 @@ void babyos_t::run()
     m_block_dev.init(1);
     sys_socket_t::init();
 
-    sti();
     m_fs.init();
+    test_fs();
+
+    /* start aps */
+    m_arch.start_ap();
+
+    /* start interrupt */
+    sti();
+
     m_timer_mgr.init();
     m_process_mgr.init();
 
-    //test_draw_time();
-    test_fs();
+    /* the first user process, init */
     start_init_proc();
 
     /* idle process */
     while (true) {
         m_arch.get_boot_processor()->schedule();
+    }
+}
+
+void babyos_t::run_ap(uint32 index)
+{
+    cpu_t* cpu = os()->get_arch()->get_cpu(index);
+    if (cpu == NULL) {
+        panic("get an ERROR ap.");
+    }
+
+    set_cr3(VA2PA(os()->get_mm()->get_kernel_pg_dir()));
+    console()->kprintf(CYAN, "apic id: %x\n", local_apic_t::get_apic_id());
+    cpu->startup_ap();
+
+    sti();
+    while (true) {
+        //cpu->schedule();
+        delay_t::ms_delay(1000);
+        nop();
     }
 }
 

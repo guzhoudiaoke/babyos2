@@ -73,7 +73,7 @@ public:
 private:
     uint32   bitmap_block();
 
-    void     read_super_block();
+    void     read_super_block(super_block_t* sb);
     void     zero_block(uint32 dev, uint32 b);
     uint32   alloc_block(uint32 dev);
     void     free_block(uint32 dev, uint32 b);
