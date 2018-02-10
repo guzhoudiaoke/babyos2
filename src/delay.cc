@@ -7,13 +7,17 @@
 #include "x86.h"
 
 
+uint32 delay_t::s_inited = 0;
 uint32 delay_t::s_cpu_freq = 0;
 uint32 delay_t::s_cpu_freq_mhz = 0;
 
 void delay_t::init(uint32 freq)
 {
-    s_cpu_freq = freq;
-    s_cpu_freq_mhz = freq / 1000000;
+    if (!s_inited) {
+        s_cpu_freq = freq;
+        s_cpu_freq_mhz = freq / 1000000;
+        s_inited = 1;
+    }
 }
 
 void delay_t::ms_delay(uint32 ms)

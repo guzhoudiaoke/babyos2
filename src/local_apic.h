@@ -28,10 +28,12 @@ public:
     int  init_timer();
     int  init();
     void start_ap(uint32 id, uint32 addr);
+    uint32 get_clocks();
 
     static uint32 get_apic_id();
 
 private:
+    uint32  m_clocks;
     uint32  m_id;
     uint64  m_tick;
 };

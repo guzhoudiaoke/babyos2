@@ -126,7 +126,7 @@ void process_mgr_t::add_process_to_rq(process_t* proc)
     m_rq_lock.unlock_irqrestore();
 }
 
-void process_mgr_t::remove_process_from_list(process_t* proc)
+void process_mgr_t::remove_process_from_rq(process_t* proc)
 {
     proc->m_prev->m_next = proc->m_next;
     proc->m_next->m_prev = proc->m_prev;

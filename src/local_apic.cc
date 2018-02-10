@@ -220,8 +220,6 @@ uint32 local_apic_t::calibrate_clock()
     delay_t::init(tsc_delta / CALIBRATE_LOOP * HZ);
 
     console()->kprintf(CYAN, "********** calibrate local APIC clock *********\n");
-    uint32 id = apic_read(APIC_ID) >> 24;
-    console()->kprintf(WHITE, "APIC ID:                                 %x\n", id);
     console()->kprintf(CYAN, "tsc speed: %u.%u MHz.\n", 
             (tsc_delta/CALIBRATE_LOOP) / (1000000/HZ),
             (tsc_delta/CALIBRATE_LOOP) % (1000000/HZ));
@@ -236,8 +234,13 @@ uint32 local_apic_t::calibrate_clock()
 
 int local_apic_t::init_timer()
 {
-    uint32 clocks = calibrate_clock();
-    setup_lvt_timer(clocks);
+    if (os()->get_arch()->get_current_cpu()->is_bsp()) {
+        m_clocks = calibrate_clock();
+    }
+    else {
+        m_clocks = os()->get_arch()->get_boot_processor()->get_local_apic()->get_clocks();
+    }
+    setup_lvt_timer(m_clocks);
 
     return 0;
 }
@@ -253,6 +256,8 @@ int local_apic_t::init()
     if (init_timer() != 0) {
         return -1;
     }
+
+    apic_write(APIC_SPIV, 0x100 | VEC_SPURIOUS);
 
     /* mask performance monitor counter, LINT0, LINT1 */
     apic_write(APIC_LVT_PMCR,  (1 << 16));
@@ -339,3 +344,9 @@ uint32 local_apic_t::get_apic_id()
     uint32 id = apic_read(APIC_ID) >> 24;
     return id;
 }
+
+uint32 local_apic_t::get_clocks()
+{
+    return m_clocks;
+}
+

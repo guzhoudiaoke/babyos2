@@ -21,7 +21,7 @@ public:
     void        release_process(process_t* proc);
     bool        is_in_run_queue(process_t* proc);
     void        add_process_to_rq(process_t* proc);
-    void        remove_process_from_list(process_t* proc);
+    void        remove_process_from_rq(process_t* proc);
     void        add_process_to_list(process_t* proc);
     void        wake_up_process(process_t* proc);
     int32       send_signal_to(uint32 pid, uint32 sig);

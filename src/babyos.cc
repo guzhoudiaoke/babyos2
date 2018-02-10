@@ -253,7 +253,7 @@ void babyos_t::run_ap(uint32 index)
     }
 
     set_cr3(VA2PA(os()->get_mm()->get_kernel_pg_dir()));
-    console()->kprintf(CYAN, "apic id: %x\n", local_apic_t::get_apic_id());
+    console()->kprintf(CYAN, "run ap of apic id: %x\n", local_apic_t::get_apic_id());
     cpu->startup_ap();
 
     sti();

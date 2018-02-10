@@ -18,6 +18,7 @@ private:
     static void rdtsc_delay(uint64 delta);
 
 private:
+    static uint32 s_inited;
     static uint32 s_cpu_freq;
     static uint32 s_cpu_freq_mhz;
 };

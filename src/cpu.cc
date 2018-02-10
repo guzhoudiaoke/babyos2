@@ -270,7 +270,7 @@ void cpu_t::schedule()
         next = next->m_next;
     }
     if (prev != next && prev->m_pid && prev->m_state != PROCESS_ST_RUNNING) {
-        os()->get_process_mgr()->remove_process_from_list(prev);
+        os()->get_process_mgr()->remove_process_from_rq(prev);
     }
 
     rq_lock->unlock_irqrestore();
