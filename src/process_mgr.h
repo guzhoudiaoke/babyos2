@@ -16,10 +16,8 @@ class process_mgr_t {
 public:
     void        init();
     process_t*  get_child_reaper();
-    process_t*  get_idle();
     process_t*  find_process(uint32 pid);
     void        release_process(process_t* proc);
-    bool        is_in_run_queue(process_t* proc);
     void        add_process_to_rq(process_t* proc);
     void        remove_process_from_rq(process_t* proc);
     void        add_process_to_list(process_t* proc);
@@ -28,15 +26,18 @@ public:
 
     spinlock_t* get_rq_lock();
     spinlock_t* get_proc_list_lock();
+    list_t<process_t *>* get_run_queue();
+    uint32      get_next_pid();
+    void        dump_run_queue();
 
 private:
-    void init_idle_process();
+	atomic_t	        m_next_pid;
+    spinlock_t          m_pid_lock;
 
-private:
-    process_t*		    m_idle_process;
     process_t*		    m_init_process;
     spinlock_t          m_rq_lock;
     list_t<process_t*>  m_proc_list;
+    list_t<process_t*>  m_run_queue;
 };
 
 #endif

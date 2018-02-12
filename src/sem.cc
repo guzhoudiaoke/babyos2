@@ -19,6 +19,7 @@ void semaphore_t::down()
     m_lock.lock_irqsave();
     if (m_count > 0) {
         m_count--;
+        //console()->kprintf(WHITE, "%u_down_%p\t", os()->get_arch()->get_current_cpu()->get_apic_id(), this);
     }
     else {
         down_common();       
@@ -31,6 +32,7 @@ void semaphore_t::up()
     m_lock.lock_irqsave();
     if (m_wait_list.empty()) {
         m_count++;
+        //console()->kprintf(RED, "%u_up_%p\t", os()->get_arch()->get_current_cpu()->get_apic_id(), this);
     }
     else {
         up_common();
@@ -50,7 +52,8 @@ void semaphore_t::down_common()
         current->m_state = PROCESS_ST_SLEEP;
         m_lock.unlock_irqrestore();
 
-        os()->get_arch()->get_boot_processor()->schedule();
+        //console()->kprintf(RED, "%u_S_%u_%p\t", os()->get_arch()->get_current_cpu()->get_apic_id(), current->m_pid, this);
+        os()->get_arch()->get_current_cpu()->schedule();
 
         m_lock.lock_irqsave();
         if (waiter.m_up) {
@@ -64,6 +67,7 @@ void semaphore_t::up_common()
     sem_waiter_t* waiter = *m_wait_list.begin();
     m_wait_list.pop_front();
     waiter->m_up = true;
+    //console()->kprintf(YELLOW, "%u_Wake_%u_%p\t", os()->get_arch()->get_current_cpu()->get_apic_id(), waiter->m_proc->m_pid, this);
     os()->get_process_mgr()->wake_up_process(waiter->m_proc);
 }
 

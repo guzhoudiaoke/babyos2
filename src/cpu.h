@@ -20,7 +20,8 @@
 #define INTERRUPT_GATE_FLAG (0x00008e0000000000ULL)
 #define SYSTEM_GATE_FLAG    (0x0000ef0000000000ULL)
 
-#define FASTCALL(x)	x __attribute__((regparm(1)))
+/* pass args by: eax, edx, ecx.. */
+#define FASTCALL(x)	x __attribute__((regparm(2)))
 
 class cpu_t {
 public:
@@ -39,6 +40,9 @@ public:
     uint32  is_started();
     void    set_is_started(uint32 started);
     uint8*  get_kstack();
+    process_t* get_idle();
+    void    init_idle();
+    void    schedule_tail(process_t* proc);
 
 private:
     void init_gdt();
@@ -63,7 +67,8 @@ private:
     tss_t			    m_tss;
     local_apic_t        m_local_apic;
     volatile uint32     m_started;
-    uint8               m_kstack[KSTACK_SIZE];
+    //uint8               m_idle[KSTACK_SIZE];
+    process_t*          m_idle;
 };
 
 #endif

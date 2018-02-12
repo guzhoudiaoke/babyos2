@@ -48,7 +48,7 @@ public:
     arch_t*         get_arch();
 	object_pool_t*  get_obj_pool(uint32 type);
 	object_pool_t*  get_obj_pool_of_size();
-    uint32          get_next_pid();
+    //uint32          get_next_pid();
     file_system_t*  get_fs();
     dev_op_t*       get_dev(uint32 type);
     hard_disk_t*    get_hd();

@@ -15,7 +15,7 @@
 #include "io_apic.h"
 #include "mp_config.h"
 
-#define MAX_CPU_NUM 32
+#define MAX_CPU_NUM 8
 
 class arch_t {
 public:

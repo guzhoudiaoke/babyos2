@@ -13,8 +13,8 @@
 #include "math.h"
 #include "local_apic.h"
 
-__attribute__ ((__aligned__(2*PAGE_SIZE)))
-uint8 kernel_stack[KSTACK_SIZE] = {
+__attribute__ ((__aligned__(KSTACK_SIZE)))
+uint8 kernel_stack[8*KSTACK_SIZE] = {
     0xff,
 };
 

@@ -50,13 +50,15 @@ cpu_t* arch_t::get_boot_processor()
 
 void arch_t::add_processor(uint32 id, uint32 is_bsp)
 {
-    console()->kprintf(CYAN, "add processor: id: %u, is bsp: %u\n", id, is_bsp ? 1 : 0);
-    m_cpu[m_cpu_num].init(id, is_bsp);
-    if (is_bsp) {
-        m_boot_processor = &m_cpu[m_cpu_num];
-    }
+    if (m_cpu_num < MAX_CPU_NUM) {
+        console()->kprintf(CYAN, "add processor: id: %u, is bsp: %u\n", id, is_bsp ? 1 : 0);
+        m_cpu[m_cpu_num].init(id, is_bsp);
+        if (is_bsp) {
+            m_boot_processor = &m_cpu[m_cpu_num];
+        }
 
-    m_cpu_num++;
+        m_cpu_num++;
+    }
 }
 
 i8259a_t* arch_t::get_8259a()
@@ -120,7 +122,7 @@ void arch_t::start_ap()
         }
         
         *ap_index = i;
-        *ap_kstack = (uint32) m_cpu[i].get_kstack() + KSTACK_SIZE;
+        *ap_kstack = (uint32) m_cpu[i].get_kstack();
         //*ap_kstack = (uint32) os()->get_mm()->alloc_pages(1) + KSTACK_SIZE;
         console()->kprintf(PINK, "ap_kstack: %p, %p, %p\n", AP_KSTACK, ap_kstack, *ap_kstack);
 

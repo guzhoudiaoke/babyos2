@@ -83,8 +83,9 @@ void hard_disk_t::end_request()
     }
 
     /* EOI */
-    outb(0x20, 0x20);
-    outb(0xa0, 0x20);
+    //outb(0x20, 0x20);
+    //outb(0xa0, 0x20);
+    os()->get_arch()->get_current_cpu()->get_local_apic()->eoi();
 
     do_request();
 }

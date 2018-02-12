@@ -21,6 +21,8 @@ void keyboard_t::do_irq()
 	uint8 scan_code = inb(0x60);				        /* read scan code */
     m_queue.push_back(scan_code);
 
+    //console()->kprintf(PINK, "cpu %u do keyboard irq\n", os()->get_arch()->get_current_cpu()->get_apic_id());
+
     char ch = read();
     console()->do_input(ch);
 

@@ -50,7 +50,7 @@ LD = ld
 CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -Wall -ggdb -m32 -Werror -fno-omit-frame-pointer -nostdinc -fno-stack-protector
 LDFLAGS = -m elf_i386 -static
 
-CPPFLAGS = -g -w -trigraphs -fno-builtin -fno-exceptions -fno-stack-protector -m32 -fno-rtti -nostdlib -nodefaultlibs 
+CPPFLAGS = -g -w -trigraphs -fno-builtin -fno-exceptions -fno-stack-protector -m32 -fno-rtti -nostdlib -nodefaultlibs -Werror -fno-omit-frame-pointer 
 
 all: babyos
 
@@ -127,5 +127,5 @@ mv: mv.cc userlib.o
 
 
 clean:
-	rm -f boot loader kernel *.o  trace* init shell ls cat cp ln mkdir mv cp rm
+	rm -f boot loader kernel *.o  trace* init shell ls cat cp ln mkdir mv cp rm start_ap
 

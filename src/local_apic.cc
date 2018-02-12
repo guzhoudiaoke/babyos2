@@ -42,6 +42,8 @@
 #define APIC_INT_ASSERT     0x4000
 #define APIC_INT_LEVEL_TRIG 0x8000
 
+/* SPIV */
+#define APIC_SOFT_ENABLE    (0x100)
 
 static __inline void apic_write(uint32 reg, uint32 v)
 {
@@ -152,10 +154,16 @@ void local_apic_t::global_disable()
 
 void local_apic_t::software_enable()
 {
+    uint32 val = apic_read(APIC_SPIV);
+    val |= (APIC_SOFT_ENABLE);
+    apic_write(APIC_SPIV, val);
 }
 
 void local_apic_t::software_disable()
 {
+    uint32 val = apic_read(APIC_SPIV);
+    val &= ~(APIC_SOFT_ENABLE);
+    apic_write(APIC_SPIV, val);
 }
 
 void local_apic_t::test()
@@ -257,7 +265,7 @@ int local_apic_t::init()
         return -1;
     }
 
-    apic_write(APIC_SPIV, 0x100 | VEC_SPURIOUS);
+    apic_write(APIC_SPIV, APIC_SOFT_ENABLE | VEC_SPURIOUS);
 
     /* mask performance monitor counter, LINT0, LINT1 */
     apic_write(APIC_LVT_PMCR,  (1 << 16));
@@ -279,10 +287,10 @@ int local_apic_t::init()
 void local_apic_t::do_timer_irq()
 {
     m_tick++;
-    if ((uint32)m_tick % 100 == 0) {
-        m_id = apic_read(APIC_ID) >> 24;
-        console()->kprintf(CYAN, "apic %u, tick %u\n", m_id, m_tick);
-    }
+    //if ((uint32)m_tick % 100 == 0) {
+    //    m_id = apic_read(APIC_ID) >> 24;
+    //    console()->kprintf(CYAN, "apic %u, tick %u\n", m_id, m_tick);
+    //}
 
     os()->update(m_tick);
 }

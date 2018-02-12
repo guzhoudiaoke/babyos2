@@ -32,12 +32,9 @@ void timer_mgr_t::remove_timer(timer_t* timer)
 {
     spinlock_t* lock = m_timer_list.get_lock();
     lock->lock_irqsave();
-    list_t<timer_t*>::iterator it = m_timer_list.begin();
-    while (it != m_timer_list.end()) {
-        if (timer == *it) {
-            m_timer_list.erase(it);
-            break;
-        }
+    list_t<timer_t*>::iterator it = m_timer_list.find(timer);
+    if (it != m_timer_list.end()) {
+        m_timer_list.erase(it);
     }
     lock->unlock_irqrestore();
 }

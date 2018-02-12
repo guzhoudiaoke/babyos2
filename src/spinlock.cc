@@ -29,7 +29,7 @@ void spinlock_t::lock()
     while (xchg(&m_locked, 1) != 0)
         ;
 
-    //__sync_synchronize();
+    __sync_synchronize();
 }
 
 void spinlock_t::unlock()
@@ -39,7 +39,7 @@ void spinlock_t::unlock()
         return;
     }
 
-    //__sync_synchronize();
+    __sync_synchronize();
 
     __asm__ volatile("movl $0, %0" : "+m" (m_locked));
 }

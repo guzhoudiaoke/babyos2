@@ -90,6 +90,8 @@ inline void delay_print(char* s)
 
 void babyos_t::start_init_proc()
 {
+    current->set_cwd(os()->get_fs()->get_root());
+    
     int32 ret = 0;
     __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_FORK));
 
@@ -208,7 +210,7 @@ void babyos_t::test_fs()
 
 void babyos_t::run()
 {
-    atomic_set(&m_next_pid, 0);
+    atomic_set(&m_next_pid, 1);
 
     m_screen.init();
     m_console.init();
@@ -227,20 +229,24 @@ void babyos_t::run()
     m_fs.init();
     test_fs();
 
+    m_timer_mgr.init();
+    m_process_mgr.init();
+
     /* start aps */
     m_arch.start_ap();
 
     /* start interrupt */
     sti();
 
-    m_timer_mgr.init();
-    m_process_mgr.init();
-
     /* the first user process, init */
     start_init_proc();
 
     /* idle process */
     while (true) {
+        while (os()->get_process_mgr()->get_run_queue()->empty()) {
+            nop();
+        }
+        sti();
         m_arch.get_boot_processor()->schedule();
     }
 }
@@ -252,15 +258,26 @@ void babyos_t::run_ap(uint32 index)
         panic("get an ERROR ap.");
     }
 
+    /* set page dir */
     set_cr3(VA2PA(os()->get_mm()->get_kernel_pg_dir()));
     console()->kprintf(CYAN, "run ap of apic id: %x\n", local_apic_t::get_apic_id());
+
+    /* start cpu */
     cpu->startup_ap();
 
+    /* start interrupt */
     sti();
+
+    /* schedule */
     while (true) {
-        //cpu->schedule();
-        delay_t::ms_delay(1000);
-        nop();
+        //while (current->m_need_resched == 0) {
+        //    do_idle();
+        //}
+        while (os()->get_process_mgr()->get_run_queue()->empty()) {
+            nop();
+        }
+        sti();
+        cpu->schedule();
     }
 }
 
@@ -285,12 +302,12 @@ void babyos_t::panic(const char* s)
     }
 }
 
-uint32 babyos_t::get_next_pid()
-{
-    uint32 pid = atomic_read(&m_next_pid);
-    atomic_inc(&m_next_pid);
-    return pid;
-}
+//uint32 babyos_t::get_next_pid()
+//{
+//    uint32 pid = atomic_read(&m_next_pid);
+//    atomic_inc(&m_next_pid);
+//    return pid;
+//}
 
 file_system_t* babyos_t::get_fs()
 {

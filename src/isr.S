@@ -34,6 +34,7 @@
 
 .global isr_vector
 .global ret_from_isr
+.global ret_from_fork
 
 need_resched = 0
 sig_pending  = 4
@@ -78,9 +79,15 @@ reschedule:
 
 dosignal:
 	pushl   %esp
-	call do_signal
+	call	do_signal
 	addl    $4,             %esp
-	jmp  restore_all
+	jmp		restore_all
+
+ret_from_fork:
+	pushl	%ebx
+	call	schedule_tail
+	addl    $4,             %esp
+	jmp		restore_all
 
 common_isr:
 	SAVE_ALL

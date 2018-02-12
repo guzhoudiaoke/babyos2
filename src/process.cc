@@ -9,7 +9,7 @@
 #include "string.h"
 #include "elf.h"
 
-extern void ret_from_isr(void) __asm__("ret_from_isr");
+extern void ret_from_fork(void) __asm__("ret_from_fork");
 
 process_t* process_t::fork(trap_frame_t* frame)
 {
@@ -46,10 +46,10 @@ process_t* process_t::fork(trap_frame_t* frame)
     /* context */
     p->m_context.esp = (uint32) child_frame;
     p->m_context.esp0 = (uint32) (child_frame + 1);
-    p->m_context.eip = (uint32) ret_from_isr;
+    p->m_context.eip = (uint32) ret_from_fork;
 
     /* pid, need check if same with other process */
-    p->m_pid = os()->get_next_pid();
+    p->m_pid = os()->get_process_mgr()->get_next_pid();
 
     /* change state */
     p->m_state = PROCESS_ST_RUNNING;
@@ -59,6 +59,7 @@ process_t* process_t::fork(trap_frame_t* frame)
     p->m_children.init(os()->get_obj_pool_of_size());
     p->m_wait_child.init();
     p->m_parent = this;
+    p->m_has_cpu = 0;
 
 
     /* link to run queue */
@@ -135,6 +136,8 @@ int32 process_t::exec(trap_frame_t* frame)
     const char* path = (const char *) frame->ebx;
     strcpy(m_name, path);
 
+    //console()->kprintf(PURPLE, "X%u\n", current->m_pid);
+
     // save arg
     argument_t* arg = NULL;
     if (frame->ecx != 0) {
@@ -181,7 +184,7 @@ void process_t::sleep(uint32 ticks)
 
     current->m_state = PROCESS_ST_SLEEP;
 
-    os()->get_arch()->get_boot_processor()->schedule();
+    os()->get_arch()->get_current_cpu()->schedule();
 
     // remove the timer
     os()->get_timer_mgr()->remove_timer(&timer);
@@ -190,8 +193,9 @@ void process_t::sleep(uint32 ticks)
 void process_t::sleep_on(wait_queue_t* queue)
 {
     queue->add(current);
+    //console()->kprintf(RED, "S%u\t", current->m_pid);
     current->m_state = PROCESS_ST_SLEEP;
-    os()->get_arch()->get_boot_processor()->schedule();
+    os()->get_arch()->get_current_cpu()->schedule();
     queue->remove(current);
 }
 
@@ -248,7 +252,7 @@ repeat:
     /* if find pid, or any child if pid == -1 */
     if (flag) {
         /* sleep to wait child exit */
-        os()->get_arch()->get_boot_processor()->schedule();
+        os()->get_arch()->get_current_cpu()->schedule();
 
         /* wake up by a exited child, repead to check */
         goto repeat;
@@ -264,6 +268,7 @@ end_wait:
 
 int32 process_t::exit()
 {
+    //console()->kprintf(BLACK, "E%u\t", current->m_pid);
     /* remove the mem resource */
     m_vmm.release();
 
@@ -285,7 +290,7 @@ int32 process_t::exit()
     notify_parent();
 
     /* schedule other process */
-    os()->get_arch()->get_boot_processor()->schedule();
+    os()->get_arch()->get_current_cpu()->schedule();
 
     return 0;
 }

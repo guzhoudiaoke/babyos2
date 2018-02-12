@@ -85,9 +85,10 @@ public:
 
     inode_t*            m_cwd;
     file_t*             m_files[MAX_OPEN_FILE];
+    uint32              m_has_cpu;
 
-    process_t*	        m_prev;
-    process_t*	        m_next;
+    //process_t*	        m_prev;
+    //process_t*	        m_next;
 };
 
 #endif
