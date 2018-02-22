@@ -46,7 +46,7 @@ void spinlock_t::unlock()
 
 void spinlock_t::lock_irqsave()
 {
-    local_irq_save(m_flags);
+    local_irq_save(m_flags)
     lock();
 }
 
@@ -60,12 +60,12 @@ void spinlock_t::unlock_irqrestore()
 
 locker_t::locker_t(spinlock_t& lock) : m_lock(lock)
 {
-    m_lock.lock();
+    m_lock.lock_irqsave();
 }
 
 locker_t::~locker_t()
 {
-    m_lock.unlock();
+    m_lock.unlock_irqrestore();
 }
 
 /********************************************************************************************/

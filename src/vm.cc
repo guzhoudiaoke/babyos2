@@ -400,8 +400,10 @@ good_area:
     return 0;
 
 sig_segv:
-    console()->kprintf(RED, "process: %s, segment fault, addr: %x, err: %x, vma: %p(%x->%x)\n", 
+    console()->kprintf(RED, "cpu: %u, process: %s, segment fault, addr: %x, err: %x, vma: %p(%x->%x)\n", 
+            os()->get_arch()->get_current_cpu()->get_apic_id(),
             current->m_name, addr, frame->err, vma, vma->m_start, vma->m_end);
+    console()->kprintf(RED, "errno: %x, eip: %x, cs: %x, esp: %x\n", frame->err, frame->eip, frame->cs, frame->esp);
 
     //console()->kprintf(RED, "errno: %x, eip: %x, cs: %x, esp: %x\n", frame->err, frame->eip, frame->cs, frame->esp);
     //send_sig_segv();

@@ -105,6 +105,33 @@ static void test_fork_exec_wait_exit(const char* times)
     }
 }
 
+// only for test
+static void test_fork_wait_exit(const char* times)
+{
+    int t = 0;
+    while (*times != '\0') {
+        if (*times < '0' || *times > '9') {
+            break;
+        }
+        t = t*10 + *times - '0';
+        times++;
+    }
+
+    argument.m_argc = 1;
+    argument.m_argv[0][0] = 0;
+    for (int i = 0; i < t; i++) {
+        int32 pid = userlib_t::fork();
+        if (pid == 0) {
+            if (i % 100 == 0) {
+                userlib_t::printf("%u\n", i);
+            }
+            userlib_t::exit(0);
+        }
+
+        userlib_t::wait(pid);
+    }
+}
+
 static void test_pipe()
 {
     int fd[2];
@@ -293,6 +320,10 @@ int main()
         /* used for test */
         if (userlib_t::strncmp(cmd_line, "test ", 5) == 0) {
             test_fork_exec_wait_exit(cmd_line + 5);
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "test2 ", 6) == 0) {
+            test_fork_wait_exit(cmd_line + 6);
             continue;
         }
         if (userlib_t::strncmp(cmd_line, "testpipe", 8) == 0) {

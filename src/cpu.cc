@@ -62,6 +62,7 @@ extern "C" void FASTCALL(__switch_to(process_t* prev, process_t* next));
         "movl  %3,%%esp\n\t"	/* restore ESP */	\
         "movl  $1f,%1\n\t"		/* save EIP */		\
         "pushl %4\n\t"			/* restore EIP */	\
+        "movl  %%ebx,%%eax\n\t"                     \
         "jmp __switch_to\n"						    \
         "1:\t"										\
         "popl %%ebp\n\t"							\
@@ -296,20 +297,6 @@ void cpu_t::schedule_tail(process_t* proc)
     mb();
 }
 
-//if (!run_queue->empty()) {
-//    next = *run_queue->begin();
-//    run_queue->pop_front();
-//    //console()->kprintf(PINK, "cpu %u PICK proc : %u, state: %u\n", 
-//    //    os()->get_arch()->get_current_cpu()->get_apic_id(), 
-//    //    next->m_pid, next->m_state);
-//    //os()->get_process_mgr()->dump_run_queue();
-//    if (next->m_state != PROCESS_ST_RUNNING) {
-//        os()->panic("get a task not RUNNING from run queue");
-//    }
-//}
-
-//console()->kprintf(YELLOW, "cpu %u RELEASE proc : %u\n", 
-//    os()->get_arch()->get_current_cpu()->get_apic_id(), prev->m_pid);
 void cpu_t::schedule()
 {
     process_t* prev = current;
@@ -330,7 +317,7 @@ void cpu_t::schedule()
             }
             //console()->kprintf(YELLOW, "%u GET%u, prev: %u\t", 
             //    os()->get_arch()->get_current_cpu()->get_apic_id(), next->m_pid, prev->m_pid);
-            console()->kprintf(YELLOW, "%u_GET_%u\t", os()->get_arch()->get_current_cpu()->get_apic_id(), next->m_pid);
+            //console()->kprintf(YELLOW, "%u_GET_%u\t", os()->get_arch()->get_current_cpu()->get_apic_id(), next->m_pid);
             break;
         }
         it++;

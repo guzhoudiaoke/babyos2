@@ -95,11 +95,6 @@ void console_t::scroll()
         return;
     }
 
-    //for (int i = 1; i < m_row; i++) {
-    //    memcpy(m_text[i-1], m_text[i], sizeof(color_text_t) * m_col_num);
-    //}
-    //memset(m_text[m_row-1], 0, sizeof(color_text_t) * m_col_num);
-
     // scroll screen
     os()->get_screen()->scroll();
 
@@ -114,9 +109,6 @@ void console_t::scroll()
 
 void console_t::put_char(char c, color_ref_t color)
 {
-    //m_text[m_row][m_col].ch = (char) c;
-    //m_text[m_row][m_col].color = color;
-
     rect_t rc = { m_col*ASC16_WIDTH, m_row*ASC16_HEIGHT, ASC16_WIDTH, ASC16_HEIGHT };
     os()->get_screen()->fill_rectangle(rc, BACKGROUND_COLOR);
     os()->get_screen()->draw_asc16((char) c, m_col*ASC16_WIDTH, m_row*ASC16_HEIGHT, color);

@@ -21,13 +21,13 @@ int pipe_t::get_char(char& ch)
 {
     int ret = -1;
     m_item.down();
-    m_lock.lock();
+    m_lock.lock_irqsave();
     if (m_readable) {
         ch = m_buffer[m_read_index];
         m_read_index = (m_read_index + 1) % PIPE_BUF_SIZE;
         ret = 0;
     }
-    m_lock.unlock();
+    m_lock.unlock_irqrestore();
     m_space.up();
 
     return ret;
@@ -37,13 +37,13 @@ int pipe_t::put_char(char ch)
 {
     int ret = -1;
     m_space.down();
-    m_lock.lock();
+    m_lock.lock_irqsave();
     if (m_writable) {
         m_buffer[m_write_index] = ch;
         m_write_index = (m_write_index + 1) % PIPE_BUF_SIZE;
         ret = 0;
     }
-    m_lock.unlock();
+    m_lock.unlock_irqrestore();
     m_item.up();
 
     return ret;
@@ -77,7 +77,7 @@ int32 pipe_t::write(void* buf, uint32 size)
 
 void pipe_t::close(bool write_end)
 {
-    m_lock.lock();
+    m_lock.lock_irqsave();
 
     if (write_end) {
         m_writable = false;
@@ -89,10 +89,10 @@ void pipe_t::close(bool write_end)
     }
 
     if (!m_readable && !m_writable) {
-        m_lock.unlock();
+        m_lock.unlock_irqrestore();
         os()->get_obj_pool(PIPE_POOL)->free_object(this);
     }
 
-    m_lock.unlock();
+    m_lock.unlock_irqrestore();
 }
 

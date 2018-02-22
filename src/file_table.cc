@@ -18,7 +18,7 @@ void file_table_t::init()
 file_t* file_table_t::alloc()
 {
     file_t* file = NULL;
-    m_lock.lock();
+    m_lock.lock_irqsave();
     for (int i = 0; i < MAX_FILE_NUM; i++) {
         if (m_file_table[i].m_ref == 0) {
             file = &m_file_table[i];
@@ -26,7 +26,7 @@ file_t* file_table_t::alloc()
             break;
         }
     }
-    m_lock.unlock();
+    m_lock.unlock_irqrestore();
 
     return file;
 }
@@ -35,19 +35,19 @@ int file_table_t::free(file_t* file)
 {
     file_t f;
 
-    m_lock.lock();
+    m_lock.lock_irqsave();
     if (file->m_ref < 1) {
         os()->panic("ref < 1 when file free");
     }
 
     if (--file->m_ref > 0) {
-        m_lock.unlock();
+        m_lock.unlock_irqrestore();
         return 0;
     }
 
     f = *file;
     file->m_type = file_t::TYPE_NONE;
-    m_lock.unlock();
+    m_lock.unlock_irqrestore();
 
     if (f.m_type == file_t::TYPE_PIPE) {
         f.m_pipe->close(f.m_writeable);
@@ -64,12 +64,12 @@ int file_table_t::free(file_t* file)
 
 file_t* file_table_t::dup_file(file_t* file)
 {
-    m_lock.lock();
+    m_lock.lock_irqsave();
     if (file->m_ref < 1) {
         os()->panic("ref < 1 when file dup");
     }
     file->m_ref++;
-    m_lock.unlock();
+    m_lock.unlock_irqrestore();
 
     return file;
 }

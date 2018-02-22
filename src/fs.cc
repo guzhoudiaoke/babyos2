@@ -173,12 +173,12 @@ inode_t* file_system_t::get_inode(uint32 dev, uint32 inum)
     inode_t* inode = NULL;
     inode_t* empty = NULL;
 
-    m_inodes_lock.lock();
+    m_inodes_lock.lock_irqsave();
     for (int i = 0; i < MAX_INODE_CACHE; i++) {
         if (m_inodes[i].m_ref > 0 && m_inodes[i].m_dev == dev && m_inodes[i].m_inum == inum) {
             inode = &m_inodes[i];
             inode->m_ref++;
-            m_inodes_lock.unlock();
+            m_inodes_lock.unlock_irqrestore();
             return inode;
         }
         if (empty == NULL && m_inodes[i].m_ref == 0) {
@@ -197,16 +197,16 @@ inode_t* file_system_t::get_inode(uint32 dev, uint32 inum)
             inode->m_addrs[i] = 0;
         }
     }
-    m_inodes_lock.unlock();
+    m_inodes_lock.unlock_irqrestore();
 
     return inode;
 }
 
 inode_t* file_system_t::dup_inode(inode_t* inode)
 {
-    m_inodes_lock.lock();
+    m_inodes_lock.lock_irqsave();
     inode->m_ref++;
-    m_inodes_lock.unlock();
+    m_inodes_lock.unlock_irqrestore();
 
     return inode;
 }
@@ -247,9 +247,9 @@ void file_system_t::put_inode(inode_t* inode)
     }
     inode->unlock();
 
-    m_inodes_lock.lock();
+    m_inodes_lock.lock_irqsave();
     inode->m_ref--;
-    m_inodes_lock.unlock();
+    m_inodes_lock.unlock_irqrestore();
 }
 
 inode_t* file_system_t::alloc_inode(uint16 dev, uint16 type)
