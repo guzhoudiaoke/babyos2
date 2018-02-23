@@ -36,9 +36,10 @@ void hard_disk_t::add_request(request_t* req)
         do_request();
     }
     else {
-        m_lock.lock_irqsave();
+        uint32 flags;
+        m_lock.lock_irqsave(flags);
         m_req_list.push_back(req);
-        m_lock.unlock_irqrestore();
+        m_lock.unlock_irqrestore(flags);
     }
 }
 

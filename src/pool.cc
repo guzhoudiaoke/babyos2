@@ -34,14 +34,16 @@ void object_pool_t::free_object_nolock(void* obj)
 }
 void object_pool_t::free_object(void* obj)
 {
-    m_lock.lock_irqsave();
+    uint32 flags;
+    m_lock.lock_irqsave(flags);
     free_object_nolock(obj);
-    m_lock.unlock_irqrestore();
+    m_lock.unlock_irqrestore(flags);
 }
 
 void* object_pool_t::alloc_from_pool()
 {
-    m_lock.lock_irqsave();
+    uint32 flags;
+    m_lock.lock_irqsave(flags);
 	if (m_free_list == NULL) {
 		uint8* mem = (uint8 *) os()->get_mm()->alloc_pages(0);
         //console()->kprintf(WHITE, "pool of size: %u, alloc\n", m_obj_size);
@@ -56,7 +58,7 @@ void* object_pool_t::alloc_from_pool()
 	m_free_list = m_free_list->m_next;
 
 	m_available--;
-    m_lock.unlock_irqrestore();
+    m_lock.unlock_irqrestore(flags);
 
 	return obj;
 }

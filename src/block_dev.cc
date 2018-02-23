@@ -34,7 +34,8 @@ io_buffer_t* block_dev_t::get_block(uint32 lba)
 {
     io_buffer_t* b = NULL;
 
-    m_lock.lock_irqsave();
+    uint32 flags;
+    m_lock.lock_irqsave(flags);
 
     /* first, find from used list, if find it means this block cached */
     list_t<io_buffer_t *>::iterator it = m_used_list.begin();
@@ -61,7 +62,7 @@ io_buffer_t* block_dev_t::get_block(uint32 lba)
         b->m_lba = lba;
         b->m_done = 0;
     }
-    m_lock.unlock_irqrestore();
+    m_lock.unlock_irqrestore(flags);
 
     if (b != NULL) {
         b->lock();
@@ -71,9 +72,10 @@ io_buffer_t* block_dev_t::get_block(uint32 lba)
 
 void block_dev_t::release_block(io_buffer_t* b)
 {
-    m_lock.lock_irqsave();
+    uint32 flags;
+    m_lock.lock_irqsave(flags);
     m_used_list.push_back(b);
-    m_lock.unlock_irqrestore();
+    m_lock.unlock_irqrestore(flags);
     b->unlock();
 }
 

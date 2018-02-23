@@ -305,7 +305,8 @@ void cpu_t::schedule()
     list_t<process_t *>* run_queue = os()->get_process_mgr()->get_run_queue();
     spinlock_t* rq_lock = run_queue->get_lock();
 
-    rq_lock->lock_irqsave();
+    uint32 flags;
+    rq_lock->lock_irqsave(flags);
     list_t<process_t *>::iterator it = run_queue->begin();
     while (it != run_queue->end()) {
         process_t* p = *it;
@@ -325,7 +326,7 @@ void cpu_t::schedule()
 
     prev->m_need_resched = 0;
     if (next == prev) {
-        rq_lock->unlock_irqrestore();
+        rq_lock->unlock_irqrestore(flags);
         return;
     }
 
@@ -340,7 +341,7 @@ void cpu_t::schedule()
 
     next->m_has_cpu = 1;
     //console()->kprintf(RED, "H%u\t", next->m_pid);
-    rq_lock->unlock_irqrestore();
+    rq_lock->unlock_irqrestore(flags);
 
     /* switch mm */
     set_cr3(VA2PA(next->m_vmm.get_pg_dir()));

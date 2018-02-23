@@ -123,12 +123,13 @@ int32 socket_local_t::release()
 
     /* wake up sockets who are waiting for accept */
     spinlock_t* lock = m_connecting_list.get_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     list_t<socket_t *>::iterator it = m_connecting_list.begin();
     while (it != m_connecting_list.end()) {
         (*it)->m_wait_accept_sem.up();
     }
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 
     /* set peer state */
     socket_local_t* peer = (socket_local_t *) m_connected_socket;
@@ -172,10 +173,11 @@ int32 socket_local_t::accept(socket_t* server_socket)
     socket_t* client_socket = NULL;
 
     spinlock_t* lock = server_socket->m_connecting_list.get_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     client_socket = *(server_socket->m_connecting_list.begin());
     server_socket->m_connecting_list.pop_front();
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 
     client_socket->m_connected_socket = this;
     client_socket->m_state = socket_t::SS_CONNECTED;
@@ -219,9 +221,10 @@ int32 socket_local_t::connect(sock_addr_t* server_addr)
 
     /* add this to server socket's connecting list */
     spinlock_t* lock = server_socket->m_connecting_list.get_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     server_socket->m_connecting_list.push_back(this);
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 
     /* notify server there is a new connect */
     server_socket->m_wait_connect_sem.up();

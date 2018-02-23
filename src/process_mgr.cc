@@ -108,7 +108,8 @@ void process_mgr_t::release_process(process_t* proc)
 void process_mgr_t::add_process_to_rq(process_t* proc)
 {
     spinlock_t* lock = m_run_queue.get_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     list_t<process_t *>::iterator it = m_run_queue.find(proc);
     if (it == m_run_queue.end()) {
         m_run_queue.push_front(proc);
@@ -116,19 +117,20 @@ void process_mgr_t::add_process_to_rq(process_t* proc)
         //console()->kprintf(CYAN, "%u_put_%u\t", 
         //    os()->get_arch()->get_current_cpu()->get_apic_id(), proc->m_pid);
     }
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 }
 
 void process_mgr_t::remove_process_from_rq(process_t* proc)
 {
     spinlock_t* lock = m_run_queue.get_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     list_t<process_t *>::iterator it = m_run_queue.find(proc);
     if (it == m_run_queue.end()) {
         os()->panic("removing proc from run queue not in run queue");
     }
     m_run_queue.erase(it);
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 }
 
 spinlock_t* process_mgr_t::get_rq_lock()
@@ -144,9 +146,10 @@ spinlock_t* process_mgr_t::get_proc_list_lock()
 void process_mgr_t::add_process_to_list(process_t* proc)
 {
     spinlock_t* lock = m_proc_list.get_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     m_proc_list.push_back(proc);
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 }
 
 void process_mgr_t::wake_up_process(process_t* proc)
@@ -162,13 +165,14 @@ int32 process_mgr_t::send_signal_to(uint32 pid, uint32 sig)
     si.m_pid = current->m_pid;
 
     spinlock_t* lock = os()->get_process_mgr()->get_proc_list_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     process_t* p = os()->get_process_mgr()->find_process(pid);
     if (p != NULL) {
         p->m_sig_queue.push_back(si);
         p->calc_sig_pending();
     }
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 
     return 0;
 }

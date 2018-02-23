@@ -122,9 +122,9 @@ static void test_fork_wait_exit(const char* times)
     for (int i = 0; i < t; i++) {
         int32 pid = userlib_t::fork();
         if (pid == 0) {
-            if (i % 100 == 0) {
+            //if (i % 100 == 0) {
                 userlib_t::printf("%u\n", i);
-            }
+            //}
             userlib_t::exit(0);
         }
 

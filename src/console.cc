@@ -46,7 +46,7 @@ void input_buffer_t::input(char ch)
     else {
         m_buffer[m_edit_index++ % BUFFER_SIZE] = ch;
     }
-    console()->putc(ch, WHITE);
+    console()->write(&ch, 1);
 }
 
 /****************************************************************/
@@ -210,9 +210,10 @@ void console_t::print_int(int32 n, int32 base, int32 sign, color_ref_t color)
 // only support %d %u %x %p %c %s, and seems enough for now
 void console_t::kprintf(color_ref_t color, const char *fmt, ...)
 {
-    m_lock.lock_irqsave();
+    uint32 flags;
+    m_lock.lock_irqsave(flags);
     if (fmt == NULL) {
-        m_lock.unlock_irqrestore();
+        m_lock.unlock_irqrestore(flags);
         return;
     }
 
@@ -265,7 +266,7 @@ void console_t::kprintf(color_ref_t color, const char *fmt, ...)
     }
 
     va_end(ap);
-    m_lock.unlock_irqrestore();
+    m_lock.unlock_irqrestore(flags);
 }
 
 void console_t::draw_time()
@@ -330,11 +331,12 @@ int console_t::read(void* buf, int size)
 
 int console_t::write(void* buf, int size)
 {
-    m_lock.lock_irqsave();
+    uint32 flags;
+    m_lock.lock_irqsave(flags);
     for (int i = 0; i < size; i++) {
         putc(((char *) buf)[i], WHITE);
     }
-    m_lock.unlock_irqrestore();
+    m_lock.unlock_irqrestore(flags);
 
     return size;
 }

@@ -23,8 +23,11 @@ public:
     void lock();
     void unlock();
 
-    void lock_irqsave();
-    void unlock_irqrestore();
+    void lock_irq();
+    void unlock_irq();
+
+    void lock_irqsave(uint32& flags);
+    void unlock_irqrestore(uint32 flags);
 
 private:
     uint32  m_locked;
@@ -37,6 +40,7 @@ public:
     ~locker_t();
 
 private:
+    uint32      m_flags;
     spinlock_t& m_lock;
 };
 

@@ -15,14 +15,13 @@ void wait_queue_t::init()
 
 void wait_queue_t::add(process_t* proc)
 {
-    m_lock.lock_irqsave();
+    locker_t locker(m_lock);
     m_procs.push_back(proc);
-    m_lock.unlock_irqrestore();
 }
 
 void wait_queue_t::remove(process_t* proc)
 {
-    m_lock.lock_irqsave();
+    locker_t locker(m_lock);
     list_t<process_t *>::iterator it = m_procs.begin();
     while (it != m_procs.end()) {
         if (*it == proc) {
@@ -31,16 +30,14 @@ void wait_queue_t::remove(process_t* proc)
         }
         it++;
     }
-    m_lock.unlock_irqrestore();
 }
 
 void wait_queue_t::wake_up()
 {
-    m_lock.lock_irqsave();
+    locker_t locker(m_lock);
     if (!m_procs.empty()) {
         list_t<process_t *>::iterator it = m_procs.begin();
         os()->get_process_mgr()->wake_up_process((*it));
     }
-    m_lock.unlock_irqrestore();
 }
 

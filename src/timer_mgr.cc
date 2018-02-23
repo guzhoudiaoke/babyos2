@@ -23,19 +23,21 @@ void timer_mgr_t::update()
 void timer_mgr_t::add_timer(timer_t* timer)
 {
     spinlock_t* lock = m_timer_list.get_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     m_timer_list.push_back(timer);
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 }
 
 void timer_mgr_t::remove_timer(timer_t* timer)
 {
     spinlock_t* lock = m_timer_list.get_lock();
-    lock->lock_irqsave();
+    uint32 flags;
+    lock->lock_irqsave(flags);
     list_t<timer_t*>::iterator it = m_timer_list.find(timer);
     if (it != m_timer_list.end()) {
         m_timer_list.erase(it);
     }
-    lock->unlock_irqrestore();
+    lock->unlock_irqrestore(flags);
 }
 

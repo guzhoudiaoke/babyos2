@@ -289,7 +289,7 @@ void local_apic_t::do_timer_irq()
     m_tick++;
     if ((uint32)m_tick % 100 == 0) {
         m_id = apic_read(APIC_ID) >> 24;
-        console()->kprintf(CYAN, "apic %u, tick %u\n", m_id, m_tick);
+        //console()->kprintf(CYAN, "apic %u, tick %u\n", m_id, m_tick);
     }
 
     os()->update(m_tick);

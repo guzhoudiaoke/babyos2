@@ -37,12 +37,12 @@ void signal_t::copy(const signal_t& signal)
 
 void signal_t::lock()
 {
-    m_lock.lock_irqsave();
+    m_lock.lock();
 }
 
 void signal_t::unlock()
 {
-    m_lock.unlock_irqrestore();
+    m_lock.unlock();
 }
 
 void signal_t::set_sigaction(uint32 sig, const sigaction_t& sa)
