@@ -292,8 +292,9 @@ void cpu_t::do_common_isr(trap_frame_t* frame)
 
 void cpu_t::schedule_tail(process_t* proc)
 {
-    //console()->kprintf(CYAN, "N%u\t", proc->m_pid);
+    proc->lock();
     proc->m_has_cpu = 0;
+    proc->unlock();
     mb();
 }
 
@@ -304,9 +305,9 @@ void cpu_t::schedule()
 
     list_t<process_t *>* run_queue = os()->get_process_mgr()->get_run_queue();
     spinlock_t* rq_lock = run_queue->get_lock();
-
     uint32 flags;
     rq_lock->lock_irqsave(flags);
+
     list_t<process_t *>::iterator it = run_queue->begin();
     while (it != run_queue->end()) {
         process_t* p = *it;
@@ -316,9 +317,6 @@ void cpu_t::schedule()
             if (next == prev) {
                 os()->panic("error next");
             }
-            //console()->kprintf(YELLOW, "%u GET%u, prev: %u\t", 
-            //    os()->get_arch()->get_current_cpu()->get_apic_id(), next->m_pid, prev->m_pid);
-            //console()->kprintf(YELLOW, "%u_GET_%u\t", os()->get_arch()->get_current_cpu()->get_apic_id(), next->m_pid);
             break;
         }
         it++;
@@ -333,14 +331,10 @@ void cpu_t::schedule()
     if (prev != next && prev->m_pid != 0 && prev->m_state == PROCESS_ST_RUNNING) {
         if (run_queue->find(prev) == run_queue->end()) {
             run_queue->push_back(prev);
-            //console()->kprintf(CYAN, "%u_PUT_%u\t", 
-            //    os()->get_arch()->get_current_cpu()->get_apic_id(), prev->m_pid);
-            //console()->kprintf(BLUE, "P%u\t", prev->m_pid);
         }
     }
 
     next->m_has_cpu = 1;
-    //console()->kprintf(RED, "H%u\t", next->m_pid);
     rq_lock->unlock_irqrestore(flags);
 
     /* switch mm */
@@ -389,6 +383,7 @@ uint8* cpu_t::get_kstack()
 {
     return (uint8 *) m_idle + KSTACK_SIZE;
 }
+
 process_t* cpu_t::get_idle()
 {
     return m_idle;

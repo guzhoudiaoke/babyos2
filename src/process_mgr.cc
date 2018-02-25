@@ -16,48 +16,11 @@ void process_mgr_t::init()
 {
     atomic_set(&m_next_pid, 1);
     m_pid_lock.init();
-    m_init_process = NULL;
+    m_child_reaper = NULL;
     m_rq_lock.init();
     m_proc_list.init(os()->get_obj_pool_of_size());
     m_run_queue.init(os()->get_obj_pool_of_size());
-
-    //init_idle_process();
 }
-
-//void process_mgr_t::init_idle_process()
-//{
-//    m_idle_process = (process_t *) kernel_stack;
-//    m_idle_process->m_pid = os()->get_next_pid();
-//
-//    m_idle_process->m_state = PROCESS_ST_RUNNING;
-//    memset(&m_idle_process->m_context, 0, sizeof(context_t));
-//    strcpy(m_idle_process->m_name, "idle");
-//
-//    m_idle_process->m_context.esp0 = ((uint32)(&kernel_stack) + KSTACK_SIZE);
-//    m_idle_process->m_timeslice = 2;
-//    m_idle_process->m_need_resched = 0;
-//
-//    /* signal */
-//    m_idle_process->m_sig_queue.init(os()->get_obj_pool_of_size());
-//    m_idle_process->m_sig_pending = 0;
-//    m_idle_process->m_signal.init();
-//
-//    /* make link */
-//    //m_idle_process->m_next = m_idle_process;
-//    //m_idle_process->m_prev = m_idle_process;
-//
-//    m_idle_process->m_vmm.init();
-//    m_idle_process->m_vmm.set_pg_dir(os()->get_mm()->get_kernel_pg_dir());
-//    m_idle_process->m_children.init(os()->get_obj_pool_of_size());
-//    m_idle_process->m_wait_child.init();
-//
-//    m_proc_list.push_back(m_idle_process);
-//    //m_run_queue.push_back(m_idle_process);
-//
-//    for (int i = 0; i < MAX_OPEN_FILE; i++) {
-//        m_idle_process->m_files[i] = NULL;
-//    }
-//}
 
 process_t* process_mgr_t::find_process(uint32 pid)
 {
@@ -77,21 +40,30 @@ process_t* process_mgr_t::find_process(uint32 pid)
 process_t* process_mgr_t::get_child_reaper()
 {
     /* if have not set init process, set it by idle process's child */
-    if (m_init_process == NULL) {
-        //m_init_process = *m_idle_process->m_children.begin();
-        m_init_process = *os()->get_arch()->get_boot_processor()->get_idle()->m_children.begin();
+    if (m_child_reaper == NULL) {
+        m_child_reaper = *os()->get_arch()->get_boot_processor()->get_idle()->m_children.begin();
     }
 
-    return m_init_process;
+    return m_child_reaper;
 }
-
-//process_t* process_mgr_t::get_idle()
-//{
-//    return m_idle_process;
-//}
 
 void process_mgr_t::release_process(process_t* proc)
 {
+    /* wait to make sure this proc not running on other processor */
+    while (1) {
+        proc->lock();
+        if (!proc->m_has_cpu) {
+            break;
+        }
+        proc->unlock();
+
+        do {
+            nop();
+            barrier();
+        } while (proc->m_has_cpu);
+    }
+    proc->unlock();
+
     list_t<process_t*>::iterator it = m_proc_list.begin();
     while (it != m_proc_list.end()) {
         if (*it == proc) {
@@ -101,7 +73,10 @@ void process_mgr_t::release_process(process_t* proc)
         it++;
     }
 
+    /* free page dir */
     os()->get_mm()->free_pages(proc->m_vmm.get_pg_dir(), 0);
+
+    /* free task */
     os()->get_mm()->free_pages(proc, 1);
 }
 
@@ -113,9 +88,6 @@ void process_mgr_t::add_process_to_rq(process_t* proc)
     list_t<process_t *>::iterator it = m_run_queue.find(proc);
     if (it == m_run_queue.end()) {
         m_run_queue.push_front(proc);
-        //console()->kprintf(BLUE, "P%u\t", proc->m_pid);
-        //console()->kprintf(CYAN, "%u_put_%u\t", 
-        //    os()->get_arch()->get_current_cpu()->get_apic_id(), proc->m_pid);
     }
     lock->unlock_irqrestore(flags);
 }

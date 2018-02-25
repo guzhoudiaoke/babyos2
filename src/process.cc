@@ -347,3 +347,13 @@ void process_t::do_signal(trap_frame_t* frame)
     }
 }
 
+void process_t::lock()
+{
+    m_task_lock.lock();
+}
+
+void process_t::unlock()
+{
+    m_task_lock.unlock();
+}
+

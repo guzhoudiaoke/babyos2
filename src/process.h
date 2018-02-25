@@ -60,6 +60,9 @@ public:
     void        set_cwd(inode_t* inode);
     void        do_signal(trap_frame_t* frame);
 
+    void        lock();
+    void        unlock();
+
 private:
     void        notify_parent();
     void        adope_children();
@@ -86,6 +89,8 @@ public:
     inode_t*            m_cwd;
     file_t*             m_files[MAX_OPEN_FILE];
     uint32              m_has_cpu;
+
+    spinlock_t          m_task_lock;
 
     //process_t*	        m_prev;
     //process_t*	        m_next;

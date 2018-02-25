@@ -184,3 +184,6 @@ static inline void nop(void)
 #define mb() 	__asm__ __volatile__ ("lock; addl $0,0(%%esp)": : :"memory")
 #define rmb()	mb()
 #define wmb()	__asm__ __volatile__ ("": : :"memory")
+
+#define barrier() __asm__ __volatile__("": : :"memory")
+

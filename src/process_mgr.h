@@ -34,7 +34,7 @@ private:
 	atomic_t	        m_next_pid;
     spinlock_t          m_pid_lock;
 
-    process_t*		    m_init_process;
+    process_t*		    m_child_reaper;
     spinlock_t          m_rq_lock;
     list_t<process_t*>  m_proc_list;
     list_t<process_t*>  m_run_queue;

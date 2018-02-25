@@ -5,6 +5,7 @@
 
 #include "types.h"
 #include "string.h"
+#include "babyos.h"
 
 void* memmov(void *dst, const void *src, uint32 n)
 {
@@ -14,11 +15,17 @@ void* memmov(void *dst, const void *src, uint32 n)
     if (s < d && s + n > d) {
         s += n, d += n;
         while (n--) {
+            //if (s < (char *) 0x1000 || d < (char *) 0x1000) {
+            //    os()->panic("memmov");
+            //}
             *--d = *--s;
         }
     }
     else {
         while (n--) {
+            //if (s < (char *) 0x1000 || d < (char *) 0x1000) {
+            //    os()->panic("memmov");
+            //}
             *d++ = *s++;
         }
     }
