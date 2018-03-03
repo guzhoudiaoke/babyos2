@@ -76,6 +76,7 @@ private:
     block_dev_t     m_block_dev;
     timer_mgr_t     m_timer_mgr;
     process_mgr_t   m_process_mgr;
+    pci_t           m_pci;
 };
 
 #define os()	    babyos_t::get_os()

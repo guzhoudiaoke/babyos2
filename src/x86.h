@@ -32,6 +32,18 @@ static inline void outw(uint16 port, uint16 data)
     __asm__ volatile("out %0,%1" : : "a" (data), "d" (port));
 }
 
+static inline void outl(uint16 port, uint32 val)
+{
+	asm volatile("outl %0,%1" : : "a" (val), "dN" (port));
+}
+
+static inline uint32 inl(uint16 port)
+{
+	uint32 v;
+	asm volatile("inl %1,%0" : "=a" (v) : "dN" (port));
+	return v;
+}
+
 static inline void outsl(int port, const void *addr, int cnt)
 {
     __asm__ volatile("cld; rep outsl" :

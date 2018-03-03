@@ -133,12 +133,12 @@ mp_floating_pointer_t* mp_config_t::find_floating_pointer()
 
     /* 40:0E	word	Extended BIOS Data Area segment */
     uint32 extended_bios_data_area = (*(uint16 *)(bios_data_area + 0x0e)) << 4;
-    console()->kprintf(GREEN, "extended_bios_data_area: %p\n", extended_bios_data_area);
+    //console()->kprintf(GREEN, "extended_bios_data_area: %p\n", extended_bios_data_area);
 
     /* a. first kb of ebda */
     if (extended_bios_data_area != NULL) {
         fp = find_floating_pointer(extended_bios_data_area, c_kb);
-        console()->kprintf(GREEN, "look for floating pointer form extended_bios_data_area: %p\n", fp);
+        //console()->kprintf(GREEN, "look for floating pointer form extended_bios_data_area: %p\n", fp);
         if (fp != NULL) {
             return fp;
         }
@@ -147,11 +147,11 @@ mp_floating_pointer_t* mp_config_t::find_floating_pointer()
         /* 40:13	word	Memory size in Kbytes */
         uint32 base_memory = (*(uint16 *)(bios_data_area + 0x13)) * c_kb;
         //uint32 base_memory = 640*c_kb;
-        console()->kprintf(GREEN, "system base memory: %p, \n", base_memory);
+        //console()->kprintf(GREEN, "system base memory: %p, \n", base_memory);
 
         /* b. last kb of system base memory */
         fp = find_floating_pointer(base_memory, c_kb);
-        console()->kprintf(GREEN, "look for floating pointer form system base memory: %p\n", fp);
+        //console()->kprintf(GREEN, "look for floating pointer form system base memory: %p\n", fp);
         if (fp != NULL) {
             return fp;
         }
@@ -159,7 +159,7 @@ mp_floating_pointer_t* mp_config_t::find_floating_pointer()
 
     /* c. In the BIOS ROM address space between 0F0000h and 0FFFFFh. */
     fp = find_floating_pointer(0xf0000, 0x10000);
-    console()->kprintf(GREEN, "look for floating pointer form 0xf0000-0x100000: %p\n", fp);
+    //console()->kprintf(GREEN, "look for floating pointer form 0xf0000-0x100000: %p\n", fp);
 
     return fp;
 }
@@ -186,7 +186,7 @@ mp_config_table_header_t* mp_config_t::find_config_table()
         return m_config_table_header;
     }
 
-    console()->kprintf(GREEN, "config table header sum = %d\n", sum);
+    //console()->kprintf(GREEN, "config table header sum = %d\n", sum);
     return NULL;
 }
 
@@ -214,7 +214,7 @@ void mp_config_t::parse_config_entries()
         case entry_io_apic:
             {
                 mp_config_io_apic_entry_t* e = (mp_config_io_apic_entry_t *) config;
-                e->dump();
+                //e->dump();
                 config += sizeof(mp_config_io_apic_entry_t);
             }
             break;

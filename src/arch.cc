@@ -27,6 +27,8 @@ void arch_t::init()
     m_io_apic.init();
     m_keyboard.init();
     m_rtc.init();
+    m_pci.init();
+    m_rtl8139.init();
 }
 
 void arch_t::update()
@@ -51,7 +53,7 @@ cpu_t* arch_t::get_boot_processor()
 void arch_t::add_processor(uint32 id, uint32 is_bsp)
 {
     if (m_cpu_num < MAX_CPU_NUM) {
-        console()->kprintf(CYAN, "add processor: id: %u, is bsp: %u\n", id, is_bsp ? 1 : 0);
+        //console()->kprintf(CYAN, "add processor: id: %u, is bsp: %u\n", id, is_bsp ? 1 : 0);
         m_cpu[m_cpu_num].init(id, is_bsp);
         if (is_bsp) {
             m_boot_processor = &m_cpu[m_cpu_num];
@@ -86,6 +88,11 @@ io_apic_t* arch_t::get_io_apic()
     return &m_io_apic;
 }
 
+pci_t* arch_t::get_pci()
+{
+    return &m_pci;
+}
+
 extern "C" int apmain(void);
 extern pde_t entry_pg_dir[];
 extern uint32 _binary_start_ap_start[], _binary_start_ap_size[];
@@ -100,21 +107,7 @@ void arch_t::start_ap()
 
     *ap_main  = (uint32) apmain;
     *ap_pgdir = (uint32) VA2PA(entry_pg_dir);
-    //*ap_pgdir = (uint32) VA2PA(os()->get_mm()->get_kernel_pg_dir());
     memcpy(ap_start_addr, _binary_start_ap_start, (uint32) _binary_start_ap_size);
-
-    //console()->kprintf(PINK, "start_ap: %p, size: %x\n", (uint32) _binary_start_ap_start, 
-    //        (uint32) _binary_start_ap_size);
-    console()->kprintf(PINK, "ap_main: %p, %p, %p, %p\n", AP_MAIN, ap_main, *ap_main, apmain);
-    console()->kprintf(PINK, "ap_pgdir: %p, %p, %p\n", AP_PGDIR, ap_pgdir, *ap_pgdir);
-            
-    //for (int i = 0; i < (uint32) _binary_start_ap_size / 4; i++) {
-    //    if (i % 8 == 0) {
-    //        console()->kprintf(PINK, "\n");
-    //    }
-    //    console()->kprintf(PINK, "%x, ", ap_start_addr[i]);
-    //}
-    //console()->kprintf(PINK, "\n");
 
     for (int i = 0; i < m_cpu_num; i++) {
         if (m_cpu[i].is_bsp()) {
@@ -123,15 +116,10 @@ void arch_t::start_ap()
         
         *ap_index = i;
         *ap_kstack = (uint32) m_cpu[i].get_kstack();
-        //*ap_kstack = (uint32) os()->get_mm()->alloc_pages(1) + KSTACK_SIZE;
-        console()->kprintf(PINK, "ap_kstack: %p, %p, %p\n", AP_KSTACK, ap_kstack, *ap_kstack);
-
         m_cpu[i].get_local_apic()->start_ap(m_cpu[i].get_apic_id(), AP_START_ADDR);
 
-        console()->kprintf(YELLOW, "wait ap started\n");
         while (!m_cpu[i].is_started()) {
             delay_t::ms_delay(1000);
-            console()->kprintf(CYAN, "check cpu %u started: %u\n", i, m_cpu[i].is_started());
         }
         console()->kprintf(YELLOW, "CPU %u started.\n", m_cpu[i].get_apic_id());
     }
@@ -153,3 +141,4 @@ cpu_t* arch_t::get_current_cpu()
 
     return cpu;
 }
+

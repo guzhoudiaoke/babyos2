@@ -14,6 +14,8 @@
 #include "i8254.h"
 #include "io_apic.h"
 #include "mp_config.h"
+#include "pci.h"
+#include "rtl8139.h"
 
 #define MAX_CPU_NUM 8
 
@@ -34,6 +36,7 @@ public:
     i8254_t*    get_8254();
     rtc_t*      get_rtc();
     io_apic_t*  get_io_apic();
+    pci_t*      get_pci();
 
     void        add_processor(uint32 id, uint32 is_bsp);
     void        start_ap();
@@ -49,6 +52,8 @@ private:
     rtc_t       m_rtc;
     io_apic_t   m_io_apic;
     mp_config_t m_mp_config;
+    pci_t       m_pci;
+    rtl8139_t   m_rtl8139;
 };
 
 #endif

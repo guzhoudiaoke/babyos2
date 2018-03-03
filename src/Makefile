@@ -41,6 +41,7 @@ OBJS = \
 	timer_mgr.o\
 	process_mgr.o\
 	delay.o\
+	pci.o\
 
 AS = as --32
 CC = gcc -m32
