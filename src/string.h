@@ -6,6 +6,8 @@
 #ifndef _STRING_H_
 #define _STRING_H_
 
+#include "arg.h"
+
 void* memmov(void* dst, const void* src, uint32 n);
 void* memcpy(void* dst, const void* src, uint32 n);
 void* memset(void* dst, uint32 c, uint32 n);
@@ -16,5 +18,8 @@ char* strncpy(char* dst, const char* src, int n);
 int   strcmp(const char* s1, const char *s2);
 int   strlen(const char* s);
 int   strncmp(const char* s1, const char *s2, int n);
+
+bool  is_digit(char c);
+int   vsprintf(char *buffer, const char *fmt, va_list ap);
 
 #endif

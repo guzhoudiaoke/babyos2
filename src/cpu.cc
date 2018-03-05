@@ -242,6 +242,7 @@ void cpu_t::do_exception(trap_frame_t* frame)
     else {
         console()->kprintf(RED, "Error Interrupt: %x, RESERVED!\n", trapno);
     }
+
     while (1) {
         halt();
     }
@@ -249,6 +250,12 @@ void cpu_t::do_exception(trap_frame_t* frame)
 
 void cpu_t::do_interrupt(uint32 trapno)
 {
+    if (trapno == IRQ_0 + os()->get_arch()->get_rtl8139()->get_irq()) {
+        os()->get_arch()->get_rtl8139()->do_irq();
+        m_local_apic.eoi();
+        return;
+    }
+
     switch (trapno) {
         case IRQ_0 + IRQ_KEYBOARD:
             os()->get_arch()->get_keyboard()->do_irq();

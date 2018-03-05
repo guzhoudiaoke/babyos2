@@ -44,8 +44,13 @@ void pci_device_bar_t::dump()
     console()->kprintf(PINK, "len: %x\n", m_length);
 }
 
-void pci_device_t::init(uint16 vendor_id, uint16 device_id, uint32 class_code, uint8 revision, bool multi_function)
+void pci_device_t::init(uint8 bus, uint8 dev, uint8 function, uint16 vendor_id, uint16 device_id, 
+                        uint32 class_code, uint8 revision, bool multi_function)
 {
+    m_bus = bus;
+    m_dev = dev;
+    m_function = function;
+
     m_vendor_id = vendor_id;
     m_device_id = device_id;
     m_multi_function = multi_function;
@@ -66,6 +71,7 @@ void pci_device_t::dump()
     console()->kprintf(CYAN, "revision:       %x\n", m_revision);
     console()->kprintf(CYAN, "multi function: %u\n", m_multi_function);
     console()->kprintf(CYAN, "interrupt line: %u\n", m_interrupt_line);
+    console()->kprintf(CYAN, "interrupt pin:  %u\n", m_interrupt_pin);
     for (int i = 0; i < 6; i++) {
         if (m_bar[i].m_type != pci_device_bar_t::TYPE_INVALID) {
             console()->kprintf(CYAN, "bar %u: \n", i);
@@ -74,13 +80,33 @@ void pci_device_t::dump()
     }
 }
 
+uint32 pci_device_t::get_io_addr()
+{
+    for (int i = 0; i < 6; i++) {
+        if (m_bar[i].m_type == pci_device_bar_t::TYPE_IO) {
+            return m_bar[i].m_base_addr;
+        }
+    }
+
+    return 0;
+}
+
+uint32 pci_device_t::get_interrupt_line()
+{
+    return m_interrupt_line;
+}
+
 /*****************************************************************/
 
 void pci_t::init()
 {
     console()->kprintf(GREEN, "\n");
     console()->kprintf(GREEN, "********************** init pci **********************\n");
+
+    m_device_pool.init(sizeof(pci_device_t));
+    m_devices.init(os()->get_obj_pool_of_size());
     enum_buses();
+
     console()->kprintf(GREEN, "********************** init pci **********************\n");
     console()->kprintf(GREEN, "\n");
 }
@@ -116,8 +142,8 @@ void pci_t::check_device(uint8 bus, uint8 device)
     uint32 classcode = val >> 8;
     uint8 revision = val & 0xff;
 
-    pci_device_t pci_device;
-    pci_device.init(vendor_id, device_id, classcode, revision, (header_type & 0x80));
+    pci_device_t *pci_device = (pci_device_t *) m_device_pool.alloc_from_pool();
+    pci_device->init(bus, device, function, vendor_id, device_id, classcode, revision, (header_type & 0x80));
 
     for (int bar = 0; bar < 6; bar++) {
         int reg = PCI_CONFIG_BASE_ADDR0 + (bar*4);
@@ -127,18 +153,20 @@ void pci_t::check_device(uint8 bus, uint8 device)
         write(bus, device, function, reg, val);
 
         if (len != 0 && len != 0xffffffff) {
-            pci_device.m_bar[bar].init(val, len);
+            pci_device->m_bar[bar].init(val, len);
         }
     }
 
     val = read(bus, device, function, PCI_CONFIG_INTR);
     if ((val & 0xff) > 0 && (val & 0xff) < 32) {
         uint32 irq = val & 0xff;
-        pci_device.m_interrupt_line = irq;
+        pci_device->m_interrupt_line = irq;
+        pci_device->m_interrupt_pin = (irq >> 8);
     }
 
     console()->kprintf(YELLOW, "pci device at bus: %u, device: %u\n", bus, device);
-    pci_device.dump();
+    pci_device->dump();
+    m_devices.push_back(pci_device);
 }
 
 uint32 pci_t::read(uint32 bus, uint32 device, uint32 function, uint32 addr)
@@ -151,5 +179,27 @@ void pci_t::write(uint32 bus, uint32 device, uint32 function, uint32 addr, uint3
 {
     outl(PCI_CONFIG_ADDR, ((uint32) 0x80000000 | (bus << 16) | (device << 11) | (function << 8) | addr));
     outl(PCI_CONFIG_DATA, val);
+}
+
+pci_device_t* pci_t::get_device(uint16 vendor_id, uint16 device_id)
+{
+    list_t<pci_device_t*>::iterator it = m_devices.begin();
+    while (it != m_devices.end()) {
+        if ((*it)->m_vendor_id == vendor_id && (*it)->m_device_id == device_id) {
+            return *it;
+        }
+        it++;
+    }
+    return NULL;
+}
+
+void pci_t::enable_bus_mastering(pci_device_t* device)
+{
+    uint32 val = read(device->m_bus, device->m_dev, device->m_function, PCI_CONFIG_COMMAND);
+    val |= 4;
+    write(device->m_bus, device->m_dev, device->m_function, PCI_CONFIG_COMMAND, val);
+
+    val = read(device->m_bus, device->m_dev, device->m_function, PCI_CONFIG_COMMAND);
+    console()->kprintf(BLUE, "command: %x\n", val);
 }
 

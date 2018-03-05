@@ -42,6 +42,7 @@ OBJS = \
 	process_mgr.o\
 	delay.o\
 	pci.o\
+	rtl8139.o\
 
 AS = as --32
 CC = gcc -m32

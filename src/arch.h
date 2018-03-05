@@ -30,6 +30,7 @@ public:
     cpu_t*      get_cpu(uint32 id);
     cpu_t*      get_boot_processor();
     cpu_t*      get_current_cpu();
+    uint32      get_cpu_num();
 
     i8259a_t*   get_8259a();
     keyboard_t* get_keyboard();
@@ -37,6 +38,7 @@ public:
     rtc_t*      get_rtc();
     io_apic_t*  get_io_apic();
     pci_t*      get_pci();
+    rtl8139_t*  get_rtl8139();
 
     void        add_processor(uint32 id, uint32 is_bsp);
     void        start_ap();

@@ -53,7 +53,6 @@ cpu_t* arch_t::get_boot_processor()
 void arch_t::add_processor(uint32 id, uint32 is_bsp)
 {
     if (m_cpu_num < MAX_CPU_NUM) {
-        //console()->kprintf(CYAN, "add processor: id: %u, is bsp: %u\n", id, is_bsp ? 1 : 0);
         m_cpu[m_cpu_num].init(id, is_bsp);
         if (is_bsp) {
             m_boot_processor = &m_cpu[m_cpu_num];
@@ -61,6 +60,11 @@ void arch_t::add_processor(uint32 id, uint32 is_bsp)
 
         m_cpu_num++;
     }
+}
+
+uint32 arch_t::get_cpu_num()
+{
+    return m_cpu_num;
 }
 
 i8259a_t* arch_t::get_8259a()
@@ -93,6 +97,11 @@ pci_t* arch_t::get_pci()
     return &m_pci;
 }
 
+rtl8139_t* arch_t::get_rtl8139()
+{
+    return &m_rtl8139;
+}
+
 extern "C" int apmain(void);
 extern pde_t entry_pg_dir[];
 extern uint32 _binary_start_ap_start[], _binary_start_ap_size[];
@@ -119,7 +128,7 @@ void arch_t::start_ap()
         m_cpu[i].get_local_apic()->start_ap(m_cpu[i].get_apic_id(), AP_START_ADDR);
 
         while (!m_cpu[i].is_started()) {
-            delay_t::ms_delay(1000);
+            delay_t::ms_delay(10);
         }
         console()->kprintf(YELLOW, "CPU %u started.\n", m_cpu[i].get_apic_id());
     }

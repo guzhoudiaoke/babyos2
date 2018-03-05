@@ -8,9 +8,15 @@
 
 static inline uint8 inb(uint16 port)
 {
-    uint8 data;
+    uint16 data;
+    __asm__ volatile("inb %1,%0" : "=a" (data) : "d" (port));
+    return data;
+}
 
-    __asm__ volatile("in %1,%0" : "=a" (data) : "d" (port));
+static inline uint8 inw(uint16 port)
+{
+    uint16 data;
+    __asm__ volatile("inw %1,%0" : "=a" (data) : "d" (port));
     return data;
 }
 
@@ -24,12 +30,12 @@ static inline void insl(int port, void *addr, int cnt)
 
 static inline void outb(uint16 port, uint8 data)
 {
-    __asm__ volatile("out %0,%1" : : "a" (data), "d" (port));
+    __asm__ volatile("outb %0,%1" : : "a" (data), "d" (port));
 }
 
 static inline void outw(uint16 port, uint16 data)
 {
-    __asm__ volatile("out %0,%1" : : "a" (data), "d" (port));
+    __asm__ volatile("outw %0,%1" : : "a" (data), "d" (port));
 }
 
 static inline void outl(uint16 port, uint32 val)

@@ -64,12 +64,19 @@ void mp_config_io_apic_entry_t::dump()
 
 void mp_config_io_interrupt_entry_t::dump()
 {
-    console()->kprintf(GREEN, "mp config io interrupt entry: \n");
-    console()->kprintf(PINK, "interrupt type:     %x\n", m_interrupt_type);
-    console()->kprintf(PINK, "io interrupt flag:  %x\n", m_io_interrupt_flag);
-    console()->kprintf(PINK, "source bus id:      %x\n", m_source_bus_id);
-    console()->kprintf(PINK, "source bus irq:     %x\n", m_source_bus_irq);
-    console()->kprintf(PINK, "dest io apic id:    %x\n", m_destination_io_apic_id);
+    //console()->kprintf(GREEN, "mp config io interrupt entry: \n");
+    //console()->kprintf(PINK, "interrupt type:     %x\n", m_interrupt_type);
+    //console()->kprintf(PINK, "io interrupt flag:  %x\n", m_io_interrupt_flag);
+    //console()->kprintf(PINK, "source bus id:      %x\n", m_source_bus_id);
+    //console()->kprintf(PINK, "source bus irq:     %x\n", m_source_bus_irq);
+    //console()->kprintf(PINK, "dest io apic id:    %x\n", m_destination_io_apic_id);
+    //console()->kprintf(PINK, "dest io apic intin: %x\n", m_destination_io_apic_intin);
+    
+    console()->kprintf(PINK, "interrupt type:     %x,", m_interrupt_type);
+    console()->kprintf(PINK, "io interrupt flag:  %x,", m_io_interrupt_flag);
+    console()->kprintf(PINK, "source bus id:      %x,", m_source_bus_id);
+    console()->kprintf(PINK, "source bus irq:     %x,", m_source_bus_irq);
+    console()->kprintf(PINK, "dest io apic id:    %x,", m_destination_io_apic_id);
     console()->kprintf(PINK, "dest io apic intin: %x\n", m_destination_io_apic_intin);
 }
 
@@ -199,7 +206,7 @@ void mp_config_t::parse_config_entries()
         case entry_processor:
             {
                 mp_config_processor_entry_t* e = (mp_config_processor_entry_t *) config;
-                e->dump();
+                //e->dump();
                 os()->get_arch()->add_processor(e->m_local_apic_id, e->m_cpu_flags & 0x2);
                 config += sizeof(mp_config_processor_entry_t);
             }
@@ -207,7 +214,7 @@ void mp_config_t::parse_config_entries()
         case entry_bus:
             {
                 mp_config_bus_entry_t* e = (mp_config_bus_entry_t *) config;
-                e->dump();
+                //e->dump();
                 config += sizeof(mp_config_bus_entry_t);
             }
             break;
