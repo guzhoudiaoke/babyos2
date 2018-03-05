@@ -149,13 +149,17 @@ int sprint_int(char* buffer, int n, int width, int base, bool sign)
         width = i;
     }
 
-    int len = i;
-    while (--i >= 0) {
-        *buffer++ = buf[i];
+    for (int j = 0; j < width - i; j++) {
+        if (base == 16) {
+            *buffer++ = '0';
+        }
+        else {
+            *buffer++ = ' ';
+        }
     }
 
-    for (int i = 0; i < width - len; i++) {
-        *buffer++ = ' ';
+    while (--i >= 0) {
+        *buffer++ = buf[i];
     }
 
     return width;
@@ -241,6 +245,5 @@ int vsprintf(char *buffer, const char *fmt, va_list ap)
         }
     }
 
-    //va_end(ap);
     return total;
 }

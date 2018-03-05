@@ -39,9 +39,9 @@ void pci_device_bar_t::init(uint32 addr_reg_val, uint32 len_reg_val)
 
 void pci_device_bar_t::dump()
 {
-    console()->kprintf(PINK, "type: %s\t", m_type == TYPE_IO ? "io base address" : "mem base address");
-    console()->kprintf(PINK, "base address: %x\t", m_base_addr);
-    console()->kprintf(PINK, "len: %x\n", m_length);
+    console()->kprintf(PINK, "type: %s, ", m_type == TYPE_IO ? "io base address" : "mem base address");
+    console()->kprintf(PINK, "base address: 0x%8x, ", m_base_addr);
+    console()->kprintf(PINK, "len: 0x%x\n", m_length);
 }
 
 void pci_device_t::init(uint8 bus, uint8 dev, uint8 function, uint16 vendor_id, uint16 device_id, 
@@ -65,10 +65,10 @@ void pci_device_t::init(uint8 bus, uint8 dev, uint8 function, uint16 vendor_id, 
 
 void pci_device_t::dump()
 {
-    console()->kprintf(CYAN, "vendor id:      %x\n", m_vendor_id);
-    console()->kprintf(CYAN, "device id:      %x\n", m_device_id);
-    console()->kprintf(CYAN, "class code:     %x\n", m_class_code);
-    console()->kprintf(CYAN, "revision:       %x\n", m_revision);
+    console()->kprintf(CYAN, "vendor id:      0x%x\n", m_vendor_id);
+    console()->kprintf(CYAN, "device id:      0x%x\n", m_device_id);
+    console()->kprintf(CYAN, "class code:     0x%x\n", m_class_code);
+    console()->kprintf(CYAN, "revision:       0x%x\n", m_revision);
     console()->kprintf(CYAN, "multi function: %u\n", m_multi_function);
     console()->kprintf(CYAN, "interrupt line: %u\n", m_interrupt_line);
     console()->kprintf(CYAN, "interrupt pin:  %u\n", m_interrupt_pin);
@@ -136,7 +136,6 @@ void pci_t::check_device(uint8 bus, uint8 device)
 
     val = read(bus, device, function, PCI_CONFIG_COMMAND);
     uint16 command = val & 0xffff;
-    console()->kprintf(BLUE, "command: %x\n", command);
 
     val = read(bus, device, function, PCI_CONFIG_CLASS_REV);
     uint32 classcode = val >> 8;
@@ -200,6 +199,6 @@ void pci_t::enable_bus_mastering(pci_device_t* device)
     write(device->m_bus, device->m_dev, device->m_function, PCI_CONFIG_COMMAND, val);
 
     val = read(device->m_bus, device->m_dev, device->m_function, PCI_CONFIG_COMMAND);
-    console()->kprintf(BLUE, "command: %x\n", val);
+    console()->kprintf(GREEN, "after enable bus mastering, command: %x\n", val);
 }
 

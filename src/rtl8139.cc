@@ -73,7 +73,7 @@ void rtl8139_t::init()
     for (int i = 0; i < 6; i++) {
         m_mac_addr[i] = inb(m_io_address + RTL8139_MAC + i);
     }
-    console()->kprintf(YELLOW, "mac addr: %x:%x:%x:%x:%x:%x\n", m_mac_addr[0], m_mac_addr[1],
+    console()->kprintf(YELLOW, "mac addr: %2x:%2x:%2x:%2x:%2x:%2x\n", m_mac_addr[0], m_mac_addr[1],
             m_mac_addr[2], m_mac_addr[3], m_mac_addr[4], m_mac_addr[5]);
 
     /* send 0x00 to CONFIG_1 register to set the LWAKE + LWPTN to active high, 
@@ -127,7 +127,7 @@ uint32 rtl8139_t::get_irq()
 
 void rtl8139_t::do_irq()
 {
-    console()->kprintf(PINK, "rtl8139 interrupt(by cpu %u):\t", os()->get_arch()->get_current_cpu()->get_apic_id());
+    console()->kprintf(PINK, "rtl8139 interrupt(by cpu %u): ", os()->get_arch()->get_current_cpu()->get_apic_id());
 
     uint32 status = inw(m_io_address + RTL8139_INTR_STATUS);
     outw(m_io_address + RTL8139_INTR_STATUS, status);
@@ -139,10 +139,10 @@ void rtl8139_t::do_irq()
         console()->kprintf(PINK, "TXOK\n");
 
         uint32 tx_status = inl(m_io_address + RTL8139_TX_STATUS0);
-        console()->kprintf(YELLOW, "do_irq TX_STATUS0: %x\n", tx_status);
+        console()->kprintf(YELLOW, "do_irq TX_STATUS0: 0x%8x\n", tx_status);
     }
     else {
-        console()->kprintf(PINK, "%x\n", status);
+        console()->kprintf(PINK, "0x%8x\n", status);
     }
 }
 
@@ -157,7 +157,7 @@ int32 rtl8139_t::transmit(char* buf, uint32 len)
     memcpy(tx_buf[cur_tx], buf, len);
 
     uint32 status = inw(m_io_address + RTL8139_INTR_STATUS);
-    console()->kprintf(GREEN, "transmit TX_STATUS0: %x, INTR_STATUS: %x\n", 
+    console()->kprintf(GREEN, "transmit TX_STATUS0: 0x%8x, INTR_STATUS: %x\n", 
             inl(m_io_address + RTL8139_TX_STATUS0), status);
 
     uint32 flags;
@@ -165,7 +165,7 @@ int32 rtl8139_t::transmit(char* buf, uint32 len)
     outl(m_io_address + RTL8139_TX_ADDR0 + cur_tx * 4, VA2PA(tx_buf[cur_tx]));
     outl(m_io_address + RTL8139_TX_STATUS0 + cur_tx * 4, (256 << 16) | 0x0 | len);
     cur_tx = (cur_tx + 1) % 4;
-    console()->kprintf(GREEN, "after transmit TX_STATUS0: %x\n", inl(m_io_address + RTL8139_TX_STATUS0));
+    console()->kprintf(GREEN, "after transmit TX_STATUS0: 0x%8x\n", inl(m_io_address + RTL8139_TX_STATUS0));
     restore_flags(flags);
 
 

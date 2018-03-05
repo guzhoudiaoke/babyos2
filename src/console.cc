@@ -210,6 +210,27 @@ void console_t::print_int(int32 n, int32 base, int32 sign, color_ref_t color)
 // only support %d %u %x %p %c %s, and seems enough for now
 void console_t::kprintf(color_ref_t color, const char *fmt, ...)
 {
+    static char buffer[BUFFER_SIZE] = {0};
+    if (fmt == NULL) {
+        return;
+    }
+
+    uint32 flags;
+    m_lock.lock_irqsave(flags);
+
+    memset(buffer, 0, BUFFER_SIZE);
+    va_list ap;
+    va_start(ap, fmt);
+    int total = vsprintf(buffer, fmt, ap);
+    va_end(ap);
+
+    for (int i = 0; i < total; i++) {
+        putc(buffer[i], color);
+    }
+    m_lock.unlock_irqrestore(flags);
+
+#if 0
+
     uint32 flags;
     m_lock.lock_irqsave(flags);
     if (fmt == NULL) {
@@ -267,6 +288,7 @@ void console_t::kprintf(color_ref_t color, const char *fmt, ...)
 
     va_end(ap);
     m_lock.unlock_irqrestore(flags);
+#endif
 }
 
 void console_t::draw_time()
