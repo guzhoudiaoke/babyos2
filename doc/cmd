@@ -1,0 +1,1 @@
+sudo qemu-system-i386   -hda baby_hd.img -hdb fs.img -m size=128M -net dump,file=traffic.pcap -netdev tap,id=br0 -device rtl8139,netdev=br0

@@ -150,14 +150,8 @@ int sprint_int(char* buffer, int n, int width, int base, bool sign)
     }
 
     for (int j = 0; j < width - i; j++) {
-        if (base == 16) {
-            *buffer++ = '0';
-        }
-        else {
-            *buffer++ = ' ';
-        }
+        *buffer++ = base == 16 ? '0' : ' ';
     }
-
     while (--i >= 0) {
         *buffer++ = buf[i];
     }

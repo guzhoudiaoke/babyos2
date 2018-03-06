@@ -191,7 +191,7 @@ void mm_t::init_mem_range()
     console()->kprintf(WHITE, "the memory info from int 0x15, eax=0xe820:\n");
     console()->kprintf(WHITE, "type\t\taddress\t\tlength\n");
     for (uint32 i = 0; i < info->num_of_range; i++) {
-        console()->kprintf(RED, "%x\t%x\t%x\n", 
+        console()->kprintf(RED, "0x%8x\t0x%8x\t0x%8x\n", 
                 info->ranges[i].type,
                 info->ranges[i].base_addr_low,
                 info->ranges[i].base_addr_low + info->ranges[i].length_low);
@@ -211,7 +211,7 @@ void mm_t::init_mem_range()
 
     m_mem_start = end;
     m_mem_end = (uint8 *)PA2VA(m_usable_phy_mem_end);
-    console()->kprintf(WHITE, "mem_start: 0x%x, mem_end: 0x%x\n", m_mem_start, m_mem_end);
+    console()->kprintf(WHITE, "mem_start: 0x%8x, mem_end: 0x%8x\n", m_mem_start, m_mem_end);
 }
 
 void mm_t::init_pages()

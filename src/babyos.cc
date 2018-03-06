@@ -219,8 +219,13 @@ void test_rtl8139()
                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                  0x00, 0x00, 0x00, 0x00};
 
-    os()->get_arch()->get_rtl8139()->transmit(buffer, 60);
-    os()->get_arch()->get_rtl8139()->transmit(buffer, 60);
+    //for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 3; i++) {
+        //os()->get_arch()->get_rtl8139()->transmit(buffer, 60);
+        //for (int j = 0; j < 1000000000; j++) {
+        //}
+        //buffer[31]++;
+    }
 }
 
 void babyos_t::run()
