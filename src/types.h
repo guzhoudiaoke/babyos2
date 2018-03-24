@@ -72,4 +72,11 @@ typedef struct argument_s {
 } argument_t;
 
 
+typedef struct net_buf_s {
+    uint32  m_data_len;
+    uint8*  m_data;
+    uint8*  m_ext_data;
+} net_buf_t;
+
+
 #endif

@@ -20,6 +20,7 @@ int   strlen(const char* s);
 int   strncmp(const char* s1, const char *s2, int n);
 
 bool  is_digit(char c);
+int   sprintf(char* buffer, const char *fmt, ...);
 int   vsprintf(char *buffer, const char *fmt, va_list ap);
 
 #endif

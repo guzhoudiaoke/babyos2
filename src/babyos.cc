@@ -104,6 +104,7 @@ void babyos_t::init_pools()
 {
     m_pools[VMA_POOL].init(sizeof(vm_area_t));
     m_pools[PIPE_POOL].init(sizeof(pipe_t));
+    m_pools[TIMER_POOL].init(sizeof(timer_t));
 
     for (uint32 i = 1; i <= SMALL_POOL_SIZE; i++) {
         m_pool_of_size[i].init(i);
@@ -210,21 +211,27 @@ void babyos_t::test_fs()
 
 void test_rtl8139()
 {
-    static char buffer[1536] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xec, 0x26,
-                                 0xca, 0x80, 0xba, 0xb6, 0x08, 0x06, 0x00, 0x01,
-                                 0x08, 0x00, 0x06, 0x04, 0x00, 0x01, 0xec, 0x26,
-                                 0xca, 0x80, 0xb1, 0xb6, 0xc0, 0xa8, 0x01, 0x99,
-                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0xa8,
-                                 0x0a, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                 0x00, 0x00, 0x00, 0x00};
+    static char str[64] = {0};
+    static uint32 id = 0;
 
-    //for (int i = 0; i < 10000; i++) {
-    for (int i = 0; i < 3; i++) {
-        //os()->get_arch()->get_rtl8139()->transmit(buffer, 60);
-        //for (int j = 0; j < 1000000000; j++) {
+    for (int i = 0; i < 10000; i++) {
+        uint32 ip = net_t::make_ipaddr(192, 168, 1, 105);
+        //if (os()->get_net()->get_ipaddr() != ip) {
+        //    os()->get_net()->arp_request(ip);
         //}
-        //buffer[31]++;
+
+        //uint32 ip2 = net_t::make_ipaddr(192, 168, 1, 103);
+        //if (os()->get_net()->get_ipaddr() != ip2) {
+        //    os()->get_net()->arp_request(ip2);
+        //}
+        for (int j = 0; j < 1000000000; j++) {
+        }
+
+        if (os()->get_net()->get_ipaddr() != ip) {
+            //os()->get_net()->arp_request(ip);
+            sprintf(str, "Hello 192.168.1.105, This is a raw ip package. id: %u", id++);
+            os()->get_net()->get_ip()->transmit(ip, (uint8 *) str, strlen(str) + 1, 0xff);
+        }
     }
 }
 
@@ -236,7 +243,7 @@ void babyos_t::run()
     m_console.init();
 
     m_console.kprintf(YELLOW, "Welcome to babyos\n");
-    m_console.kprintf(YELLOW,   "Author:\tguzhoudiaoke@126.com\n");
+    m_console.kprintf(YELLOW, "Author:\tguzhoudiaoke@126.com\n");
 
     m_mm.init();
     init_pools();
@@ -251,6 +258,7 @@ void babyos_t::run()
 
     m_timer_mgr.init();
     m_process_mgr.init();
+    m_net.init();
 
     /* start aps */
     m_arch.start_ap();
@@ -324,13 +332,6 @@ void babyos_t::panic(const char* s)
     }
 }
 
-//uint32 babyos_t::get_next_pid()
-//{
-//    uint32 pid = atomic_read(&m_next_pid);
-//    atomic_inc(&m_next_pid);
-//    return pid;
-//}
-
 file_system_t* babyos_t::get_fs()
 {
     return &m_fs;
@@ -354,5 +355,10 @@ timer_mgr_t* babyos_t::get_timer_mgr()
 process_mgr_t* babyos_t::get_process_mgr()
 {
     return &m_process_mgr;
+}
+
+net_t* babyos_t::get_net()
+{
+    return &m_net;
 }
 

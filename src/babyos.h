@@ -19,10 +19,12 @@
 #include "pipe.h"
 #include "timer_mgr.h"
 #include "process_mgr.h"
+#include "net.h"
 
 enum pool_type_e {
 	VMA_POOL = 0,
     PIPE_POOL,
+    TIMER_POOL,
 	MAX_POOL,
 };
 
@@ -48,13 +50,13 @@ public:
     arch_t*         get_arch();
 	object_pool_t*  get_obj_pool(uint32 type);
 	object_pool_t*  get_obj_pool_of_size();
-    //uint32          get_next_pid();
     file_system_t*  get_fs();
     dev_op_t*       get_dev(uint32 type);
     hard_disk_t*    get_hd();
     block_dev_t*    get_block_dev();
     timer_mgr_t*    get_timer_mgr();
     process_mgr_t*  get_process_mgr();
+    net_t*          get_net();
 
     static babyos_t* get_os();
 
@@ -76,7 +78,7 @@ private:
     block_dev_t     m_block_dev;
     timer_mgr_t     m_timer_mgr;
     process_mgr_t   m_process_mgr;
-    pci_t           m_pci;
+    net_t           m_net;
 };
 
 #define os()	    babyos_t::get_os()

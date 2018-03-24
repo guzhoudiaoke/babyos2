@@ -51,8 +51,8 @@ uint32 i8254_t::get_timer_count()
     return count;
 }
 
-uint64 i8254_t::get_tick()
-{
-    return m_tick;
-}
+//uint64 i8254_t::get_tick()
+//{
+//    return m_tick;
+//}
 

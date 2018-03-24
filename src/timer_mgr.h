@@ -18,7 +18,7 @@ public:
     void remove_timer(timer_t* timer);
 
 private:
-    list_t<timer_t*>    m_timer_list;
+    list_t<timer_t *>    m_timer_list;
 };
 
 #endif

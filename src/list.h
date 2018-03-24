@@ -66,13 +66,31 @@ public:
             m_ptr = it.m_ptr;
             return *this;
         }
-        T operator * () {
+        T& operator * () {
             return m_ptr->m_data;
         }
 
     private:
         list_node_t<T>* m_ptr;
     };
+
+    list_t<T>() {
+        m_head = NULL;
+        m_tail = NULL;
+        m_pool = NULL;
+        m_size = 0;
+    }
+
+    ~list_t<T>() {
+        list_node_t<T>* p = m_head;
+        while (p != NULL) {
+            list_node_t<T>* d = p;
+            p = p->m_next;
+            free_node(d);
+        }
+        m_head = m_tail = NULL;
+        m_size = 0;
+    }
 
     void init(object_pool_t* pools) {
         m_head = NULL;
@@ -88,6 +106,28 @@ public:
             m_pool = &pools[node_size];
         }
         m_lock.init();
+    }
+
+    list_t<T>& operator = (const list_t<T>& list) {
+        m_head = NULL;
+        m_tail = NULL;
+        m_size = 0;
+
+        uint32 node_size = sizeof(list_node_t<T>);
+        if (node_size > SMALL_POOL_SIZE) {
+            m_big_pool.init(node_size);
+            m_pool = &m_big_pool;
+        }
+        else {
+            m_pool = list.m_pool;
+        }
+        m_lock.init();
+
+        const list_node_t<T>* p = list.m_head;
+        while (p != NULL) {
+            push_back(p->m_data);
+            p = p->m_next;
+        }
     }
 
     list_node_t<T>* alloc_node(const T& data) {

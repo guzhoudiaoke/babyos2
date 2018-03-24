@@ -29,6 +29,7 @@ public:
     int  init();
     void start_ap(uint32 id, uint32 addr);
     uint32 get_clocks();
+    uint64 get_tick();
 
     static uint32 get_apic_id();
 

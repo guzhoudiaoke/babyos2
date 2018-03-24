@@ -7,6 +7,7 @@
 #define _RTL_8139_H_
 
 #include "types.h"
+#include "net.h"
 
 #define NUM_TX_BUFFER   4
 
@@ -15,7 +16,7 @@ public:
     void init();
     uint32 get_irq();
     void do_irq();
-    int32 transmit(char* buf, uint32 len);
+    int32 transmit(net_buf_t* buf);
 
 private:
     uint32 get_info_from_pci();

@@ -358,3 +358,8 @@ uint32 local_apic_t::get_clocks()
     return m_clocks;
 }
 
+uint64 local_apic_t::get_tick()
+{
+    return m_tick;
+}
+

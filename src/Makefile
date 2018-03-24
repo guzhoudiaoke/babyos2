@@ -43,6 +43,10 @@ OBJS = \
 	delay.o\
 	pci.o\
 	rtl8139.o\
+	net.o\
+	ethernet.o\
+	arp.o\
+	ip.o\
 
 AS = as --32
 CC = gcc -m32
@@ -65,6 +69,8 @@ babyos: boot loader kernel init shell ls cat ln mkdir rm cp mv
 	dd if=kernel            of=baby_hd.img ibs=512 seek=3           conv=notrunc
 	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=2040        conv=notrunc
 	../tool/mkfs ./init ./shell ./ls ./cat ./ln ./mkdir ./rm ./cp ./mv
+	cp fs.img fs1.img
+	cp baby_hd.img baby_hd1.img
 
 boot: boot.S
 	${CPP} ${CPPFLAGS} -c boot.S

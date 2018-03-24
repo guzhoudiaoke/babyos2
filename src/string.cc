@@ -48,7 +48,7 @@ int memcmp(const void* b1, const void* b2, uint32 n)
         return 0;
     }
 
-    while (n-- && *((char *)b1) == *((char *)b2)) {
+    while (--n && *((char *)b1) == *((char *)b2)) {
         b1 = (char *) b1 + 1;
         b2 = (char *) b2 + 1;
     }
@@ -241,3 +241,14 @@ int vsprintf(char *buffer, const char *fmt, va_list ap)
 
     return total;
 }
+
+int sprintf(char* buffer, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    int total = vsprintf(buffer, fmt, ap);
+    va_end(ap);
+
+    return total;
+}
+

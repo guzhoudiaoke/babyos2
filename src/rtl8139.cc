@@ -69,7 +69,7 @@ uint32 rtl8139_t::get_info_from_pci()
 
 void rtl8139_t::init()
 {
-    console()->kprintf(CYAN, "*********************** init RTL8192 ****************************\n");
+    console()->kprintf(CYAN, "*********************** init RTL8139 ****************************\n");
 
     if (get_info_from_pci() != 0) {
         return;
@@ -79,6 +79,7 @@ void rtl8139_t::init()
     for (int i = 0; i < 6; i++) {
         m_mac_addr[i] = inb(m_io_address + RTL8139_MAC + i);
     }
+    os()->get_net()->set_eth_addr(m_mac_addr);
     console()->kprintf(YELLOW, "mac addr: %2x:%2x:%2x:%2x:%2x:%2x\n", m_mac_addr[0], m_mac_addr[1],
             m_mac_addr[2], m_mac_addr[3], m_mac_addr[4], m_mac_addr[5]);
 
@@ -134,7 +135,7 @@ void rtl8139_t::init()
     /* enable interrupt */
     os()->get_arch()->get_io_apic()->enable_irq(m_irq, os()->get_arch()->get_cpu_num()-1);
 
-    console()->kprintf(CYAN, "*********************** init RTL8192 ****************************\n\n");
+    console()->kprintf(CYAN, "*********************** init RTL8139 ****************************\n\n");
 }
 
 uint32 rtl8139_t::get_irq()
@@ -144,7 +145,7 @@ uint32 rtl8139_t::get_irq()
 
 void rtl8139_t::do_irq()
 {
-    console()->kprintf(PINK, "interrupt, ");
+    //console()->kprintf(PINK, "interrupt, ");
 
     uint32 status = inw(m_io_address + RTL8139_INTR_STATUS);
     outw(m_io_address + RTL8139_INTR_STATUS, status);
@@ -154,28 +155,28 @@ void rtl8139_t::do_irq()
     }
     else if (status & RTL8139_TX_OK) {
         uint32 tx_status = inl(m_io_address + RTL8139_TX_STATUS0);
-        console()->kprintf(YELLOW, "TXOK, TX_STATUS0: 0x%8x\n", tx_status);
+        //console()->kprintf(YELLOW, "TXOK, TX_STATUS0: 0x%8x\n", tx_status);
     }
     else {
         console()->kprintf(PINK, "0x%8x\n", status);
     }
 
-    console()->kprintf(PINK, "\n");
+    //console()->kprintf(PINK, "\n");
 }
 
-int32 rtl8139_t::transmit(char* buf, uint32 len)
+int32 rtl8139_t::transmit(net_buf_t* buf)
 {
-    memcpy(m_tx_buffers[m_current_tx], buf, len);
+    memcpy(m_tx_buffers[m_current_tx], buf->m_data, buf->m_data_len);
     uint32 status = inw(m_io_address + RTL8139_INTR_STATUS);
-    console()->kprintf(WHITE, "transmit TX_STATUS0: 0x%8x, INTR_STATUS: %x\n", 
-            inl(m_io_address + RTL8139_TX_STATUS0), status);
+    //console()->kprintf(WHITE, "transmit TX_STATUS0: 0x%8x, INTR_STATUS: %x\n", 
+    //        inl(m_io_address + RTL8139_TX_STATUS0), status);
 
     uint32 flags;
     local_irq_save(flags);
     outl(m_io_address + RTL8139_TX_ADDR0 + m_current_tx * 4, VA2PA(m_tx_buffers[m_current_tx]));
-    outl(m_io_address + RTL8139_TX_STATUS0 + m_current_tx * 4, (256 << 16) | 0x0 | len);
+    outl(m_io_address + RTL8139_TX_STATUS0 + m_current_tx * 4, (256 << 16) | 0x0 | buf->m_data_len);
     m_current_tx = (m_current_tx + 1) % 4;
-    console()->kprintf(WHITE, "after transmit TX_STATUS0: 0x%8x\n", inl(m_io_address + RTL8139_TX_STATUS0));
+    //console()->kprintf(WHITE, "after transmit TX_STATUS0: 0x%8x\n", inl(m_io_address + RTL8139_TX_STATUS0));
     restore_flags(flags);
 
     return 0;
@@ -183,19 +184,22 @@ int32 rtl8139_t::transmit(char* buf, uint32 len)
 
 void rtl8139_t::receive()
 {
-    console()->kprintf(PINK, "RXOK, ");
+    //console()->kprintf(PINK, "RXOK, ");
     uint8* rx = m_rx_buffer;
     uint32 cur = m_current_rx;
 
     while ((inb(m_io_address + RTL8139_COMMAND) & 0x01) == 0) {
         uint32 offset = cur % m_rx_buf_len;
-        uint32 status = *(uint32 *) (rx + offset);
+        uint8* buf = rx + offset;
+        uint32 status = *(uint32 *) (buf);
         uint32 size   = status >> 16;
 
-        console()->kprintf(YELLOW, "[0x%8x, 0x%8x] | ", offset, size);
-        for (int i = 0; i < 16; i++) {
-            console()->kprintf(YELLOW, "%2x ", rx[4 + i + offset]);
-        }
+        //console()->kprintf(YELLOW, "[0x%8x, 0x%8x] | ", offset, size);
+        //for (int i = 0; i < 16; i++) {
+        //    console()->kprintf(YELLOW, "%2x ", rx[4 + i + offset]);
+        //}
+
+        os()->get_net()->receive(buf + 4, size - 4);
 
         cur = (cur + size + 7) & ~3;
         outw(m_io_address + RTL8139_CAPR, cur - 16);

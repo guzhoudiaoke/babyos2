@@ -21,6 +21,9 @@ bool sock_addr_local_t::operator == (const sock_addr_local_t& addr)
 
 socket_local_t::socket_local_t()
 {
+    m_ref = 0;
+    m_addr;
+    m_sock_buf;
 }
 
 void socket_local_t::init_local_sockets()

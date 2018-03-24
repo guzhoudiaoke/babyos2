@@ -1,7 +1,14 @@
-alias qemu="qemu-system-i386 -hda baby_hd.img -hdb fs.img -m size=128M"
-alias qemud="qemu-system-i386 -hda baby_hd.img -hdb fs.img -m size=128M -s -S"
-alias qemu2="qemu-system-i386 -hda baby_hd.img -hdb fs.img -m size=128M -smp 2"
-alias qemud2="qemu-system-i386 -hda baby_hd.img -hdb fs.img -m size=128M -smp 2 -s -S"
+#alias qemu="qemu-system-i386 -hda baby_hd.img -hdb fs.img -m size=128M"
+#alias qemud="qemu-system-i386 -hda baby_hd.img -hdb fs.img -m size=128M -s -S"
+#alias qemu2="qemu-system-i386 -hda baby_hd.img -hdb fs.img -m size=128M -smp 2"
+#alias qemud2="qemu-system-i386 -hda baby_hd.img -hdb fs.img -m size=128M -smp 2 -s -S"
+
+
+alias qemu="sudo qemu-system-i386   -hda baby_hd.img -hdb fs.img -m size=128M -net dump,file=traffic.pcap -netdev tap,id=br0 -device rtl8139,netdev=br0"
+alias qemud="sudo qemu-system-i386   -hda baby_hd.img -hdb fs.img -m size=128M -net dump,file=traffic.pcap -netdev tap,id=br0 -device rtl8139,netdev=br0 -s -S"
+alias qemu2="sudo qemu-system-i386   -hda baby_hd.img -hdb fs.img -m size=128M -net dump,file=traffic.pcap -netdev tap,id=br0 -device rtl8139,netdev=br0 -smp 2"
+alias qemud2="sudo qemu-system-i386   -hda baby_hd.img -hdb fs.img -m size=128M -net dump,file=traffic.pcap -netdev tap,id=br0 -device rtl8139,netdev=br0 -smp 2 -s -S"
+
 
 alias gdb="gdb -q -iex 'add-auto-load-safe-path .'"
 

@@ -21,7 +21,7 @@ public:
     void do_irq();
 
     uint32 get_timer_count();
-    uint64 get_tick();
+    //uint64 get_tick();
 
 private:
     uint64 m_tick;

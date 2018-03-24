@@ -33,7 +33,7 @@ public:
     uint32          m_dev;
     uint32          m_lba;
     uint32          m_cmd;
-    io_buffer_t* m_buffer;
+    io_buffer_t*    m_buffer;
 };
 
 
