@@ -12,6 +12,7 @@
 #include "ethernet.h"
 #include "arp.h"
 #include "ip.h"
+#include "icmp.h"
 
 #define NET_BUF_SIZE        256
 #define NET_BUF_DATA_SIZE   232
@@ -24,26 +25,6 @@
 #define PROTO_IP            0x0800
 #define PROTO_ARP           0x0806
 
-
-__inline uint16 htons(uint16 n)
-{
-  return ((n & 0xFF) << 8) | ((n & 0xFF00) >> 8);
-}
-
-__inline uint16 ntohs(uint16 n)
-{
-  return ((n & 0xFF) << 8) | ((n & 0xFF00) >> 8);
-}
-
-__inline uint32 htonl(uint32 n)
-{
-  return ((n & 0xFF) << 24) | ((n & 0xFF00) << 8) | ((n & 0xFF0000) >> 8) | ((n & 0xFF000000) >> 24);
-}
-
-__inline uint32 ntohl(uint32 n)
-{
-  return ((n & 0xFF) << 24) | ((n & 0xFF00) << 8) | ((n & 0xFF0000) >> 8) | ((n & 0xFF000000) >> 24);
-}
 
 typedef struct packet_s {
     uint32              m_packet_len;
@@ -64,11 +45,16 @@ public:
     ethernet_t* get_ethernet();
     arp_t* get_arp();
     ip_t* get_ip();
+    icmp_t* get_icmp();
 
     uint32 get_ipaddr();
     uint32 get_subnet_mask();
     uint32 get_gateway();
 
+    static uint16 htons(uint16 n);
+    static uint16 ntohs(uint16 n);
+    static uint32 htonl(uint32 n);
+    static uint32 ntohl(uint32 n);
     static uint32 make_ipaddr(uint8 ip0, uint8 ip1, uint8 ip2, uint8 ip3);
     static uint16 check_sum(uint8* data, uint32 len);
     static void dump_ip_addr(uint32 ip);
@@ -80,6 +66,7 @@ private:
     ethernet_t          m_ethernet;
     arp_t               m_arp;
     ip_t                m_ip;
+    icmp_t              m_icmp;
 
     uint32              m_ipaddr;
     uint32              m_subnet_mask;

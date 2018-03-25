@@ -37,7 +37,7 @@ void ethernet_t::transmit(uint8 eth_addr[ETH_ADDR_LEN], uint16 protocol, uint8* 
     net_buf_t* buf = os()->get_net()->alloc_net_buffer(total);
     if (buf != NULL) {
         ethernet_hdr_t eth_hdr;
-        eth_hdr.init(eth_addr, m_eth_addr, ntohs(protocol));
+        eth_hdr.init(eth_addr, m_eth_addr, net_t::ntohs(protocol));
 
         buf->m_data_len = total;
         buf->m_data = (uint8 *) buf + sizeof(net_buf_t);
@@ -74,12 +74,12 @@ void ethernet_t::receive(uint8* data, uint32 len)
 
         ethernet_hdr_t* hdr = (ethernet_hdr_t *) buf->m_data;
 
-        if (htons(hdr->m_proto) == PROTO_ARP) {
+        if (net_t::htons(hdr->m_proto) == PROTO_ARP) {
             buf->m_data += sizeof(ethernet_hdr_t);
             buf->m_data_len -= sizeof(ethernet_hdr_t);
             os()->get_net()->get_arp()->receive(hdr->m_dest, buf);
         }
-        else if (htons(hdr->m_proto) == PROTO_IP) {
+        else if (net_t::htons(hdr->m_proto) == PROTO_IP) {
             buf->m_data += sizeof(ethernet_hdr_t);
             buf->m_data_len -= sizeof(ethernet_hdr_t);
             os()->get_net()->get_ip()->receive(buf);

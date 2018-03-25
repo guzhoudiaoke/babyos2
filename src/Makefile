@@ -47,6 +47,7 @@ OBJS = \
 	ethernet.o\
 	arp.o\
 	ip.o\
+	icmp.o\
 
 AS = as --32
 CC = gcc -m32

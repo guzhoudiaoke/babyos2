@@ -67,15 +67,15 @@ void arp_t::request(uint32 ip)
     static uint8 broadcast_mac_addr[ETH_ADDR_LEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
     arp_hdr_t hdr;
-    hdr.init(ntohs(0x0001),                                 /* ethernet */
-             ntohs(PROTO_IP),                               /* IPv4 */
+    hdr.init(net_t::ntohs(0x0001),                          /* ethernet */
+             net_t::ntohs(PROTO_IP),                        /* IPv4 */
              0x06,                                          /* ethernet addr len */
              0x04,                                          /* IPv4 len */
-             ntohs(ARP_OP_REQUEST),                         /* op */
+             net_t::ntohs(ARP_OP_REQUEST),                  /* op */
              os()->get_net()->get_ethernet()->get_addr(),   /* my mac addr */
-             ntohl(os()->get_net()->get_ipaddr()),          /* my ip addr */
+             net_t::ntohl(os()->get_net()->get_ipaddr()),   /* my ip addr */
              empty_mac_addr,                                /* 0 */
-             ntohl(ip)                                      /* which IP I want to know it's mac addr */
+             net_t::ntohl(ip)                               /* which IP I want to know it's mac addr */
     );
 
     uint32 len = sizeof(arp_hdr_t);
@@ -109,30 +109,33 @@ void arp_t::receive(uint8 ether_addr[ETH_ADDR_LEN], net_buf_t* buf)
     }
 
     arp_hdr_t* hdr = (arp_hdr_t *) buf->m_data;
-    uint32 ip_src = htonl(hdr->m_source_protocol_addr);
+    uint32 ip_src = net_t::htonl(hdr->m_source_protocol_addr);
     uint8* ip_bytes_src = (uint8 *) (&ip_src);
 
-    switch (htons(hdr->m_opcode)) {
+    switch (net_t::htons(hdr->m_opcode)) {
     case ARP_OP_REQUEST:
     {
-        uint32 ip_target = htonl(hdr->m_target_protocol_addr);
+        uint32 ip_target = net_t::htonl(hdr->m_target_protocol_addr);
         uint8* ip_bytes_tgt = (uint8 *) (&ip_target);
         console()->kprintf(CYAN, "%d.%d.%d.%d want to know who have IP: %d.%d.%d.%d\n",
             ip_bytes_src[3], ip_bytes_src[2], ip_bytes_src[1], ip_bytes_src[0],
             ip_bytes_tgt[3], ip_bytes_tgt[2], ip_bytes_tgt[1], ip_bytes_tgt[0]);
 
         if (ip_target == os()->get_net()->get_ipaddr()) {
-            hdr->init(ntohs(0x0001),                                /* ethernet */
-                     ntohs(PROTO_IP),                               /* IPv4 */
-                     0x06,                                          /* ethernet addr len */
-                     0x04,                                          /* IPv4 len */
-                     ntohs(ARP_OP_REPLY),                           /* op */
-                     os()->get_net()->get_ethernet()->get_addr(),   /* my mac addr */
-                     ntohl(os()->get_net()->get_ipaddr()),          /* my ip addr */
-                     ether_addr,                                    /* target ether addr */
-                     ntohl(ip_src)                                  /* target protocol addr */
+            hdr->init(net_t::ntohs(0x0001),                         /* ethernet */
+                      net_t::ntohs(PROTO_IP),                       /* IPv4 */
+                      0x06,                                         /* ethernet addr len */
+                      0x04,                                         /* IPv4 len */
+                      net_t::ntohs(ARP_OP_REPLY),                   /* op */
+                      os()->get_net()->get_ethernet()->get_addr(),  /* my mac addr */
+                      net_t::ntohl(os()->get_net()->get_ipaddr()),  /* my ip addr */
+                      ether_addr,                                   /* target ether addr */
+                      net_t::ntohl(ip_src)                          /* target protocol addr */
             );
 
+            console()->kprintf(GREEN, "arp reply to ip: ");
+            os()->get_net()->dump_ip_addr(ip_src);
+            console()->kprintf(GREEN, " \n");
             os()->get_net()->get_ethernet()->transmit(ether_addr, PROTO_ARP, 
                     buf->m_data, buf->m_data_len);
         }

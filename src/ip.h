@@ -30,6 +30,14 @@ typedef struct ip_hdr_s {
 
 class ip_t {
 public:
+    enum e_protocol {
+        PROTO_ICMP = 1,
+        PROTO_TCP = 6,
+        PROTO_UDP = 17,
+        PROTO_RAW = 0xff
+    };
+
+public:
     void init();
     void transmit(uint32 ip, uint8* data, uint32 len, uint8 protocol);
     void receive(net_buf_t* buf);

@@ -86,17 +86,17 @@ void ip_t::transmit(uint32 ip, uint8* data, uint32 len, uint8 protocol)
     }
 
     ip_hdr_t hdr;
-    hdr.init(sizeof(ip_hdr_t) / 4,                  /* header len */
-             0x4,                                   /* version */
-             0,                                     /* tos */
-             htons(total),                          /* total len */
-             htons(m_next_id++),                    /* id */
-             htons(0),                              /* offset, don't fragment */
-             32,                                    /* ttl */
-             protocol,                              /* protocol */
-             0,                                     /* check sum */
-             htonl(os()->get_net()->get_ipaddr()),  /* source ip */
-             htonl(dst_ip));                        /* dest ip */
+    hdr.init(sizeof(ip_hdr_t) / 4,                          /* header len */
+             0x4,                                           /* version */
+             0,                                             /* tos */
+             net_t::htons(total),                           /* total len */
+             net_t::htons(m_next_id++),                     /* id */
+             net_t::htons(0),                               /* offset, don't fragment */
+             32,                                            /* ttl */
+             protocol,                                      /* protocol */
+             0,                                             /* check sum */
+             net_t::htonl(os()->get_net()->get_ipaddr()),   /* source ip */
+             net_t::htonl(ip));                             /* dest ip */
 
     /* calc check sum */
     hdr.m_check_sum = net_t::check_sum((uint8 *) (&hdr), sizeof(ip_hdr_t));
@@ -111,7 +111,10 @@ void ip_t::transmit(uint32 ip, uint8* data, uint32 len, uint8 protocol)
 
     uint8 eth_addr[ETH_ADDR_LEN] = {0};
     if (os()->get_net()->get_arp()->lookup_cache(dst_ip, eth_addr)) {
-        console()->kprintf(YELLOW, "find mac addr of ip in arp cache\n");
+        console()->kprintf(CYAN, "dest ip: ");
+        net_t::dump_ip_addr(dst_ip);
+        console()->kprintf(CYAN, " -> find mac addr of ip in arp cache\n");
+
         os()->get_net()->get_ethernet()->transmit(eth_addr, PROTO_IP, buffer->m_data, buffer->m_data_len);
         os()->get_net()->free_net_buffer(buffer);
     }
@@ -125,19 +128,23 @@ void ip_t::receive(net_buf_t* buf)
 {
     ip_hdr_t* hdr = (ip_hdr_t *) buf->m_data;
     buf->m_data += sizeof(ip_hdr_t);
+    buf->m_data_len -= sizeof(ip_hdr_t);
 
     if (net_t::check_sum((uint8 *) hdr, sizeof(ip_hdr_t)) != 0) {
         console()->kprintf(RED, "get a ip package, from: ");
-        net_t::dump_ip_addr(hdr->m_src_ip);
+        net_t::dump_ip_addr(net_t::ntohl(hdr->m_src_ip));
         console()->kprintf(RED, " but it's checksum is wrong, drop it\n");
         return;
     }
 
-    if (hdr->m_protocol == 0xff) {
+    if (hdr->m_protocol == PROTO_RAW) {
         console()->kprintf(YELLOW, "get a raw ip package, data: %s\n", buf->m_data);
     }
+    else if (hdr->m_protocol == PROTO_ICMP) {
+        os()->get_net()->get_icmp()->receive(buf, net_t::ntohl(hdr->m_src_ip));
+    }
     else {
-        console()->kprintf(YELLOW, "get a non-raw ip package protocol: %x\n", hdr->m_protocol);
+        console()->kprintf(YELLOW, "get an ip package with protocol: %x, not support.\n", hdr->m_protocol);
     }
 }
 

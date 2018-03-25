@@ -213,9 +213,10 @@ void test_rtl8139()
 {
     static char str[64] = {0};
     static uint32 id = 0;
+    static uint32 seq = 0;
 
     for (int i = 0; i < 10000; i++) {
-        uint32 ip = net_t::make_ipaddr(192, 168, 1, 105);
+        //uint32 ip = net_t::make_ipaddr(192, 168, 1, 105);
         //if (os()->get_net()->get_ipaddr() != ip) {
         //    os()->get_net()->arp_request(ip);
         //}
@@ -227,10 +228,12 @@ void test_rtl8139()
         for (int j = 0; j < 1000000000; j++) {
         }
 
+        uint32 ip = net_t::make_ipaddr(111, 13, 101, 208);
         if (os()->get_net()->get_ipaddr() != ip) {
             //os()->get_net()->arp_request(ip);
-            sprintf(str, "Hello 192.168.1.105, This is a raw ip package. id: %u", id++);
-            os()->get_net()->get_ip()->transmit(ip, (uint8 *) str, strlen(str) + 1, 0xff);
+            //sprintf(str, "Hello 192.168.1.105, This is a raw ip package. id: %u", id++);
+            //os()->get_net()->get_ip()->transmit(ip, (uint8 *) str, strlen(str) + 1, 0xff);
+            os()->get_net()->get_icmp()->echo_request(ip, 0, seq++, NULL, 0);
         }
     }
 }

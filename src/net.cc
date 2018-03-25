@@ -9,6 +9,26 @@
 #include "net.h"
 #include "math.h"
 
+uint16 net_t::htons(uint16 n)
+{
+  return ((n & 0xFF) << 8) | ((n & 0xFF00) >> 8);
+}
+
+uint16 net_t::ntohs(uint16 n)
+{
+  return ((n & 0xFF) << 8) | ((n & 0xFF00) >> 8);
+}
+
+uint32 net_t::htonl(uint32 n)
+{
+  return ((n & 0xFF) << 24) | ((n & 0xFF00) << 8) | ((n & 0xFF0000) >> 8) | ((n & 0xFF000000) >> 24);
+}
+
+uint32 net_t::ntohl(uint32 n)
+{
+  return ((n & 0xFF) << 24) | ((n & 0xFF00) << 8) | ((n & 0xFF0000) >> 8) | ((n & 0xFF000000) >> 24);
+}
+
 uint32 net_t::make_ipaddr(uint8 ip0, uint8 ip1, uint8 ip2, uint8 ip3)
 {
     return (uint32) ((uint32) ip0 << 24) | ((uint32) ip1 << 16) | ((uint32) ip2 << 8) | ip3;
@@ -121,6 +141,11 @@ arp_t* net_t::get_arp()
 ip_t* net_t::get_ip()
 {
     return &m_ip;
+}
+
+icmp_t* net_t::get_icmp()
+{
+    return &m_icmp;
 }
 
 uint16 net_t::check_sum(uint8* data, uint32 len)
