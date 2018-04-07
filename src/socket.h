@@ -7,41 +7,27 @@
 #define _SOCKET_H_
 
 #include "types.h"
-#include "spinlock.h"
 #include "sem.h"
-
-#define SOCK_BUF_SIZE       4096
-
-class sock_addr_t {
-public:
-    uint16 m_family;        /* address family, AF_xxx */
-};
-
-
-class socket_t;
-class sock_buffer_t {
-public:
-    void init(socket_t* socket);
-    int  get_char(char& ch);
-    int  put_char(char ch);
-
-private:
-    socket_t*   m_socket;
-    char        m_buffer[SOCK_BUF_SIZE];
-    uint32      m_read_index;
-    uint32      m_write_index;
-    spinlock_t  m_lock;
-    semaphore_t m_wait_space;
-    semaphore_t m_wait_item;
-};
-
+#include "sock_addr.h"
+#include "sock_buffer.h"
 
 class socket_t {
 public:
     typedef enum address_family_e {
-        AF_LOCAL,
+        AF_LOCAL = 1,
+        AF_INET = 2,
         AF_MAX,
     } address_family_t;
+
+    typedef enum sock_type_e {
+        SOCK_STREAM = 1,
+        SOCK_DGRAM,
+        SOCK_RAW,
+    } sock_type_t;
+
+    typedef enum protocol_e {
+        ICMP = 1,
+    } protocol_t;
 
     typedef enum socket_state_e {
         SS_FREE = 0,
@@ -66,8 +52,11 @@ public:
     virtual int32 listen(uint32 backlog) = 0;
     virtual int32 accept(socket_t* server_socket) = 0;
     virtual int32 connect(sock_addr_t* user_addr) = 0;
+
     virtual int32 read(void* buf, uint32 size) = 0;
     virtual int32 write(void* buf, uint32 size) = 0;
+    virtual int32 sendto(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_to) = 0;
+    virtual int32 recvfrom(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_from) = 0;
 
 public:
     uint32              m_flags;

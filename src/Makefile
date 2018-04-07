@@ -48,6 +48,9 @@ OBJS = \
 	arp.o\
 	ip.o\
 	icmp.o\
+	sock_buffer.o\
+	sock_addr.o\
+	socket_raw.o\
 
 AS = as --32
 CC = gcc -m32
@@ -61,7 +64,7 @@ CPPFLAGS = -g -w -trigraphs -fno-builtin -fno-exceptions -fno-stack-protector -m
 
 all: babyos
 
-babyos: boot loader kernel init shell ls cat ln mkdir rm cp mv
+babyos: boot loader kernel init shell ls cat ln mkdir rm cp mv ping
 	../tool/checksize boot 1
 	../tool/checksize loader 2
 	../tool/checksize kernel 2037
@@ -69,7 +72,7 @@ babyos: boot loader kernel init shell ls cat ln mkdir rm cp mv
 	dd if=loader            of=baby_hd.img ibs=512 seek=1   count=2 conv=notrunc
 	dd if=kernel            of=baby_hd.img ibs=512 seek=3           conv=notrunc
 	dd if=../res/font/ASC16 of=baby_hd.img ibs=512 seek=2040        conv=notrunc
-	../tool/mkfs ./init ./shell ./ls ./cat ./ln ./mkdir ./rm ./cp ./mv
+	../tool/mkfs ./init ./shell ./ls ./cat ./ln ./mkdir ./rm ./cp ./mv ./ping
 	cp fs.img fs1.img
 	cp baby_hd.img baby_hd1.img
 
@@ -128,6 +131,10 @@ mv: mv.cc userlib.o
 	${CPP} ${CPPFLAGS} -O -c mv.cc
 	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o mv mv.o userlib.o
 
+ping: ping.cc userlib.o
+	${CPP} ${CPPFLAGS} -O -c ping.cc
+	${LD} ${LDFLAGS} -e main -Ttext 0x1000 -o ping ping.o userlib.o
+
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< -o  $@
 
@@ -136,5 +143,5 @@ mv: mv.cc userlib.o
 
 
 clean:
-	rm -f boot loader kernel *.o  trace* init shell ls cat cp ln mkdir mv cp rm start_ap
+	rm -f boot loader kernel *.o  trace* init shell ls cat cp ln mkdir mv cp rm ping start_ap
 

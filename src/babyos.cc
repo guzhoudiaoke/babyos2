@@ -215,7 +215,7 @@ void test_rtl8139()
     static uint32 id = 0;
     static uint32 seq = 0;
 
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 100; i++) {
         //uint32 ip = net_t::make_ipaddr(192, 168, 1, 105);
         //if (os()->get_net()->get_ipaddr() != ip) {
         //    os()->get_net()->arp_request(ip);
@@ -225,8 +225,7 @@ void test_rtl8139()
         //if (os()->get_net()->get_ipaddr() != ip2) {
         //    os()->get_net()->arp_request(ip2);
         //}
-        for (int j = 0; j < 1000000000; j++) {
-        }
+        delay_t::ms_delay(2000);
 
         uint32 ip = net_t::make_ipaddr(111, 13, 101, 208);
         if (os()->get_net()->get_ipaddr() != ip) {
@@ -236,6 +235,62 @@ void test_rtl8139()
             os()->get_net()->get_icmp()->echo_request(ip, 0, seq++, NULL, 0);
         }
     }
+}
+
+void test_arp()
+{
+    static char str[64] = {0};
+    static uint32 id = 0;
+    static uint32 seq = 0;
+
+    for (int i = 0; i < 100; i++) {
+        uint32 ip = net_t::make_ipaddr(192, 168, 1, 105);
+        if (os()->get_net()->get_ipaddr() != ip) {
+            os()->get_net()->arp_request(ip);
+        }
+        delay_t::ms_delay(2000);
+    }
+}
+
+void test_ip()
+{
+    static char str[64] = {0};
+    static uint32 id = 0;
+
+    for (int i = 0; i < 100; i++) {
+        delay_t::ms_delay(2000);
+
+        uint32 ip = net_t::make_ipaddr(111, 13, 101, 208);
+        if (os()->get_net()->get_ipaddr() != ip) {
+            os()->get_net()->arp_request(ip);
+            sprintf(str, "Hello 192.168.1.105, This is a raw ip package. id: %u", id++);
+            os()->get_net()->get_ip()->transmit(ip, (uint8 *) str, strlen(str) + 1, 0xff);
+        }
+    }
+}
+
+void test_icmp()
+{
+    static char str[64] = {0};
+    static uint32 id = 0;
+    static uint32 seq = 0;
+
+    uint32 ip = net_t::make_ipaddr(111, 13, 101, 208);
+    for (int i = 0; i < 100; i++) {
+        delay_t::ms_delay(2000);
+
+        if (os()->get_net()->get_ipaddr() != ip) {
+            os()->get_net()->get_icmp()->echo_request(ip, 0, seq++, NULL, 0);
+        }
+    }
+}
+
+void test_net()
+{
+    //test_rtl8139();
+    //test_arp();
+    //test_ip();
+    //test_icmp();
 }
 
 void babyos_t::run()
@@ -269,7 +324,7 @@ void babyos_t::run()
     /* start interrupt */
     sti();
 
-    test_rtl8139();
+    test_net();
 
     /* the first user process, init */
     start_init_proc();

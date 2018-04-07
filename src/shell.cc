@@ -307,9 +307,12 @@ int main()
     userlib_t::printf("This is printed by shell.\n");
 
     while (true) {
-        //userlib_t::puts("liuruyi $ ");
         userlib_t::color_print(GREEN, "liuruyi $ ");
         userlib_t::gets(cmd_line, MAX_CMD_LEN);
+        if (userlib_t::strlen(cmd_line) == 0) {
+            continue;
+        }
+
         if (userlib_t::strncmp(cmd_line, "cd ", 3) == 0) {
             if (userlib_t::chdir(cmd_line + 3) < 0) {
                 userlib_t::printf("can't cd %s\n", cmd_line+3);

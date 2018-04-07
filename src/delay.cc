@@ -27,7 +27,7 @@ void delay_t::ms_delay(uint32 ms)
 
 void delay_t::us_delay(uint32 us)
 {
-    rdtsc_delay(us * s_cpu_freq_mhz);
+    rdtsc_delay((uint64) us * s_cpu_freq_mhz);
 }
 
 void delay_t::rdtsc_delay(uint64 delta)

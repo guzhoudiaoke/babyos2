@@ -10,22 +10,6 @@
 spinlock_t      socket_local_t::s_lock;
 socket_local_t  socket_local_t::s_local_sockets[MAX_LOCAL_SOCKET];
 
-/*********************************************************************/
-
-bool sock_addr_local_t::operator == (const sock_addr_local_t& addr)
-{
-    return (m_family == addr.m_family) && (strcmp(m_path, addr.m_path) == 0);
-}
-
-/*********************************************************************/
-
-socket_local_t::socket_local_t()
-{
-    m_ref = 0;
-    m_addr;
-    m_sock_buf;
-}
-
 void socket_local_t::init_local_sockets()
 {
     socket_local_t tmp;
@@ -56,7 +40,7 @@ void socket_local_t::release_local_socket(socket_t* socket)
 {
 }
 
-socket_local_t* socket_local_t::look_up_local_socket(sock_addr_local_t* addr)
+socket_local_t* socket_local_t::lookup_local_socket(sock_addr_local_t* addr)
 {
     locker_t locker(s_lock);
 
@@ -77,7 +61,6 @@ int32 socket_local_t::bind_local_socket(socket_local_t* socket, sock_addr_local_
     socket_local_t* s = s_local_sockets;
     for (int i = 0; i < MAX_LOCAL_SOCKET; i++, s++) {
         if (s->m_addr == *addr && s->m_ref != 0) {
-            //console()->kprintf(RED, "socket %p, path: %s, ref: %u\n", s, s->m_addr.m_path, s->m_ref);
             return -1;
         }
     }
@@ -87,6 +70,11 @@ int32 socket_local_t::bind_local_socket(socket_local_t* socket, sock_addr_local_
 }
 
 /**********************************************************************/
+
+socket_local_t::socket_local_t()
+{
+    m_ref = 0;
+}
 
 void socket_local_t::init()
 {
@@ -212,7 +200,7 @@ int32 socket_local_t::connect(sock_addr_t* server_addr)
     }
 
     /* get server socket */
-    socket_t* server_socket = socket_local_t::look_up_local_socket((sock_addr_local_t *) server_addr);
+    socket_t* server_socket = socket_local_t::lookup_local_socket((sock_addr_local_t *) server_addr);
     if (server_socket == NULL || server_socket->m_state != socket_t::SS_UNCONNECTED) {
         return -EINVAL;
     }
@@ -270,5 +258,16 @@ int32 socket_local_t::write(void* buf, uint32 size)
     }
 
     return size;
+}
+
+/* for now, socket local not support */
+int32 socket_local_t::sendto(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_to)
+{
+    return -1;
+}
+
+int32 socket_local_t::recvfrom(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_from)
+{
+    return -1;
 }
 
