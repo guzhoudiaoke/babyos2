@@ -7,6 +7,7 @@
 #define _ICMP_H_
 
 #include "types.h"
+#include "net_buf.h"
 
 class icmp_echo_hdr_t {
 public:

@@ -881,3 +881,31 @@ failed:
     return -1;
 }
 
+int file_system_t::do_send_to(int fd, void* buffer, uint32 count, sock_addr_t* addr)
+{
+    file_t* file = current->get_file(fd);
+    if (file == NULL || file->m_readable == 0) {
+        return -1;
+    }
+
+    if (file->m_type == file_t::TYPE_SOCKET) {
+        return file->m_socket->send_to(buffer, count, addr);
+    }
+
+    return -1;
+}
+
+int file_system_t::do_recv_from(int fd, void* buffer, uint32 count, sock_addr_t* addr)
+{
+    file_t* file = current->get_file(fd);
+    if (file == NULL || file->m_readable == 0) {
+        return -1;
+    }
+
+    if (file->m_type == file_t::TYPE_SOCKET) {
+        return file->m_socket->recv_from(buffer, count, addr);
+    }
+
+    return -1;
+}
+

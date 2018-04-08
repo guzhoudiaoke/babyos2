@@ -9,7 +9,7 @@
 #include "types.h"
 #include "sem.h"
 #include "sock_addr.h"
-#include "sock_buffer.h"
+#include "sock_ring_buffer.h"
 
 class socket_t {
 public:
@@ -26,7 +26,7 @@ public:
     } sock_type_t;
 
     typedef enum protocol_e {
-        ICMP = 1,
+        PROTO_ICMP = 1,
     } protocol_t;
 
     typedef enum socket_state_e {
@@ -55,8 +55,8 @@ public:
 
     virtual int32 read(void* buf, uint32 size) = 0;
     virtual int32 write(void* buf, uint32 size) = 0;
-    virtual int32 sendto(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_to) = 0;
-    virtual int32 recvfrom(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_from) = 0;
+    virtual int32 send_to(void *buf, uint32 size, sock_addr_t* addr_to) = 0;
+    virtual int32 recv_from(void *buf, uint32 size, sock_addr_t* addr_from) = 0;
 
 public:
     uint32              m_flags;

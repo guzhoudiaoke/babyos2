@@ -13,12 +13,9 @@
 #include "arp.h"
 #include "ip.h"
 #include "icmp.h"
+#include "net_buf.h"
 
-#define NET_BUF_SIZE        256
-#define NET_BUF_DATA_SIZE   232
 #define NET_BUF_PAGES       1024
-
-#define EXT_BUF_SIZE        2048
 #define EXT_BUF_PAGES       1024
 
 /* protocols */
@@ -41,6 +38,8 @@ public:
 
     net_buf_t* alloc_net_buffer(uint32 len);
     void free_net_buffer(net_buf_t* buf);
+    uint8* alloc_ext_buffer();
+    void free_ext_buffer(uint8* buf);
 
     ethernet_t* get_ethernet();
     arp_t* get_arp();
@@ -62,7 +61,8 @@ public:
 
 private:
     list_t<net_buf_t *> m_net_buffers;
-    spinlock_t          m_buffer_lock;
+    list_t<uint8 *>     m_ext_buffers;
+
     ethernet_t          m_ethernet;
     arp_t               m_arp;
     ip_t                m_ip;

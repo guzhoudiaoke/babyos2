@@ -249,7 +249,7 @@ int32 socket_local_t::read(void* buf, uint32 size)
 
 int32 socket_local_t::write(void* buf, uint32 size)
 {
-    sock_buffer_t* connect_sock_buf = &((socket_local_t *) (m_connected_socket))->m_sock_buf;
+    sock_ring_buffer_t* connect_sock_buf = &((socket_local_t *) (m_connected_socket))->m_sock_buf;
     char* p = (char *) buf;
     for (uint32 i = 0; i < size; i++) {
         if (connect_sock_buf->put_char(*p++) < 0) {
@@ -261,12 +261,12 @@ int32 socket_local_t::write(void* buf, uint32 size)
 }
 
 /* for now, socket local not support */
-int32 socket_local_t::sendto(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_to)
+int32 socket_local_t::send_to(void *buf, uint32 size, sock_addr_t* addr_to)
 {
     return -1;
 }
 
-int32 socket_local_t::recvfrom(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_from)
+int32 socket_local_t::recv_from(void *buf, uint32 size, sock_addr_t* addr_from)
 {
     return -1;
 }

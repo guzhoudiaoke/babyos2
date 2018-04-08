@@ -11,6 +11,7 @@
 #include "spinlock.h"
 #include "socket.h"
 #include "socket_local.h"
+#include "socket_raw.h"
 
 class sys_socket_t {
 public:
@@ -40,7 +41,7 @@ private:
     static int32     accept(int fd, sock_addr_t* peer_addr);
     static int32     connect(int fd, sock_addr_t* user_addr);
 
-    static socket_t* alloc_socket(uint32 family);
+    static socket_t* alloc_socket(uint32 family, uint32 type);
     static int32     release_socket(socket_t* socket);
 
     static socket_t* look_up_socket(int fd);

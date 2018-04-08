@@ -29,8 +29,8 @@ public:
     int32 connect(sock_addr_t* user_addr);
     int32 read(void* buf, uint32 size);
     int32 write(void* buf, uint32 size);
-    int32 sendto(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_to);
-    int32 recvfrom(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_from);
+    int32 send_to(void *buf, uint32 size, sock_addr_t* addr_to);
+    int32 recv_from(void *buf, uint32 size, sock_addr_t* addr_from);
 
 
     static void             init_local_sockets();
@@ -42,7 +42,7 @@ public:
 public:
     uint32              m_ref;
     sock_addr_local_t   m_addr;
-    sock_buffer_t       m_sock_buf;
+    sock_ring_buffer_t  m_sock_buf;
 
     static spinlock_t     s_lock;
     static socket_local_t s_local_sockets[MAX_LOCAL_SOCKET];

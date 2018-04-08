@@ -266,7 +266,7 @@ void arp_t::request_timeout(uint32 ip)
 {
     console()->kprintf(GREEN, "arp request of ip: ");
     os()->get_net()->dump_ip_addr(ip);
-    console()->kprintf(GREEN, " timeout ");
+    console()->kprintf(GREEN, " timeout.\n");
 
     spinlock_t* lock = m_arp_wait_queue.get_lock();
     uint32 flag;

@@ -13,11 +13,11 @@ socket_raw_t    socket_raw_t::s_raw_sockets[MAX_RAW_SOCKET];
 void socket_raw_t::init_raw_sockets()
 {
     socket_raw_t tmp;
+    tmp.init();
 
     s_lock.init();
     for (int i = 0; i < MAX_RAW_SOCKET; i++) {
         memcpy(&s_raw_sockets[i], &tmp, sizeof(socket_raw_t));
-        s_raw_sockets[i].init();
     }
 }
 
@@ -64,8 +64,6 @@ int32 socket_raw_t::bind_raw_socket(socket_raw_t* socket, sock_addr_inet_t* addr
 socket_raw_t::socket_raw_t()
 {
     m_ref = 0;
-    m_addr;
-    m_sock_buf;
 }
 
 void socket_raw_t::init()
@@ -122,12 +120,19 @@ int32 socket_raw_t::write(void* buf, uint32 size)
     return -1;
 }
 
-int32 socket_raw_t::sendto(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_to)
+int32 socket_raw_t::send_to(void *buf, uint32 size, sock_addr_t* addr_to)
 {
-    return -1;
+    sock_addr_inet_t* addr = (sock_addr_inet_t *) addr_to;
+    console()->kprintf(GREEN, "socket_raw_t: send_to: ");
+    net_t::dump_ip_addr(addr->m_ip);
+    console()->kprintf(GREEN, ", port: %u\n", addr->m_port);
+
+    os()->get_net()->get_ip()->transmit(addr->m_ip, (uint8 *) buf, size, m_protocol);
+
+    return 0;
 }
 
-int32 socket_raw_t::recvfrom(void *buf, uint32 size, uint32 flags, sock_addr_t* addr_from)
+int32 socket_raw_t::recv_from(void *buf, uint32 size, sock_addr_t* addr_from)
 {
     return -1;
 }

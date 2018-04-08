@@ -33,6 +33,8 @@ int32 (*syscall_t::s_system_call_table[])(trap_frame_t* frame) = {
     syscall_t::sys_stat,
     syscall_t::sys_chdir,
     syscall_t::sys_pipe,
+    syscall_t::sys_send_to,
+    syscall_t::sys_recv_from,
     syscall_t::sys_socket,
 };
 
@@ -199,5 +201,25 @@ void syscall_t::do_syscall(trap_frame_t* frame)
     else {
         frame->eax = s_system_call_table[id](frame);
     }
+}
+
+int32 syscall_t::sys_send_to(trap_frame_t* frame)
+{
+    int32 fd            = frame->ebx;
+    char* buf           = (char *) frame->ecx;
+    uint32 size         = frame->edx;
+    sock_addr_t* addr   = (sock_addr_t *) frame->esi;
+
+    return os()->get_fs()->do_send_to(fd, buf, size, addr);
+}
+
+int32 syscall_t::sys_recv_from(trap_frame_t* frame)
+{
+    int32 fd            = frame->ebx;
+    char* buf           = (char *) frame->ecx;
+    uint32 size         = frame->edx;
+    sock_addr_t* addr   = (sock_addr_t *) frame->esi;
+    
+    return os()->get_fs()->do_recv_from(fd, buf, size, addr);
 }
 

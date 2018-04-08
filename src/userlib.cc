@@ -474,3 +474,98 @@ void userlib_t::puts(char* buf)
     userlib_t::write(fd_stdout, buf, userlib_t::strlen(buf));
 }
 
+
+uint16 userlib_t::htons(uint16 n)
+{
+  return ((n & 0xFF) << 8) | ((n & 0xFF00) >> 8);
+}
+
+uint16 userlib_t::ntohs(uint16 n)
+{
+  return ((n & 0xFF) << 8) | ((n & 0xFF00) >> 8);
+}
+
+uint32 userlib_t::htonl(uint32 n)
+{
+  return ((n & 0xFF) << 24) | ((n & 0xFF00) << 8) | ((n & 0xFF0000) >> 8) | ((n & 0xFF000000) >> 24);
+}
+
+uint32 userlib_t::ntohl(uint32 n)
+{
+  return ((n & 0xFF) << 24) | ((n & 0xFF00) << 8) | ((n & 0xFF0000) >> 8) | ((n & 0xFF000000) >> 24);
+}
+
+uint32 userlib_t::make_ipaddr(uint8 ip0, uint8 ip1, uint8 ip2, uint8 ip3)
+{
+    return (uint32) ((uint32) ip0 << 24) | ((uint32) ip1 << 16) | ((uint32) ip2 << 8) | ip3;
+}
+
+uint16 userlib_t::check_sum(uint8* data, uint32 len)
+{
+    uint32 acc = 0;
+    uint16* p = (uint16 *) data;
+
+    int i = len;
+    for (; i > 1; i -= 2, p++) {
+        acc += *p;
+    }
+
+    if (i == 1) {
+        acc += *((uint8 *) p);
+    }
+
+    while (acc >> 16) {
+        acc = (acc & 0xffff) + (acc >> 16);
+    }
+
+    return (uint16) ~acc;
+}
+
+int userlib_t::send_to(int fd, void *buf, uint32 size, sock_addr_t* addr)
+{
+    if (buf == NULL || addr == NULL) {
+        return -1;
+    }
+
+    uint32 ret = -1;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_SENDTO), "b" (fd), "c" ((uint32) buf), "d" (size), "S"(addr));
+    return ret;
+}
+
+int userlib_t::recv_from(int fd, void *buf, uint32 size, sock_addr_t* addr)
+{
+    if (buf == NULL || addr == NULL) {
+        return -1;
+    }
+
+    uint32 ret = -1;
+    __asm__ volatile("int $0x80" : "=a" (ret) : "a" (SYS_RECVFROM), "b" (fd), "c" ((uint32) buf), "d" (size), "S"(addr));
+
+    return ret;
+}
+
+void* userlib_t::memmov(void *dst, const void *src, uint32 n)
+{
+    const char *s = (const char *) src;
+    char *d = (char *) dst;
+
+    if (s < d && s + n > d) {
+        s += n, d += n;
+        while (n--) {
+            *--d = *--s;
+        }
+    }
+    else {
+        while (n--) {
+            *d++ = *s++;
+        }
+    }
+
+    return dst;
+}
+
+void* userlib_t::memcpy(void *dst, const void *src, uint32 n)
+{
+    return memmov(dst, src, n);
+}
+

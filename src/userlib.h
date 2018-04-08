@@ -51,6 +51,7 @@ public:
 
     static char* strrev(char* str, int len);
     static void* memset(void* dst, uint32 c, uint32 n);
+    static void* memcpy(void *dst, const void *src, uint32 n);
     static int   strlen(const char* str);
     static char* strcpy(char* dst, const char* src);
     static char* strncpy(char* dst, const char* src, int n);
@@ -79,10 +80,23 @@ public:
     static int   connect(int sockfd, const sock_addr_t* addr);
     static int   accept(int sockfd, sock_addr_t* addr);
 
+    static int   send_to(int fd, void *buf, uint32 size, sock_addr_t* addr);
+    static int   recv_from(int fd, void *buf, uint32 size, sock_addr_t* addr);
+
+    /* net */
+    static uint16 htons(uint16 n);
+    static uint16 ntohs(uint16 n);
+    static uint32 htonl(uint32 n);
+    static uint32 ntohl(uint32 n);
+    static uint32 make_ipaddr(uint8 ip0, uint8 ip1, uint8 ip2, uint8 ip3);
+    static uint16 check_sum(uint8* data, uint32 len);
+
+
 private:
     static int   sprint_int(char* buffer, int n, int width, int base, bool sign);
     static int   sprint_str(char* buffer, char* s, int width);
     static bool  is_digit(char c);
+    static void* memmov(void *dst, const void *src, uint32 n);
 };
 
 #endif

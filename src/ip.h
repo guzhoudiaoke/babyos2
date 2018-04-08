@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "list.h"
+#include "net_buf.h"
 
 typedef struct ip_hdr_s {
     uint8   m_header_len:4;

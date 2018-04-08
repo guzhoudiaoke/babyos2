@@ -48,9 +48,10 @@ OBJS = \
 	arp.o\
 	ip.o\
 	icmp.o\
-	sock_buffer.o\
+	sock_ring_buffer.o\
 	sock_addr.o\
 	socket_raw.o\
+    net_buf.o\
 
 AS = as --32
 CC = gcc -m32

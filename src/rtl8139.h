@@ -23,6 +23,7 @@ private:
     void   receive();
 
 private:
+    bool    m_inited;
     uint32  m_io_address;
     uint32  m_irq;
     uint8   m_mac_addr[6];

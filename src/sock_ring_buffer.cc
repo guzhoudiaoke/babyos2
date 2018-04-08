@@ -4,10 +4,10 @@
  * separate from socket.h/c
  */
 
-#include "sock_buffer.h"
+#include "sock_ring_buffer.h"
 #include "socket.h"
 
-void sock_buffer_t::init(socket_t* socket)
+void sock_ring_buffer_t::init(socket_t* socket)
 {
     m_socket = socket;
     m_read_index = 0;
@@ -17,7 +17,7 @@ void sock_buffer_t::init(socket_t* socket)
     m_wait_item.init(0);
 }
 
-int sock_buffer_t::get_char(char& ch)
+int sock_ring_buffer_t::get_char(char& ch)
 {
     int ret = -1;
     m_wait_item.down();
@@ -34,7 +34,7 @@ int sock_buffer_t::get_char(char& ch)
     return ret;
 }
 
-int sock_buffer_t::put_char(char ch)
+int sock_ring_buffer_t::put_char(char ch)
 {
     int ret = -1;
     m_wait_space.down();

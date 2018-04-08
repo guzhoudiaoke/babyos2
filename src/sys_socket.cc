@@ -19,13 +19,19 @@ int32 (*sys_socket_t::s_sys_socket_table[])(trap_frame_t* frame) = {
 void sys_socket_t::init()
 {
     socket_local_t::init_local_sockets();
+    socket_raw_t::init_raw_sockets();
 }
 
-socket_t* sys_socket_t::alloc_socket(uint32 family)
+socket_t* sys_socket_t::alloc_socket(uint32 family, uint32 type)
 {
     /* now only support AF_LOCAL */
     if (family == socket_t::AF_LOCAL) {
         return socket_local_t::alloc_local_socket();
+    }
+    else if (family == socket_t::AF_INET) {
+        if (type == socket_t::SOCK_RAW) {
+            return socket_raw_t::alloc_raw_socket();
+        }
     }
 
     return NULL;
@@ -63,7 +69,7 @@ int32 sys_socket_t::socket(uint32 family, uint32 type, uint32 protocol)
     }
 
     /* alloc a socket */
-    socket_t* socket = alloc_socket(family);
+    socket_t* socket = alloc_socket(family, type);
     if (socket == NULL) {
         return -ENOSR;
     }
@@ -138,7 +144,7 @@ int32 sys_socket_t::accept(int fd, sock_addr_t* client_addr)
     }
 
     /* alloc a new socket to accept the connect */
-    socket_t* new_socket = alloc_socket(socket->m_family);
+    socket_t* new_socket = alloc_socket(socket->m_family, socket->m_type);
     if (new_socket == NULL) {
         return -ENOSR;
     }

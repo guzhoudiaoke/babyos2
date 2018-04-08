@@ -71,6 +71,7 @@ void rtl8139_t::init()
 {
     console()->kprintf(CYAN, "*********************** init RTL8139 ****************************\n");
 
+    m_inited = false;
     if (get_info_from_pci() != 0) {
         return;
     }
@@ -135,6 +136,7 @@ void rtl8139_t::init()
     /* enable interrupt */
     os()->get_arch()->get_io_apic()->enable_irq(m_irq, os()->get_arch()->get_cpu_num()-1);
 
+    m_inited = true;
     console()->kprintf(CYAN, "*********************** init RTL8139 ****************************\n\n");
 }
 
@@ -166,6 +168,11 @@ void rtl8139_t::do_irq()
 
 int32 rtl8139_t::transmit(net_buf_t* buf)
 {
+    if (!m_inited) {
+        console()->kprintf(RED, "rtl8139 not inited, can't transmit data\n");
+        return -1;
+    }
+
     memcpy(m_tx_buffers[m_current_tx], buf->m_data, buf->m_data_len);
     uint32 status = inw(m_io_address + RTL8139_INTR_STATUS);
     //console()->kprintf(WHITE, "transmit TX_STATUS0: 0x%8x, INTR_STATUS: %x\n", 

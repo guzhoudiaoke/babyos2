@@ -14,7 +14,7 @@
 #define SOCK_BUF_SIZE       4096
 
 class socket_t;
-class sock_buffer_t {
+class sock_ring_buffer_t {
 public:
     void init(socket_t* socket);
     int  get_char(char& ch);
