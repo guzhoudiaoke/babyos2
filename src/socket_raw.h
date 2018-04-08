@@ -8,12 +8,16 @@
 
 #include "types.h"
 #include "socket.h"
+#include "net_buf.h"
+#include "sem.h"
 
 #define MAX_RAW_SOCKET    128
 
 
 class socket_raw_t : public socket_t {
 public:
+    const uint32 c_max_buffer_num = 32;
+
     socket_raw_t();
     void  init();
 
@@ -31,16 +35,23 @@ public:
     int32 send_to(void *buf, uint32 size, sock_addr_t* addr_to);
     int32 recv_from(void *buf, uint32 size, sock_addr_t* addr_from);
 
+    int32 net_receive(net_buf_t* buf);
+
 
     static void             init_raw_sockets();
     static socket_t*        alloc_raw_socket();
     static void             release_raw_socket(socket_t* socket);
     static socket_raw_t*    lookup_raw_socket(sock_addr_inet_t* addr);
     static int32            bind_raw_socket(socket_raw_t* socket, sock_addr_inet_t* addr);
+    static int32            raw_net_receive(net_buf_t* buf);
+    static int32            raw_net_receive(net_buf_t* buf, uint32 protocol, uint32 ip);
 
 public:
     uint32              m_ref;
     sock_addr_inet_t    m_addr;
+    sock_addr_inet_t    m_remote_addr;
+    list_t<net_buf_t *> m_buffers;
+    semaphore_t         m_buffer_sem;
 
     static spinlock_t   s_lock;
     static socket_raw_t s_raw_sockets[MAX_RAW_SOCKET];

@@ -39,17 +39,10 @@ void ethernet_t::transmit(uint8 eth_addr[ETH_ADDR_LEN], uint16 protocol, uint8* 
         ethernet_hdr_t eth_hdr;
         eth_hdr.init(eth_addr, m_eth_addr, net_t::ntohs(protocol));
 
-        buf->m_data_len = total;
-        buf->m_data = (uint8 *) buf + sizeof(net_buf_t);
-        buf->m_ext_data = NULL;
-
-        uint8* p = buf->m_data;
-        memcpy(p, &eth_hdr, sizeof(ethernet_hdr_t));
-
-        p += sizeof(ethernet_hdr_t);
-        memcpy(p, data, len);
+        buf->append(&eth_hdr, sizeof(ethernet_hdr_t));
+        buf->append(data, len);
         if (length > len) {
-            memset(p + len, 0, length - len);
+            buf->append_zero(length-len);
         }
 
         /* transmit */
@@ -67,21 +60,15 @@ void ethernet_t::receive(uint8* data, uint32 len)
 {
     net_buf_t* buf = os()->get_net()->alloc_net_buffer(len);
     if (buf != NULL) {
-        buf->m_data_len = len;
-        buf->m_data = (uint8 *) buf + sizeof(net_buf_t);
-        buf->m_ext_data = NULL;
-        memcpy(buf->m_data, data, len);
-
-        ethernet_hdr_t* hdr = (ethernet_hdr_t *) buf->m_data;
+        buf->append(data, len);
+        ethernet_hdr_t* hdr = (ethernet_hdr_t *) buf->get_data();
 
         if (net_t::htons(hdr->m_proto) == PROTO_ARP) {
-            buf->m_data += sizeof(ethernet_hdr_t);
-            buf->m_data_len -= sizeof(ethernet_hdr_t);
+            buf->pop_front(sizeof(ethernet_hdr_t));
             os()->get_net()->get_arp()->receive(hdr->m_dest, buf);
         }
         else if (net_t::htons(hdr->m_proto) == PROTO_IP) {
-            buf->m_data += sizeof(ethernet_hdr_t);
-            buf->m_data_len -= sizeof(ethernet_hdr_t);
+            buf->pop_front(sizeof(ethernet_hdr_t));
             os()->get_net()->get_ip()->receive(buf);
         }
         else {
@@ -89,7 +76,7 @@ void ethernet_t::receive(uint8* data, uint32 len)
                     hdr->m_source[0], hdr->m_source[1], hdr->m_source[2], hdr->m_source[3], hdr->m_source[4], hdr->m_source[5],
                     hdr->m_dest[0], hdr->m_dest[1], hdr->m_dest[2], hdr->m_dest[3], hdr->m_dest[4], hdr->m_dest[5]);
             if (memcmp(m_eth_addr, hdr->m_dest, ETH_ADDR_LEN) == 0) {
-                console()->kprintf(GREEN, "data: %s\n", (char *) buf->m_data + sizeof(ethernet_hdr_t));
+                console()->kprintf(GREEN, "data: %s\n", (char *) buf->get_data() + sizeof(ethernet_hdr_t));
             }
         }
 

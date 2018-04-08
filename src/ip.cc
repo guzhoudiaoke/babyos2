@@ -7,6 +7,7 @@
 #include "babyos.h"
 #include "net.h"
 #include "string.h"
+#include "socket_raw.h"
 
 void ip_hdr_s::init(uint8 hdr_len, uint8 ver, uint8 tos, uint16 total_len,
         uint16 id, uint16 offset, uint8 ttl, uint8 proto, uint16 check_sum, 
@@ -101,13 +102,8 @@ void ip_t::transmit(uint32 ip, uint8* data, uint32 len, uint8 protocol)
     /* calc check sum */
     hdr.m_check_sum = net_t::check_sum((uint8 *) (&hdr), sizeof(ip_hdr_t));
 
-    buffer->m_data = (uint8 *) buffer + sizeof(net_buf_t);
-    buffer->m_data_len = total;
-    uint8* p = buffer->m_data;
-    memcpy(p, &hdr, sizeof(ip_hdr_t));
-
-    p += sizeof(ip_hdr_t);
-    memcpy(p, data, len);
+    buffer->append(&hdr, sizeof(ip_hdr_t));
+    buffer->append(data, len);
 
     uint8 eth_addr[ETH_ADDR_LEN] = {0};
     if (os()->get_net()->get_arp()->lookup_cache(dst_ip, eth_addr)) {
@@ -115,7 +111,7 @@ void ip_t::transmit(uint32 ip, uint8* data, uint32 len, uint8 protocol)
         net_t::dump_ip_addr(dst_ip);
         console()->kprintf(CYAN, " -> find mac addr of ip in arp cache\n");
 
-        os()->get_net()->get_ethernet()->transmit(eth_addr, PROTO_IP, buffer->m_data, buffer->m_data_len);
+        os()->get_net()->get_ethernet()->transmit(eth_addr, PROTO_IP, buffer->get_data(), buffer->get_data_len());
         os()->get_net()->free_net_buffer(buffer);
     }
     else {
@@ -126,9 +122,8 @@ void ip_t::transmit(uint32 ip, uint8* data, uint32 len, uint8 protocol)
 
 void ip_t::receive(net_buf_t* buf)
 {
-    ip_hdr_t* hdr = (ip_hdr_t *) buf->m_data;
-    buf->m_data += sizeof(ip_hdr_t);
-    buf->m_data_len -= sizeof(ip_hdr_t);
+    ip_hdr_t* hdr = (ip_hdr_t *) buf->get_data();
+    buf->pop_front(sizeof(ip_hdr_t));
 
     if (net_t::check_sum((uint8 *) hdr, sizeof(ip_hdr_t)) != 0) {
         console()->kprintf(RED, "get a ip package, from: ");
@@ -137,8 +132,12 @@ void ip_t::receive(net_buf_t* buf)
         return;
     }
 
+    if (socket_raw_t::raw_net_receive(buf, hdr->m_protocol, net_t::ntohl(hdr->m_src_ip))) {
+        return;
+    }
+
     if (hdr->m_protocol == PROTO_RAW) {
-        console()->kprintf(YELLOW, "get a raw ip package, data: %s\n", buf->m_data);
+        console()->kprintf(YELLOW, "get a raw ip package, data: %s\n", buf->get_data());
     }
     else if (hdr->m_protocol == PROTO_ICMP) {
         os()->get_net()->get_icmp()->receive(buf, net_t::ntohl(hdr->m_src_ip));

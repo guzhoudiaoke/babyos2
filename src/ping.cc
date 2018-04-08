@@ -50,20 +50,29 @@ void prepare_ping_data(uint8* data, uint32 len, uint16 seq)
 {
     icmp_echo_hdr_t hdr;
 
-    uint8  m_type;
-    uint8  m_code;
-    uint16 m_check_sum;
-    uint16 m_id;
-    uint16 m_seq_no;
-
     hdr.m_type = icmp_t::ECHO_REQUEST;      /* type */
     hdr.m_code = 0;                         /* code */ 
     hdr.m_check_sum = 0;                    /* check sum */
-    hdr.m_id = 0;                           /* id */
+    hdr.m_id = 1;                           /* id */
     hdr.m_seq_no = userlib_t::htons(seq);   /* seq no */
 
     hdr.m_check_sum = userlib_t::check_sum((uint8 *) &hdr, sizeof(icmp_echo_hdr_t));
     userlib_t::memcpy(data, &hdr, sizeof(icmp_echo_hdr_t));
+}
+
+void disp_ping_reply(uint8* data, uint32 ip)
+{
+    icmp_echo_hdr_t *hdr = (icmp_echo_hdr_t *) data;
+    uint16 check_sum = userlib_t::check_sum((uint8 *) hdr, sizeof(icmp_echo_hdr_t));
+    if (check_sum != 0) {
+        userlib_t::printf("receive an icmp echo reply, but checksum is error: %x.\n", check_sum);
+        return;
+    }
+
+    uint8* p = (uint8 *) &ip;
+    userlib_t::printf("receive an icmp echo reply from ip: ");
+    userlib_t::printf("%d.%d.%d.%d, ", p[3], p[2], p[1], p[0]);
+    userlib_t::printf(" seq: %u\n", userlib_t::ntohs(hdr->m_seq_no));
 }
 
 void ping(uint32 ip)
@@ -93,6 +102,7 @@ void ping(uint32 ip)
             userlib_t::printf("failed to receive\n");
         }
 
+        disp_ping_reply(data, ip);
         userlib_t::sleep(1);
     }
 }

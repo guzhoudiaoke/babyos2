@@ -81,12 +81,9 @@ void arp_t::request(uint32 ip)
     uint32 len = sizeof(arp_hdr_t);
     net_buf_t* buf = os()->get_net()->alloc_net_buffer(len);
     if (buf != NULL) {
-        buf->m_data_len = len;
-        buf->m_data = (uint8 *) buf + sizeof(net_buf_t);
-        buf->m_ext_data = NULL;
-        memcpy(buf->m_data, &hdr, len);
+        buf->append(&hdr, len);
 
-        os()->get_net()->get_ethernet()->transmit(broadcast_mac_addr, PROTO_ARP, buf->m_data, buf->m_data_len);
+        os()->get_net()->get_ethernet()->transmit(broadcast_mac_addr, PROTO_ARP, buf->get_data(), buf->get_data_len());
         os()->get_net()->free_net_buffer(buf);
     }
 }
@@ -104,11 +101,11 @@ bool arp_t::add_to_cache(uint32 ip, uint8 eth_addr[ETH_ADDR_LEN])
 
 void arp_t::receive(uint8 ether_addr[ETH_ADDR_LEN], net_buf_t* buf)
 {
-    if (buf->m_data_len < sizeof(arp_hdr_t)) {
+    if (buf->get_data_len() < sizeof(arp_hdr_t)) {
         return;
     }
 
-    arp_hdr_t* hdr = (arp_hdr_t *) buf->m_data;
+    arp_hdr_t* hdr = (arp_hdr_t *) buf->get_data();
     uint32 ip_src = net_t::htonl(hdr->m_source_protocol_addr);
     uint8* ip_bytes_src = (uint8 *) (&ip_src);
 
@@ -117,9 +114,9 @@ void arp_t::receive(uint8 ether_addr[ETH_ADDR_LEN], net_buf_t* buf)
     {
         uint32 ip_target = net_t::htonl(hdr->m_target_protocol_addr);
         uint8* ip_bytes_tgt = (uint8 *) (&ip_target);
-        console()->kprintf(CYAN, "%d.%d.%d.%d want to know who have IP: %d.%d.%d.%d\n",
-            ip_bytes_src[3], ip_bytes_src[2], ip_bytes_src[1], ip_bytes_src[0],
-            ip_bytes_tgt[3], ip_bytes_tgt[2], ip_bytes_tgt[1], ip_bytes_tgt[0]);
+        //console()->kprintf(CYAN, "%d.%d.%d.%d want to know who have IP: %d.%d.%d.%d\n",
+        //    ip_bytes_src[3], ip_bytes_src[2], ip_bytes_src[1], ip_bytes_src[0],
+        //    ip_bytes_tgt[3], ip_bytes_tgt[2], ip_bytes_tgt[1], ip_bytes_tgt[0]);
 
         if (ip_target == os()->get_net()->get_ipaddr()) {
             hdr->init(net_t::ntohs(0x0001),                         /* ethernet */
@@ -133,11 +130,11 @@ void arp_t::receive(uint8 ether_addr[ETH_ADDR_LEN], net_buf_t* buf)
                       net_t::ntohl(ip_src)                          /* target protocol addr */
             );
 
-            console()->kprintf(GREEN, "arp reply to ip: ");
-            os()->get_net()->dump_ip_addr(ip_src);
-            console()->kprintf(GREEN, " \n");
+            //console()->kprintf(GREEN, "arp reply to ip: ");
+            //os()->get_net()->dump_ip_addr(ip_src);
+            //console()->kprintf(GREEN, " \n");
             os()->get_net()->get_ethernet()->transmit(ether_addr, PROTO_ARP, 
-                    buf->m_data, buf->m_data_len);
+                    buf->get_data(), buf->get_data_len());
         }
         break;
     }
@@ -248,7 +245,7 @@ void arp_t::process_wait_queue(uint32 ip, uint8 eth_addr[ETH_ADDR_LEN])
         list_t<net_buf_t *>::iterator it_buffer = (*it).m_buffers.begin();
         while (it_buffer != (*it).m_buffers.end()) {
             net_buf_t* buffer = *it_buffer;
-            os()->get_net()->get_ethernet()->transmit(eth_addr, PROTO_IP, buffer->m_data, buffer->m_data_len);
+            os()->get_net()->get_ethernet()->transmit(eth_addr, PROTO_IP, buffer->get_data(), buffer->get_data_len());
             os()->get_net()->free_net_buffer(buffer);
             it_buffer = (*it).m_buffers.erase(it_buffer);;
         }

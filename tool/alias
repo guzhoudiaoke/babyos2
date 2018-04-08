@@ -12,3 +12,5 @@ alias qemud2="sudo qemu-system-i386   -hda baby_hd.img -hdb fs.img -m size=128M 
 
 alias gdb="gdb -q -iex 'add-auto-load-safe-path .'"
 
+alias q0="qemu-system-i386   -hda baby_hd.img -hdb fs.img -m size=128M -net nic,model=rtl8139,macaddr=12:34:56:78:9a:bc -net tap,ifname=tap0,script=no,downscript=no"
+alias q1="qemu-system-i386   -hda baby_hd1.img -hdb fs1.img -m size=128M -net nic,model=rtl8139,macaddr=12:34:56:78:9a:be -net tap,ifname=tap1,script=no,downscript=no"

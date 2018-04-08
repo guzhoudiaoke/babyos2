@@ -173,7 +173,7 @@ int32 rtl8139_t::transmit(net_buf_t* buf)
         return -1;
     }
 
-    memcpy(m_tx_buffers[m_current_tx], buf->m_data, buf->m_data_len);
+    memcpy(m_tx_buffers[m_current_tx], buf->get_data(), buf->get_data_len());
     uint32 status = inw(m_io_address + RTL8139_INTR_STATUS);
     //console()->kprintf(WHITE, "transmit TX_STATUS0: 0x%8x, INTR_STATUS: %x\n", 
     //        inl(m_io_address + RTL8139_TX_STATUS0), status);
@@ -181,7 +181,7 @@ int32 rtl8139_t::transmit(net_buf_t* buf)
     uint32 flags;
     local_irq_save(flags);
     outl(m_io_address + RTL8139_TX_ADDR0 + m_current_tx * 4, VA2PA(m_tx_buffers[m_current_tx]));
-    outl(m_io_address + RTL8139_TX_STATUS0 + m_current_tx * 4, (256 << 16) | 0x0 | buf->m_data_len);
+    outl(m_io_address + RTL8139_TX_STATUS0 + m_current_tx * 4, (256 << 16) | 0x0 | buf->get_data_len());
     m_current_tx = (m_current_tx + 1) % 4;
     //console()->kprintf(WHITE, "after transmit TX_STATUS0: 0x%8x\n", inl(m_io_address + RTL8139_TX_STATUS0));
     restore_flags(flags);

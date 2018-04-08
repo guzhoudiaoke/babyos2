@@ -307,6 +307,10 @@ public:
         return &m_lock;
     }
 
+    uint32 size() {
+        return m_size;
+    }
+
 private:
     list_node_t<T>*     m_head;
     list_node_t<T>*     m_tail;

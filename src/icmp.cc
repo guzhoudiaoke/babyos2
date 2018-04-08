@@ -40,17 +40,12 @@ bool icmp_t::echo_request(uint32 ip, uint16 id, uint16 seq, uint8* data, uint32 
              net_t::htons(seq));    /* seq no */
     hdr.m_check_sum = net_t::check_sum((uint8 *) &hdr, sizeof(icmp_echo_hdr_t));
 
-    buffer->m_data = (uint8 *) buffer + sizeof(net_buf_t);
-    buffer->m_data_len = total;
-    uint8* p = buffer->m_data;
-    memcpy(p, &hdr, sizeof(icmp_echo_hdr_t));
-
+    buffer->append(&hdr, sizeof(icmp_echo_hdr_t));
     if (data != NULL && len != 0) {
-        p += sizeof(icmp_echo_hdr_t);
-        memcpy(p, data, len);
+        buffer->append(data, len);
     }
 
-    os()->get_net()->get_ip()->transmit(ip, buffer->m_data, total, ip_t::PROTO_ICMP);
+    os()->get_net()->get_ip()->transmit(ip, buffer->get_data(), total, ip_t::PROTO_ICMP);
     os()->get_net()->free_net_buffer(buffer);
     return true;
 }
@@ -76,26 +71,22 @@ bool icmp_t::echo_reply(uint32 ip, uint16 id, uint16 seq, uint8* data, uint32 le
              net_t::htons(seq));    /* seq no */
     hdr.m_check_sum = net_t::check_sum((uint8 *) &hdr, sizeof(icmp_echo_hdr_t));
 
-    buffer->m_data = (uint8 *) buffer + sizeof(net_buf_t);
-    buffer->m_data_len = total;
-    uint8* p = buffer->m_data;
-    memcpy(p, &hdr, sizeof(icmp_echo_hdr_t));
-
+    buffer->append(&hdr, sizeof(icmp_echo_hdr_t));
     if (data != NULL && len != 0) {
-        p += sizeof(icmp_echo_hdr_t);
-        memcpy(p, data, len);
+        buffer->append(data, len);
     }
 
-    os()->get_net()->get_ip()->transmit(ip, buffer->m_data, total, ip_t::PROTO_ICMP);
+    os()->get_net()->get_ip()->transmit(ip, buffer->get_data(), total, ip_t::PROTO_ICMP);
     os()->get_net()->free_net_buffer(buffer);
     return true;
 }
 
 void icmp_t::echo_request_receive(net_buf_t* buf, uint32 ip)
 {
-    icmp_echo_hdr_t* hdr = (icmp_echo_hdr_t *) buf->m_data;
-    if (net_t::check_sum((uint8 *) hdr, sizeof(icmp_echo_hdr_t)) != 0) {
-        console()->kprintf(RED, "receive an icmp echo request, but checksum is error: %x.\n", hdr->m_check_sum);
+    icmp_echo_hdr_t* hdr = (icmp_echo_hdr_t *) buf->get_data();
+    uint16 check_sum = net_t::check_sum((uint8 *) hdr, sizeof(icmp_echo_hdr_t));
+    if (check_sum != 0) {
+        console()->kprintf(RED, "receive an icmp echo reply, but checksum is error: %x.\n", check_sum);
         return;
     }
 
@@ -107,9 +98,10 @@ void icmp_t::echo_request_receive(net_buf_t* buf, uint32 ip)
 
 void icmp_t::echo_reply_receive(net_buf_t* buf, uint32 ip)
 {
-    icmp_echo_hdr_t* hdr = (icmp_echo_hdr_t *) buf->m_data;
-    if (net_t::check_sum((uint8 *) hdr, sizeof(icmp_echo_hdr_t)) != 0) {
-        console()->kprintf(RED, "receive an icmp echo reply, but checksum is error: %x.\n", hdr->m_check_sum);
+    icmp_echo_hdr_t* hdr = (icmp_echo_hdr_t *) buf->get_data();
+    uint16 check_sum = net_t::check_sum((uint8 *) hdr, sizeof(icmp_echo_hdr_t));
+    if (check_sum != 0) {
+        console()->kprintf(RED, "receive an icmp echo reply, but checksum is error: %x.\n", check_sum);
         return;
     }
 
@@ -120,7 +112,7 @@ void icmp_t::echo_reply_receive(net_buf_t* buf, uint32 ip)
 
 void icmp_t::receive(net_buf_t* buf, uint32 ip)
 {
-    uint8 type = *(uint8 *) buf->m_data;
+    uint8 type = *(uint8 *) buf->get_data();
     switch (type) {
     case ECHO_REQUEST:
         echo_request_receive(buf, ip);

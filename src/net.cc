@@ -129,8 +129,8 @@ void net_t::free_net_buffer(net_buf_t* buf)
     uint32 flags;
     spinlock_t* lock = m_net_buffers.get_lock();
     lock->lock_irqsave(flags);
-    if (buf->m_ext_data != NULL) {
-        free_ext_buffer(buf->m_ext_data);
+    if (buf->get_ext_data() != NULL) {
+        free_ext_buffer(buf->get_ext_data());
     }
     m_net_buffers.push_front(buf);
     lock->unlock_irqrestore(flags);
@@ -140,7 +140,7 @@ uint8* net_t::alloc_ext_buffer()
 {
     uint8* buf = NULL;
     uint32 flags;
-    spinlock_t* lock = m_net_buffers.get_lock();
+    spinlock_t* lock = m_ext_buffers.get_lock();
     lock->lock_irqsave(flags);
     if (!m_ext_buffers.empty()) {
         buf = *(m_ext_buffers.begin());
@@ -154,7 +154,7 @@ uint8* net_t::alloc_ext_buffer()
 void net_t::free_ext_buffer(uint8* buf)
 {
     uint32 flags;
-    spinlock_t* lock = m_net_buffers.get_lock();
+    spinlock_t* lock = m_ext_buffers.get_lock();
     lock->lock_irqsave(flags);
     m_ext_buffers.push_front(buf);
     lock->unlock_irqrestore(flags);

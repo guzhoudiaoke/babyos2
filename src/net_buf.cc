@@ -21,7 +21,7 @@ void net_buf_t::init(uint8* ext_data)
     }
 }
 
-int32 net_buf_t::append(uint8* data, uint32 len)
+int32 net_buf_t::append(void* data, uint32 len)
 {
     if (m_left < len) {
         return -ENOBUFS;
@@ -34,3 +34,42 @@ int32 net_buf_t::append(uint8* data, uint32 len)
     return 0;
 }
 
+int32 net_buf_t::append_zero(uint32 len)
+{
+    if (m_left < len) {
+        return -ENOBUFS;
+    }
+
+    memset(m_data + m_data_len, 0, len);
+    m_data_len += len;
+    m_left -= len;
+
+    return 0;
+}
+
+uint8* net_buf_t::get_data()
+{
+    return m_data;
+}
+
+uint32 net_buf_t::get_data_len()
+{
+    return m_data_len;
+}
+
+uint8* net_buf_t::get_ext_data()
+{
+    return m_ext_data;
+}
+
+int32 net_buf_t::pop_front(uint32 len)
+{
+    if (m_data_len < len) {
+        return -EINVAL;
+    }
+
+    m_data += len;
+    m_data_len -= len;
+
+    return 0;
+}

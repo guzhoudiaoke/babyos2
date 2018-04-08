@@ -24,7 +24,6 @@ void sys_socket_t::init()
 
 socket_t* sys_socket_t::alloc_socket(uint32 family, uint32 type)
 {
-    /* now only support AF_LOCAL */
     if (family == socket_t::AF_LOCAL) {
         return socket_local_t::alloc_local_socket();
     }
