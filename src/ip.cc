@@ -128,9 +128,9 @@ void ip_t::receive(net_buf_t* buf)
 
     /* check sum */
     if (net_t::check_sum((uint8 *) hdr, sizeof(ip_hdr_t)) != 0) {
-        console()->kprintf(RED, "get a ip package, from: ");
-        net_t::dump_ip_addr(net_t::ntohl(hdr->m_src_ip));
-        console()->kprintf(RED, " but it's checksum is wrong, drop it\n");
+        //console()->kprintf(RED, "get a ip package, from: ");
+        //net_t::dump_ip_addr(net_t::ntohl(hdr->m_src_ip));
+        //console()->kprintf(RED, " but it's checksum is wrong, drop it\n");
         return;
     }
 
@@ -142,15 +142,20 @@ void ip_t::receive(net_buf_t* buf)
     switch (hdr->m_protocol) {
     case PROTO_RAW:
         console()->kprintf(YELLOW, "get a raw ip package, data: %s\n", buf->get_data());
+        os()->get_net()->free_net_buffer(buf);
         break;
     case PROTO_ICMP:
         os()->get_net()->get_icmp()->receive(buf, net_t::ntohl(hdr->m_src_ip));
+        os()->get_net()->free_net_buffer(buf);
         break;
     case PROTO_UDP:
-        os()->get_net()->get_udp()->receive(buf, net_t::ntohl(hdr->m_src_ip));
+        if (!os()->get_net()->get_udp()->receive(buf, net_t::ntohl(hdr->m_src_ip))) {
+            os()->get_net()->free_net_buffer(buf);
+        }
         break;
     default:
-        console()->kprintf(YELLOW, "get an ip package with protocol: %x, not support.\n", hdr->m_protocol);
+        //console()->kprintf(YELLOW, "get an ip package with protocol: %x, not support.\n", hdr->m_protocol);
+        os()->get_net()->free_net_buffer(buf);
         break;
     }
 }

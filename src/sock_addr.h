@@ -26,8 +26,9 @@ public:
 /* socket inet */
 class sock_addr_inet_t : public sock_addr_t {
 public:
+    static const uint32 INADDR_ANY = 0;
+    
     bool operator == (const sock_addr_inet_t& addr);
-
     uint32 m_ip;
     uint16 m_port;
 };

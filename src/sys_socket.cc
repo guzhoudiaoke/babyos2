@@ -20,6 +20,7 @@ void sys_socket_t::init()
 {
     socket_local_t::init_local_sockets();
     socket_raw_t::init_raw_sockets();
+    socket_dgram_t::init_dgram_sockets();
 }
 
 socket_t* sys_socket_t::alloc_socket(uint32 family, uint32 type)
@@ -30,6 +31,9 @@ socket_t* sys_socket_t::alloc_socket(uint32 family, uint32 type)
     else if (family == socket_t::AF_INET) {
         if (type == socket_t::SOCK_RAW) {
             return socket_raw_t::alloc_raw_socket();
+        }
+        else if (type == socket_t::SOCK_DGRAM) {
+            return socket_dgram_t::alloc_dgram_socket();
         }
     }
 

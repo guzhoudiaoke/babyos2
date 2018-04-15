@@ -27,6 +27,8 @@ public:
 
     typedef enum protocol_e {
         PROTO_ICMP = 1,
+        PROTO_TCP = 6,
+        PROTO_UDP = 17,
     } protocol_t;
 
     typedef enum socket_state_e {

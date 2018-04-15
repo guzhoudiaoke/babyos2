@@ -33,7 +33,7 @@ public:
 class udp_t {
 public:
     int32 init();
-    int32 transmit(uint32 ip, uint16 port, uint8* data, uint32 len);
+    int32 transmit(uint32 dst_ip, uint16 src_port, uint16 dst_port, uint8* data, uint32 len);
     int32 receive(net_buf_t* buf, uint32 ip);
 };
 

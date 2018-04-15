@@ -300,7 +300,7 @@ void test_net()
     //test_arp();
     //test_ip();
     //test_icmp();
-    test_dns();
+    //test_dns();
 }
 
 void babyos_t::run()

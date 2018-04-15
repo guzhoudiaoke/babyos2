@@ -129,6 +129,9 @@ void net_t::free_net_buffer(net_buf_t* buf)
     uint32 flags;
     spinlock_t* lock = m_net_buffers.get_lock();
     lock->lock_irqsave(flags);
+    if (m_net_buffers.find(buf) != m_net_buffers.end()) {
+        os()->panic("multi free net buffer");
+    }
     if (buf->get_ext_data() != NULL) {
         free_ext_buffer(buf->get_ext_data());
     }

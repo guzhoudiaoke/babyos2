@@ -66,6 +66,7 @@ void ethernet_t::receive(uint8* data, uint32 len)
         if (net_t::htons(hdr->m_proto) == PROTO_ARP) {
             buf->pop_front(sizeof(ethernet_hdr_t));
             os()->get_net()->get_arp()->receive(hdr->m_source, buf);
+            os()->get_net()->free_net_buffer(buf);
         }
         else if (net_t::htons(hdr->m_proto) == PROTO_IP) {
             buf->pop_front(sizeof(ethernet_hdr_t));
@@ -78,9 +79,9 @@ void ethernet_t::receive(uint8* data, uint32 len)
             if (memcmp(m_eth_addr, hdr->m_dest, ETH_ADDR_LEN) == 0) {
                 console()->kprintf(GREEN, "data: %s\n", (char *) buf->get_data() + sizeof(ethernet_hdr_t));
             }
-        }
 
-        os()->get_net()->free_net_buffer(buf);
+            os()->get_net()->free_net_buffer(buf);
+        }
     }
 }
 

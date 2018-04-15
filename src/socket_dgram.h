@@ -13,6 +13,14 @@
 
 #define MAX_DGRAM_SOCKET    128
 
+class dgram_buf_t {
+public:
+    sock_addr_inet_t m_addr_from;
+    net_buf_t*       m_buf;
+
+    void init(uint32 ip, uint32 port, net_buf_t* buf);
+    dgram_buf_t& operator = (const dgram_buf_t& it);
+};
 
 class socket_dgram_t : public socket_t {
 public:
@@ -35,7 +43,7 @@ public:
     int32 send_to(void *buf, uint32 size, sock_addr_t* addr_to);
     int32 recv_from(void *buf, uint32 size, sock_addr_t* addr_from);
 
-    int32 net_receive(net_buf_t* buf);
+    int32 net_receive(uint32 ip, uint16 port, net_buf_t* buf);
 
 
     static void             init_dgram_sockets();
@@ -43,17 +51,17 @@ public:
     static void             release_dgram_socket(socket_t* socket);
     static socket_dgram_t*  lookup_dgram_socket(sock_addr_inet_t* addr);
     static int32            bind_dgram_socket(socket_dgram_t* socket, sock_addr_inet_t* addr);
-    static int32            dgram_net_receive(net_buf_t* buf, uint32 protocol, uint32 ip);
+    static int32            dgram_net_receive(net_buf_t* buf, uint32 src_ip, uint16 src_port, uint32 dst_ip, uint16 dst_port);
+    static void             get_not_used_port(socket_dgram_t* socket);
 
 public:
     uint32                  m_ref;
     sock_addr_inet_t        m_addr;
-    sock_addr_inet_t        m_remote_addr;
-    list_t<net_buf_t *>     m_buffers;
+    list_t<dgram_buf_t>     m_buffers;
     semaphore_t             m_buffer_sem;
 
     static spinlock_t       s_lock;
-    static socket_dgram_t   s_dgram_sockets[MAX_RAW_SOCKET];
+    static socket_dgram_t   s_dgram_sockets[MAX_DGRAM_SOCKET];
 };
 
 #endif

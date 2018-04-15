@@ -166,6 +166,8 @@ static void test_pipe()
     }
 }
 
+/********************* socket local *******************/
+
 static void do_server(int sockfd)
 {
     int data = 0;
@@ -300,6 +302,111 @@ static void test_socket()
     userlib_t::wait(pid3);
 }
 
+/********************* socket local *******************/
+
+/************************ udp ************************/
+const int TEST_UDP_PORT = 12345;
+static void udp_server()
+{
+    int sock_fd = userlib_t::socket(socket_t::AF_INET, socket_t::SOCK_DGRAM, 0);
+    if (sock_fd < 0) {
+        userlib_t::printf("ERROR, server create socket failed, error %u\n", sock_fd);
+        return;
+    }
+    userlib_t::printf("server create socket success, fd: %u\n", sock_fd);
+
+    sock_addr_inet_t addr;
+    addr.m_family = socket_t::AF_INET;
+    addr.m_ip = userlib_t::htonl(sock_addr_inet_t::INADDR_ANY);
+    addr.m_port = userlib_t::htons(TEST_UDP_PORT);
+    if (userlib_t::bind(sock_fd, &addr) < 0) {
+        userlib_t::printf("ERROR, server bind failed\n");
+        return;
+    }
+    userlib_t::printf("server bind success\n");
+
+    char buffer[512] = {0};
+    for (int i = 0; i < 5; i++) {
+        userlib_t::memset(buffer, 0, 512);
+        sock_addr_inet_t addr_client;
+        int ret = userlib_t::recv_from(sock_fd, buffer, 512, &addr_client);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, failed to recv_from, error %u\n", ret);
+            break;
+        }
+        userlib_t::printf("server receive from %x, %u: %s\n", addr_client.m_ip, addr_client.m_port, buffer);
+
+        ret = userlib_t::send_to(sock_fd, buffer, userlib_t::strlen(buffer), &addr_client);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, failed to send_to, error %u\n", ret);
+            break;
+        }
+    }
+}
+
+static void test_udp_server()
+{
+    int32 pid = userlib_t::fork();
+    if (pid == 0) {
+        /* server */
+        udp_server();
+        userlib_t::exit(0);
+    }
+
+    /* shell */
+    userlib_t::wait(pid);
+}
+
+static void udp_client()
+{
+    int sock_fd = userlib_t::socket(socket_t::AF_INET, socket_t::SOCK_DGRAM, 0);
+    if (sock_fd < 0) {
+        userlib_t::printf("ERROR, client create socket failed, error %u\n", sock_fd);
+        return;
+    }
+    userlib_t::printf("client create socket success, fd: %u\n", sock_fd);
+
+    sock_addr_inet_t addr;
+    addr.m_family = socket_t::AF_INET;
+    addr.m_ip = userlib_t::htonl(userlib_t::make_ipaddr(192, 168, 1, 105));
+    addr.m_port = userlib_t::htons(TEST_UDP_PORT);
+
+    char buffer[512] = {0};
+    for (int i = 0; i < 5; i++) {
+        userlib_t::memset(buffer, 0, 512);
+        userlib_t::gets(buffer, 512);
+        int ret = userlib_t::send_to(sock_fd, buffer, userlib_t::strlen(buffer), &addr);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, failed to send_to, error %u\n", ret);
+            break;
+        }
+
+        userlib_t::memset(buffer, 0, 512);
+        sock_addr_inet_t addr_recv;
+        ret = userlib_t::recv_from(sock_fd, buffer, 512, &addr_recv);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, failed to recv_from, error %u\n", ret);
+            break;
+        }
+
+        userlib_t::printf("receive: %s\n", buffer);
+    }
+}
+
+static void test_udp_client()
+{
+    int32 pid = userlib_t::fork();
+    if (pid == 0) {
+        /* server */
+        udp_client();
+        userlib_t::exit(0);
+    }
+
+    /* shell */
+    userlib_t::wait(pid);
+}
+
+/************************ udp ************************/
 
 int main()
 {
@@ -335,6 +442,22 @@ int main()
         }
         if (userlib_t::strncmp(cmd_line, "testsocket", 10) == 0) {
             test_socket();
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "testudpserver", 13) == 0) {
+            test_udp_server();
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "testudpclient", 13) == 0) {
+            test_udp_client();
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "us", 2) == 0) {
+            test_udp_server();
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "uc", 2) == 0) {
+            test_udp_client();
             continue;
         }
 

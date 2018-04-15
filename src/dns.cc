@@ -73,7 +73,7 @@ int32 dns_t::query(const char* name)
     buffer->append(&query_class,sizeof(query_class));
 
     uint32 dns_ip = os()->get_net()->get_dns_addr();
-    os()->get_net()->get_udp()->transmit(dns_ip, 53, buffer->get_data(), buffer->get_data_len());
+    os()->get_net()->get_udp()->transmit(dns_ip, 50150, 53, buffer->get_data(), buffer->get_data_len());
 
     return 0;
 }
