@@ -84,9 +84,9 @@ bool icmp_t::echo_reply(uint32 ip, uint16 id, uint16 seq, uint8* data, uint32 le
 void icmp_t::echo_request_receive(net_buf_t* buf, uint32 ip)
 {
     icmp_echo_hdr_t* hdr = (icmp_echo_hdr_t *) buf->get_data();
-    uint16 check_sum = net_t::check_sum((uint8 *) hdr, sizeof(icmp_echo_hdr_t));
+    uint16 check_sum = net_t::check_sum(buf->get_data(), buf->get_data_len());
     if (check_sum != 0) {
-        console()->kprintf(RED, "receive an icmp echo reply, but checksum is error: %x.\n", check_sum);
+        console()->kprintf(RED, "receive an icmp echo request, but checksum is error: %x.\n", check_sum);
         return;
     }
 
@@ -99,7 +99,7 @@ void icmp_t::echo_request_receive(net_buf_t* buf, uint32 ip)
 void icmp_t::echo_reply_receive(net_buf_t* buf, uint32 ip)
 {
     icmp_echo_hdr_t* hdr = (icmp_echo_hdr_t *) buf->get_data();
-    uint16 check_sum = net_t::check_sum((uint8 *) hdr, sizeof(icmp_echo_hdr_t));
+    uint16 check_sum = net_t::check_sum(buf->get_data(), buf->get_data_len());
     if (check_sum != 0) {
         console()->kprintf(RED, "receive an icmp echo reply, but checksum is error: %x.\n", check_sum);
         return;

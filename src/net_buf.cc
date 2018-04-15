@@ -21,7 +21,7 @@ void net_buf_t::init(uint8* ext_data)
     }
 }
 
-int32 net_buf_t::append(void* data, uint32 len)
+int32 net_buf_t::append(const void* data, uint32 len)
 {
     if (m_left < len) {
         return -ENOBUFS;

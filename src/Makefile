@@ -52,6 +52,8 @@ OBJS = \
 	sock_addr.o\
 	socket_raw.o\
     net_buf.o\
+	udp.o\
+	dns.o\
 
 AS = as --32
 CC = gcc -m32

@@ -1,31 +1,31 @@
 /*
  * guzhoudiaoke@126.com
- * 2018-04-07
+ * 2018-04-09
  */
 
-#include "socket_raw.h"
+#include "socket_dgram.h"
 #include "string.h"
 #include "babyos.h"
 
-spinlock_t      socket_raw_t::s_lock;
-socket_raw_t    socket_raw_t::s_raw_sockets[MAX_RAW_SOCKET];
+spinlock_t      socket_dgram_t::s_lock;
+socket_dgram_t  socket_dgram_t::s_dgram_sockets[MAX_RAW_SOCKET];
 
-void socket_raw_t::init_raw_sockets()
+void socket_dgram_t::init_dgram_sockets()
 {
-    socket_raw_t tmp;
+    socket_dgram_t tmp;
     tmp.init();
 
     s_lock.init();
     for (int i = 0; i < MAX_RAW_SOCKET; i++) {
-        memcpy(&s_raw_sockets[i], &tmp, sizeof(socket_raw_t));
+        memcpy(&s_dgram_sockets[i], &tmp, sizeof(socket_dgram_t));
     }
 }
 
-socket_t* socket_raw_t::alloc_raw_socket()
+socket_t* socket_dgram_t::alloc_dgram_socket()
 {
     locker_t locker(s_lock);
 
-    socket_raw_t* socket = s_raw_sockets;
+    socket_dgram_t* socket = s_dgram_sockets;
     for (int i = 0; i < MAX_RAW_SOCKET; i++, socket++) {
         if (socket->m_ref == 0) {
             socket->m_ref = 1;
@@ -36,15 +36,15 @@ socket_t* socket_raw_t::alloc_raw_socket()
     return NULL;
 }
 
-void socket_raw_t::release_raw_socket(socket_t* socket)
+void socket_dgram_t::release_dgram_socket(socket_t* socket)
 {
 }
 
-socket_raw_t* socket_raw_t::lookup_raw_socket(sock_addr_inet_t* addr)
+socket_dgram_t* socket_dgram_t::lookup_dgram_socket(sock_addr_inet_t* addr)
 {
     //locker_t locker(s_lock);
 
-    //socket_raw_t* socket = s_raw_sockets;
+    //socket_dgram_t* socket = s_dgram_sockets;
     //for (int i = 0; i < MAX_RAW_SOCKET; i++, socket++) {
     //    if (socket->m_addr == *addr) {
     //        return socket;
@@ -54,27 +54,26 @@ socket_raw_t* socket_raw_t::lookup_raw_socket(sock_addr_inet_t* addr)
     return NULL;
 }
 
-int32 socket_raw_t::bind_raw_socket(socket_raw_t* socket, sock_addr_inet_t* addr)
+int32 socket_dgram_t::bind_dgram_socket(socket_dgram_t* socket, sock_addr_inet_t* addr)
 {
     return -1;
 }
 
-int32 socket_raw_t::raw_net_receive(net_buf_t* buf, uint32 protocol, uint32 ip)
+int32 socket_dgram_t::dgram_net_receive(net_buf_t* buf, uint32 protocol, uint32 ip)
 {
     locker_t locker(s_lock);
 
-    //console()->kprintf(CYAN, "raw_net_receive: protocol: %u, ip: ");
+    //console()->kprintf(CYAN, "dgram_net_receive: protocol: %u, ip: ");
     //net_t::dump_ip_addr(ip);
     //console()->kprintf(CYAN, "\n");
 
-    socket_raw_t* socket = s_raw_sockets;
+    socket_dgram_t* socket = s_dgram_sockets;
     for (int i = 0; i < MAX_RAW_SOCKET; i++, socket++) {
         if (socket->m_ref == 0) {
             continue;
         }
 
-        //if (socket->m_protocol == protocol && socket->m_remote_addr.m_ip == ip) {
-        if (socket->m_protocol == protocol) {
+        if (socket->m_protocol == protocol && socket->m_remote_addr.m_ip == ip) {
             if (socket->net_receive(buf)) {
                 return 0;
             }
@@ -86,16 +85,16 @@ int32 socket_raw_t::raw_net_receive(net_buf_t* buf, uint32 protocol, uint32 ip)
 
 /**********************************************************************/
 
-socket_raw_t::socket_raw_t()
+socket_dgram_t::socket_dgram_t()
 {
     m_ref = 0;
 }
 
-void socket_raw_t::init()
+void socket_dgram_t::init()
 {
 }
 
-int32 socket_raw_t::create(uint32 family, uint32 type, uint32 protocol)
+int32 socket_dgram_t::create(uint32 family, uint32 type, uint32 protocol)
 {
     socket_t::create(family, type, protocol);
     console()->kprintf(PINK, "protocol: %u\n", m_protocol);
@@ -107,55 +106,55 @@ int32 socket_raw_t::create(uint32 family, uint32 type, uint32 protocol)
     return 0;
 }
 
-int32 socket_raw_t::dup(socket_t* socket)
+int32 socket_dgram_t::dup(socket_t* socket)
 {
     return -1;
 }
 
-int32 socket_raw_t::get_name(sock_addr_t* addr)
+int32 socket_dgram_t::get_name(sock_addr_t* addr)
 {
     return -1;
 }
 
-int32 socket_raw_t::release()
+int32 socket_dgram_t::release()
 {
     return -1;
 }
 
-int32 socket_raw_t::bind(sock_addr_t* myaddr)
+int32 socket_dgram_t::bind(sock_addr_t* myaddr)
 {
     return -1;
 }
 
-int32 socket_raw_t::listen(uint32 backlog)
+int32 socket_dgram_t::listen(uint32 backlog)
 {
     return -1;
 }
 
-int32 socket_raw_t::accept(socket_t* server_socket)
+int32 socket_dgram_t::accept(socket_t* server_socket)
 {
     return -1;
 }
 
-int32 socket_raw_t::connect(sock_addr_t* server_addr)
+int32 socket_dgram_t::connect(sock_addr_t* server_addr)
 {
     return -1;
 }
 
-int32 socket_raw_t::read(void* buf, uint32 size)
+int32 socket_dgram_t::read(void* buf, uint32 size)
 {
     return -1;
 }
 
-int32 socket_raw_t::write(void* buf, uint32 size)
+int32 socket_dgram_t::write(void* buf, uint32 size)
 {
     return -1;
 }
 
-int32 socket_raw_t::send_to(void *buf, uint32 size, sock_addr_t* addr_to)
+int32 socket_dgram_t::send_to(void *buf, uint32 size, sock_addr_t* addr_to)
 {
     sock_addr_inet_t* addr = (sock_addr_inet_t *) addr_to;
-    console()->kprintf(GREEN, "socket_raw_t: send_to: ");
+    console()->kprintf(GREEN, "socket_dgram_t: send_to: ");
     net_t::dump_ip_addr(addr->m_ip);
     console()->kprintf(GREEN, ", port: %u, proto: %u\n", addr->m_port, m_protocol);
 
@@ -163,7 +162,7 @@ int32 socket_raw_t::send_to(void *buf, uint32 size, sock_addr_t* addr_to)
     return 0;
 }
 
-int32 socket_raw_t::recv_from(void *buf, uint32 size, sock_addr_t* addr_from)
+int32 socket_dgram_t::recv_from(void *buf, uint32 size, sock_addr_t* addr_from)
 {
     memcpy(&m_remote_addr, addr_from, sizeof(sock_addr_inet_t));
     m_buffer_sem.down();
@@ -192,7 +191,7 @@ int32 socket_raw_t::recv_from(void *buf, uint32 size, sock_addr_t* addr_from)
     return 0;
 }
 
-int32 socket_raw_t::net_receive(net_buf_t* buf)
+int32 socket_dgram_t::net_receive(net_buf_t* buf)
 {
     if (m_buffers.size() >= c_max_buffer_num) {
         return -ENOMEM;

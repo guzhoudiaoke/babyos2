@@ -14,6 +14,7 @@
 #include "ip.h"
 #include "icmp.h"
 #include "net_buf.h"
+#include "udp.h"
 
 #define NET_BUF_PAGES       1024
 #define EXT_BUF_PAGES       1024
@@ -42,13 +43,15 @@ public:
     void free_ext_buffer(uint8* buf);
 
     ethernet_t* get_ethernet();
-    arp_t* get_arp();
-    ip_t* get_ip();
-    icmp_t* get_icmp();
+    arp_t*      get_arp();
+    ip_t*       get_ip();
+    icmp_t*     get_icmp();
+    udp_t*      get_udp();
 
     uint32 get_ipaddr();
     uint32 get_subnet_mask();
     uint32 get_gateway();
+    uint32 get_dns_addr();
 
     static uint16 htons(uint16 n);
     static uint16 ntohs(uint16 n);
@@ -67,10 +70,12 @@ private:
     arp_t               m_arp;
     ip_t                m_ip;
     icmp_t              m_icmp;
+    udp_t               m_udp;
 
     uint32              m_ipaddr;
     uint32              m_subnet_mask;
     uint32              m_gateway;
+    uint32              m_dns_addr;
 };
 
 #endif

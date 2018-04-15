@@ -72,14 +72,14 @@ void net_t::set_eth_addr(uint8 eth_addr[ETH_ADDR_LEN])
     /* FIXME: only test */
     if (eth_addr[ETH_ADDR_LEN-1] == 0xbc) {
         m_ipaddr = make_ipaddr(192, 168, 1, 104);
-        m_gateway = make_ipaddr(192, 168, 1, 1);
-        m_subnet_mask = make_ipaddr(255, 255, 255, 0);
     }
     else if (eth_addr[ETH_ADDR_LEN-1] == 0xbe) {
         m_ipaddr = make_ipaddr(192, 168, 1, 105);
-        m_gateway = make_ipaddr(192, 168, 1, 1);
-        m_subnet_mask = make_ipaddr(255, 255, 255, 0);
     }
+
+    m_gateway = make_ipaddr(192, 168, 1, 1);
+    m_subnet_mask = make_ipaddr(255, 255, 255, 0);
+    m_dns_addr = make_ipaddr(192, 168, 100, 1);
 
     uint8* ip = (uint8 *) (&m_ipaddr);
     console()->kprintf(GREEN, "IP: %d.%d.%d.%d\n", ip[3], ip[2], ip[1], ip[0]);
@@ -181,6 +181,11 @@ uint32 net_t::get_gateway()
     return m_gateway;
 }
 
+uint32 net_t::get_dns_addr()
+{
+    return m_dns_addr;
+}
+
 void net_t::arp_request(uint32 ip)
 {
     m_arp.request(ip);
@@ -199,6 +204,11 @@ ip_t* net_t::get_ip()
 icmp_t* net_t::get_icmp()
 {
     return &m_icmp;
+}
+
+udp_t* net_t::get_udp()
+{
+    return &m_udp;
 }
 
 uint16 net_t::check_sum(uint8* data, uint32 len)

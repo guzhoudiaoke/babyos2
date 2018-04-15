@@ -65,7 +65,7 @@ void ethernet_t::receive(uint8* data, uint32 len)
 
         if (net_t::htons(hdr->m_proto) == PROTO_ARP) {
             buf->pop_front(sizeof(ethernet_hdr_t));
-            os()->get_net()->get_arp()->receive(hdr->m_dest, buf);
+            os()->get_net()->get_arp()->receive(hdr->m_source, buf);
         }
         else if (net_t::htons(hdr->m_proto) == PROTO_IP) {
             buf->pop_front(sizeof(ethernet_hdr_t));

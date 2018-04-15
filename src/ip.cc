@@ -76,6 +76,7 @@ void ip_t::transmit(uint32 ip, uint8* data, uint32 len, uint8 protocol)
     uint32 dst_ip = ip;
     if (!is_same_subnet(ip, os()->get_net()->get_ipaddr(), os()->get_net()->get_subnet_mask())) {
         /* if not in same subnet, send to gateway */
+        console()->kprintf(PINK, "not in same subnet, send to gateway\n");
         dst_ip = os()->get_net()->get_gateway();
     }
 
@@ -125,6 +126,7 @@ void ip_t::receive(net_buf_t* buf)
     ip_hdr_t* hdr = (ip_hdr_t *) buf->get_data();
     buf->pop_front(sizeof(ip_hdr_t));
 
+    /* check sum */
     if (net_t::check_sum((uint8 *) hdr, sizeof(ip_hdr_t)) != 0) {
         console()->kprintf(RED, "get a ip package, from: ");
         net_t::dump_ip_addr(net_t::ntohl(hdr->m_src_ip));
@@ -132,18 +134,24 @@ void ip_t::receive(net_buf_t* buf)
         return;
     }
 
-    if (socket_raw_t::raw_net_receive(buf, hdr->m_protocol, net_t::ntohl(hdr->m_src_ip))) {
-        return;
+    /* for raw socket */
+    if (socket_raw_t::raw_net_receive(buf, hdr->m_protocol, net_t::ntohl(hdr->m_src_ip)) == 0) {
+        console()->kprintf(CYAN, "socket raw process a packet, protocol: %u\n", hdr->m_protocol);
     }
 
-    if (hdr->m_protocol == PROTO_RAW) {
+    switch (hdr->m_protocol) {
+    case PROTO_RAW:
         console()->kprintf(YELLOW, "get a raw ip package, data: %s\n", buf->get_data());
-    }
-    else if (hdr->m_protocol == PROTO_ICMP) {
+        break;
+    case PROTO_ICMP:
         os()->get_net()->get_icmp()->receive(buf, net_t::ntohl(hdr->m_src_ip));
-    }
-    else {
+        break;
+    case PROTO_UDP:
+        os()->get_net()->get_udp()->receive(buf, net_t::ntohl(hdr->m_src_ip));
+        break;
+    default:
         console()->kprintf(YELLOW, "get an ip package with protocol: %x, not support.\n", hdr->m_protocol);
+        break;
     }
 }
 

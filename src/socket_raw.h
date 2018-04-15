@@ -43,7 +43,6 @@ public:
     static void             release_raw_socket(socket_t* socket);
     static socket_raw_t*    lookup_raw_socket(sock_addr_inet_t* addr);
     static int32            bind_raw_socket(socket_raw_t* socket, sock_addr_inet_t* addr);
-    static int32            raw_net_receive(net_buf_t* buf);
     static int32            raw_net_receive(net_buf_t* buf, uint32 protocol, uint32 ip);
 
 public:

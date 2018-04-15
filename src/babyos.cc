@@ -11,6 +11,7 @@
 #include "fs_test.h"
 #include "sys_socket.h"
 #include "delay.h"
+#include "dns.h"
 
 extern babyos_t babyos;
 babyos_t* babyos_t::get_os()
@@ -285,12 +286,21 @@ void test_icmp()
     }
 }
 
+void test_dns()
+{
+    for (int i = 0; i < 1; i++) {
+        dns_t::query("www.baidu.com");
+        delay_t::ms_delay(2000);
+    }
+}
+
 void test_net()
 {
     //test_rtl8139();
     //test_arp();
     //test_ip();
     //test_icmp();
+    test_dns();
 }
 
 void babyos_t::run()

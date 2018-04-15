@@ -15,7 +15,7 @@
 class net_buf_t {
 public:
     void   init(uint8* ext_data);
-    int32  append(void* data, uint32 len);
+    int32  append(const void* data, uint32 len);
     int32  append_zero(uint32 len);
     uint8* get_data();
     uint32 get_data_len();
