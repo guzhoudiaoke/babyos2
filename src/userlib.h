@@ -14,6 +14,7 @@
 #include "sys_socket.h"
 #include "arg.h"
 #include "color.h"
+#include "dns.h"
 
 #define PROT_NONE           0x0       /* page can not be accessed */
 #define PROT_READ           0x1       /* page can be read */
@@ -90,6 +91,7 @@ public:
     static uint32 ntohl(uint32 n);
     static uint32 make_ipaddr(uint8 ip0, uint8 ip1, uint8 ip2, uint8 ip3);
     static uint16 check_sum(uint8* data, uint32 len);
+    static uint32 get_ip_by_name(const char* name);
 
 
 private:

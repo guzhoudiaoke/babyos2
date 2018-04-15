@@ -44,19 +44,11 @@ int32 udp_t::transmit(uint32 dst_ip, uint16 src_port, uint16 dst_port, uint8* da
                     ip_t::PROTO_UDP,
                     net_t::htons(total));
 
-    //console()->kprintf(GREEN, "pseudo: %u %u %u %u %u\n", pseudo_hdr.m_src_ip, pseudo_hdr.m_dst_ip,
-    //        pseudo_hdr.m_zero, pseudo_hdr.m_protocol, pseudo_hdr.m_udp_len);
-
     udp_hdr_t hdr;
     hdr.init(net_t::htons(src_port), 
              net_t::htons(dst_port), 
              net_t::htons(total), 
              0);
-
-    //console()->kprintf(CYAN, "udp transmit, to ip: ");
-    //net_t::dump_ip_addr(dst_ip);
-    //console()->kprintf(CYAN, ", src port: %u, dst_port: %u, data len: %u, total: %u\n", 
-    //        src_port, dst_port, len, total);
 
     net_buf_t* buffer = os()->get_net()->alloc_net_buffer(total + sizeof(pseudo_hdr));
     if (buffer == NULL) {
@@ -69,11 +61,6 @@ int32 udp_t::transmit(uint32 dst_ip, uint16 src_port, uint16 dst_port, uint8* da
 
     udp_hdr_t *header = (udp_hdr_t *) (buffer->get_data() + sizeof(udp_pseudo_hdr_t));
     header->m_check_sum = net_t::check_sum(buffer->get_data(), buffer->get_data_len());
-    //console()->kprintf(WHITE, "check sum data len: %u\n", buffer->get_data_len());
-    //for (int i = 0; i < buffer->get_data_len(); i++) {
-    //    console()->kprintf(YELLOW, "%2x ", buffer->get_data()[i]);
-    //}
-    //console()->kprintf(YELLOW, "\n");
 
     buffer->pop_front(sizeof(udp_pseudo_hdr_t));
     os()->get_net()->get_ip()->transmit(dst_ip, buffer->get_data(), buffer->get_data_len(), ip_t::PROTO_UDP);
@@ -92,27 +79,14 @@ int32 udp_t::receive(net_buf_t* buf, uint32 ip)
                     net_t::htons(total));
 
 
-    //console()->kprintf(GREEN, "pseudo: %u %u %u %u %u\n", pseudo_hdr.m_src_ip, pseudo_hdr.m_dst_ip,
-    //        pseudo_hdr.m_zero, pseudo_hdr.m_protocol, pseudo_hdr.m_udp_len);
-
     net_buf_t* buffer = os()->get_net()->alloc_net_buffer(sizeof(pseudo_hdr) + buf->get_data_len());
     if (buffer == NULL) {
         return -1;
     }
 
-    //console()->kprintf(CYAN, "udp receive, from ip: ");
-    //net_t::dump_ip_addr(ip);
-    //console()->kprintf(CYAN, ", src port: %u, dst_port: %u, total len: %u\n", 
-    //        net_t::ntohs(hdr->m_src_port), net_t::ntohs(hdr->m_dst_port), total);
-
     buffer->append(&pseudo_hdr, sizeof(udp_pseudo_hdr_t));
     buffer->append(buf->get_data(), total);
     uint16 check_sum = net_t::check_sum(buffer->get_data(), buffer->get_data_len());
-    //console()->kprintf(WHITE, "check sum data len: %u\n", buffer->get_data_len());
-    //for (int i = 0; i < buffer->get_data_len(); i++) {
-    //    console()->kprintf(YELLOW, "%2x ", buffer->get_data()[i]);
-    //}
-    //console()->kprintf(YELLOW, "\n");
 
     os()->get_net()->free_net_buffer(buffer);
     if (check_sum != 0) {

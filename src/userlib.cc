@@ -569,3 +569,198 @@ void* userlib_t::memcpy(void *dst, const void *src, uint32 n)
     return memmov(dst, src, n);
 }
 
+static void prepare_dns_hdr(dns_hdr_t* hdr, uint16 id)
+{
+    hdr->m_transaction_id         = userlib_t::htons(id); 
+    hdr->m_flags.m_flags_qr       = 0;
+    hdr->m_flags.m_flags_opcode   = 0;
+    hdr->m_flags.m_flags_aa       = 0;
+    hdr->m_flags.m_flags_tc       = 0;
+    hdr->m_flags.m_flags_rd       = 1;
+    hdr->m_flags.m_flags_ra       = 0;
+    hdr->m_flags.m_flags_z        = 0;
+    hdr->m_flags.m_flags_rcode    = 0;
+    hdr->m_flags_val              = userlib_t::htons(hdr->m_flags_val);
+    hdr->m_qd_count               = userlib_t::htons(1);
+    hdr->m_an_count               = userlib_t::htons(0);
+    hdr->m_ns_count               = userlib_t::htons(0);
+    hdr->m_ar_count               = userlib_t::htons(0);
+}
+
+static uint32 resolve_name(const uint8* dns_data, const uint8* data, char* name)
+{
+    const uint8* start = data;
+    uint8 len = (uint8) *data++;
+    uint32 total = 0;
+    while (len != 0) {
+        if (len <= MAX_LABEL_LEN) {
+            userlib_t::memcpy(name, data, len);
+            name += len;
+            data += len;
+        }
+        else {
+            uint16 offset = ((len & 0x3f) << 8 | *data++);
+            const uint8* p = dns_data + offset;
+            uint32 count = resolve_name(dns_data, p, name);
+            name += userlib_t::strlen(name);
+            break;
+        }
+
+        len = *data++;
+        if (len != 0) {
+            *name++ = '.';
+        }
+    }
+
+    *name++ = '\0';
+    return data - start;
+}
+
+static uint32 prepare_dns_query(const char* name, uint8* buffer)
+{
+    const char* p = name;
+    uint8* tmp = buffer;
+
+    while (*p != '\0') {
+        const char* begin = p;
+        while (*p != '\0' && *p != '.') {
+            p++;
+        }
+        if (p - begin > MAX_LABEL_LEN) {
+            return -1;
+        }
+        
+        uint8 count = p - begin;
+        *buffer++ = count;
+
+        userlib_t::memcpy(buffer, begin, count);
+        buffer += count;
+
+        if (*p == '\0') {
+            *buffer++ = 0;
+
+            *((uint16 *) buffer) = userlib_t::htons(0x0001);  /* type */
+            buffer += 2;
+
+            *((uint16 *) buffer) = userlib_t::htons(0x0001);  /* class */
+            buffer += 2;
+
+            return buffer - tmp; 
+        }
+        p++;
+    }
+
+    return -1;
+}
+
+static uint32 dns_resolve(const char* dest, const uint8* buffer)
+{
+    dns_hdr_t* hdr = (dns_hdr_t *) buffer;
+
+    uint16 query_count = userlib_t::ntohs(hdr->m_qd_count);
+    uint16 answer_count = userlib_t::ntohs(hdr->m_an_count);
+    userlib_t::printf("ID: 0x%x, flags: 0x%x, questions num: %u, answer num: %u\n", 
+            userlib_t::ntohs(hdr->m_transaction_id), userlib_t::ntohs(hdr->m_flags_val), 
+            query_count, answer_count);
+
+    const uint8* dns_data = buffer;
+    const uint8* p = dns_data + sizeof(dns_hdr_t);
+    char name[512] = {0};
+    char dest_name[512] = {0};
+    userlib_t::strcpy(dest_name, dest);
+
+    userlib_t::printf("queries:\n");
+    for (int i = 0; i < query_count; i++) {
+        userlib_t::memset(name, 0, 512);
+        p += resolve_name(dns_data, p, name);
+        uint16* query_type = (uint16 *) p;
+        uint16* query_class = (uint16 *) (query_type + 1);
+        userlib_t::printf("%s, type 0x%4x, class 0x%4x\n", name, 
+                userlib_t::ntohs(*query_type), userlib_t::ntohs(*query_class));
+        p = (uint8 *) (query_class + 1);
+    }
+
+    userlib_t::printf("answers:\n");
+    for (int i = 0; i < answer_count; i++) {
+        userlib_t::memset(name, 0, 512);
+        p += resolve_name(dns_data, p, name);
+
+        uint16* ans_type = (uint16 *) p;
+        uint16* ans_class = (uint16 *) (ans_type + 1);
+        uint32* ttl = (uint32 *) (ans_class + 1);
+        uint16* data_len = (uint16 *) (ttl + 1);
+        userlib_t::printf("%s, type 0x%4x, class 0x%4x, ttl: 0x%8x, data len: 0x%4x -> ",  name, 
+                userlib_t::ntohs(*ans_type), userlib_t::ntohs(*ans_class), 
+                userlib_t::ntohl(*ttl), userlib_t::ntohs(*data_len));
+
+        p = (uint8 *) (data_len + 1);
+        if (userlib_t::ntohs(*ans_type) == RR_TYPE_A) {
+            uint32* ip = (uint32 *) p;
+            userlib_t::printf("0x%x\n", userlib_t::ntohl(*ip));
+            if (userlib_t::strcmp(dest_name, name) == 0) {
+                return *ip;
+            }
+        }
+        else if (userlib_t::ntohs(*ans_type) == RR_TYPE_CNAME) {
+            userlib_t::memset(name, 0, 512);
+            resolve_name(dns_data, p, name);
+            userlib_t::printf("%s\n", name);
+            userlib_t::strcpy(dest_name, name);
+        }
+        p += userlib_t::ntohs(*data_len);
+    }
+
+    return 0;
+}
+
+uint32 userlib_t::get_ip_by_name(const char* name)
+{
+    int sock_fd = userlib_t::socket(socket_t::AF_INET, socket_t::SOCK_DGRAM, 0);
+    if (sock_fd < 0) {
+        userlib_t::printf("ERROR, get_ip_by_name create socket failed, error %u\n", sock_fd);
+        return -1;
+    }
+
+    sock_addr_inet_t addr;
+    addr.m_family = socket_t::AF_INET;
+    addr.m_ip = userlib_t::htonl(userlib_t::make_ipaddr(192, 168, 100, 1));
+    addr.m_port = userlib_t::htons(53);
+
+    uint8 buffer[512] = {0};
+    for (int i = 0; i < 5; i++) {
+        userlib_t::memset(buffer, 0, 512);
+        dns_hdr_t hdr;
+        prepare_dns_hdr(&hdr, i);
+        memcpy(buffer, &hdr, sizeof(dns_hdr_t));
+
+        uint32 count = sizeof(dns_hdr_t);
+        int ret = prepare_dns_query(name, buffer + count);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, get_ip_by_name invalid name\n");
+            return -1;
+        }
+        count += ret;
+
+        ret = userlib_t::send_to(sock_fd, buffer, count, &addr);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, get_ip_by_name failed to send_to, error %u\n", ret);
+            break;
+        }
+
+        userlib_t::memset(buffer, 0, 512);
+        sock_addr_inet_t addr_recv;
+        ret = userlib_t::recv_from(sock_fd, buffer, 512, &addr_recv);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, get_ip_by_name failed to recv_from, error %u\n", ret);
+            break;
+        }
+
+        uint32 ip = dns_resolve(name, buffer);
+        if (ip != 0) {
+            return ip;
+        }
+    }
+
+    return 0;
+}
+

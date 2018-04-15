@@ -326,7 +326,7 @@ static void udp_server()
     userlib_t::printf("server bind success\n");
 
     char buffer[512] = {0};
-    for (int i = 0; i < 5; i++) {
+    for (; ; ) {
         userlib_t::memset(buffer, 0, 512);
         sock_addr_inet_t addr_client;
         int ret = userlib_t::recv_from(sock_fd, buffer, 512, &addr_client);
@@ -408,6 +408,13 @@ static void test_udp_client()
 
 /************************ udp ************************/
 
+void ns_lookup(const char* name)
+{
+    uint32 ip = userlib_t::get_ip_by_name(name);
+    uint8* p = (uint8 *) &ip;
+    userlib_t::printf("IP: %u.%u.%u.%u\n", p[0], p[1], p[2], p[3]);
+}
+
 int main()
 {
     char cmd_line[MAX_CMD_LEN] = {0};
@@ -452,12 +459,8 @@ int main()
             test_udp_client();
             continue;
         }
-        if (userlib_t::strncmp(cmd_line, "us", 2) == 0) {
-            test_udp_server();
-            continue;
-        }
-        if (userlib_t::strncmp(cmd_line, "uc", 2) == 0) {
-            test_udp_client();
+        if (userlib_t::strncmp(cmd_line, "nslookup", 8) == 0) {
+            ns_lookup(cmd_line + 9);
             continue;
         }
 

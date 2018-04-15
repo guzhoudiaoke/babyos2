@@ -73,9 +73,9 @@ void ethernet_t::receive(uint8* data, uint32 len)
             os()->get_net()->get_ip()->receive(buf);
         }
         else {
-            console()->kprintf(YELLOW, "net receive from [%2x:%2x:%2x:%2x:%2x:%2x] to [%2x:%2x:%2x:%2x:%2x:%2x]\n",
-                    hdr->m_source[0], hdr->m_source[1], hdr->m_source[2], hdr->m_source[3], hdr->m_source[4], hdr->m_source[5],
-                    hdr->m_dest[0], hdr->m_dest[1], hdr->m_dest[2], hdr->m_dest[3], hdr->m_dest[4], hdr->m_dest[5]);
+            //console()->kprintf(YELLOW, "net receive from [%2x:%2x:%2x:%2x:%2x:%2x] to [%2x:%2x:%2x:%2x:%2x:%2x]\n",
+            //        hdr->m_source[0], hdr->m_source[1], hdr->m_source[2], hdr->m_source[3], hdr->m_source[4], hdr->m_source[5],
+            //        hdr->m_dest[0], hdr->m_dest[1], hdr->m_dest[2], hdr->m_dest[3], hdr->m_dest[4], hdr->m_dest[5]);
             if (memcmp(m_eth_addr, hdr->m_dest, ETH_ADDR_LEN) == 0) {
                 console()->kprintf(GREEN, "data: %s\n", (char *) buf->get_data() + sizeof(ethernet_hdr_t));
             }

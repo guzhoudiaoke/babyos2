@@ -28,6 +28,8 @@ dgram_buf_t& dgram_buf_t::operator = (const dgram_buf_t& dgram_buf)
     m_buf = dgram_buf.m_buf;
 }
 
+/****************************************************************************/
+
 void socket_dgram_t::init_dgram_sockets()
 {
     socket_dgram_t tmp;
@@ -60,15 +62,6 @@ void socket_dgram_t::release_dgram_socket(socket_t* socket)
 
 socket_dgram_t* socket_dgram_t::lookup_dgram_socket(sock_addr_inet_t* addr)
 {
-    //locker_t locker(s_lock);
-
-    //socket_dgram_t* socket = s_dgram_sockets;
-    //for (int i = 0; i < MAX_DGRAM_SOCKET; i++, socket++) {
-    //    if (socket->m_addr == *addr) {
-    //        return socket;
-    //    }
-    //}
-
     return NULL;
 }
 
@@ -85,14 +78,12 @@ int32 socket_dgram_t::bind_dgram_socket(socket_dgram_t* socket, sock_addr_inet_t
 
     socket->m_addr.m_ip = net_t::ntohl(addr->m_ip);
     socket->m_addr.m_port = net_t::ntohs(addr->m_port);
-    //console()->kprintf(GREEN, "0x%x bind to port: %u\n", socket, socket->m_addr.m_port);
 
     return 0;
 }
 
 int32 socket_dgram_t::dgram_net_receive(net_buf_t* buf, uint32 src_ip, uint16 src_port, uint32 dst_ip, uint16 dst_port)
 {
-    //console()->kprintf(GREEN, "dgram socket receive: %s, port: %u\n", (char *)buf->get_data(), dst_port);
     locker_t locker(s_lock);
 
     socket_dgram_t* socket = s_dgram_sockets;
@@ -101,7 +92,6 @@ int32 socket_dgram_t::dgram_net_receive(net_buf_t* buf, uint32 src_ip, uint16 sr
             continue;
         }
 
-        //console()->kprintf(GREEN, "my port: %u\n", socket->m_addr.m_port);
         if (socket->m_addr.m_port == dst_port) {
             if (socket->net_receive(src_ip, src_port, buf)) {
                 return 0;
@@ -115,7 +105,6 @@ int32 socket_dgram_t::dgram_net_receive(net_buf_t* buf, uint32 src_ip, uint16 sr
 void socket_dgram_t::get_not_used_port(socket_dgram_t* socket)
 {
     locker_t locker(s_lock);
-    //console()->kprintf(GREEN, "find not used port\n");
 
     socket_dgram_t* s = s_dgram_sockets;
     for (uint16 port = 4096; port < 65535; port++) {
@@ -123,12 +112,10 @@ void socket_dgram_t::get_not_used_port(socket_dgram_t* socket)
         for (int i = 0; i < MAX_DGRAM_SOCKET; i++, s++) {
             if (s->m_ref > 0 && s->m_addr.m_port == port) {
                 succ = false;
-                //console()->kprintf(GREEN, "find not used port, %u using\n", port);
                 break;
             }
         }
         if (succ) {
-            //console()->kprintf(GREEN, "find not used port, %u not used\n", port);
             socket->m_addr.m_port = port;
             return;
         }
@@ -152,7 +139,6 @@ int32 socket_dgram_t::create(uint32 family, uint32 type, uint32 protocol)
     if (protocol == 0) {
         protocol = socket_t::PROTO_UDP;
     }
-    //console()->kprintf(PINK, "protocol: %u\n", m_protocol);
 
     m_ref = 1;
     m_addr.m_ip = 0;
@@ -183,7 +169,6 @@ int32 socket_dgram_t::release()
     while (!m_buffers.empty()) {
         dgram_buf_t* dgram_buf = &(*m_buffers.begin());
         net_buf_t* buffer = dgram_buf->m_buf;
-        //net_buf_t* buffer = *m_buffers.begin();
         os()->get_net()->free_net_buffer(buffer);
         m_buffers.pop_front();
     }
@@ -239,11 +224,6 @@ int32 socket_dgram_t::send_to(void *buf, uint32 size, sock_addr_t* addr_to)
         socket_dgram_t::get_not_used_port(this);
     }
 
-    //console()->kprintf(GREEN, "socket_dgram_t: send_to: ");
-    //net_t::dump_ip_addr(net_t::ntohl(addr->m_ip));
-    //console()->kprintf(GREEN, ", src_port: %u, dst_port: %u, proto: %u\n", 
-    //        m_addr.m_port, net_t::ntohs(addr->m_port), m_protocol);
-
     os()->get_net()->get_udp()->transmit(net_t::ntohl(addr->m_ip), m_addr.m_port,
             net_t::ntohs(addr->m_port), (uint8 *) buf, size);
 
@@ -260,7 +240,6 @@ int32 socket_dgram_t::recv_from(void *buf, uint32 size, sock_addr_t* addr_from)
 
     if (!m_buffers.empty()) {
         dgram_buf_t* dgram_buf = &(*m_buffers.begin());
-        //memcpy(addr_from, &dgram_buf->m_addr_from, sizeof(sock_addr_inet_t));
 
         sock_addr_inet_t* addr = (sock_addr_inet_t *) addr_from;
         addr->m_family = net_t::ntohs(dgram_buf->m_addr_from.m_family);
@@ -287,7 +266,6 @@ int32 socket_dgram_t::recv_from(void *buf, uint32 size, sock_addr_t* addr_from)
 
 int32 socket_dgram_t::net_receive(uint32 ip, uint16 port, net_buf_t* buf)
 {
-    //console()->kprintf(PINK, "socket dgram receive a udp packet: %x, %u\n", ip, port);
     if (m_buffers.size() >= c_max_buffer_num) {
         return -ENOMEM;
     }
