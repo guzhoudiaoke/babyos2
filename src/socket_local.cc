@@ -86,8 +86,13 @@ int32 socket_local_t::create(uint32 family, uint32 type, uint32 protocol)
     socket_t::create(family, type, protocol);
 
     m_ref = 1;
-    m_sock_buf.init(this);
+    m_sock_buf.init(this, 1);
     memset(m_addr.m_path, 0, sizeof(m_addr.m_path));
+
+    m_connecting_list.init(os()->get_obj_pool_of_size());
+    m_connected_socket = NULL;
+    m_wait_connect_sem.init(0);
+    m_wait_accept_sem.init(0);
 
     return 0;
 }
@@ -97,7 +102,7 @@ int32 socket_local_t::dup(socket_t* socket)
     return create(socket->m_family, socket->m_type, socket->m_protocol);
 }
 
-int32 socket_local_t::get_name(sock_addr_t* addr)
+int32 socket_local_t::get_addr(sock_addr_t* addr)
 {
     sock_addr_local_t* local_addr = (sock_addr_local_t *) addr;
     memcpy(local_addr, &m_addr, sizeof(sock_addr_local_t));
@@ -116,7 +121,7 @@ int32 socket_local_t::release()
     spinlock_t* lock = m_connecting_list.get_lock();
     uint32 flags;
     lock->lock_irqsave(flags);
-    list_t<socket_t *>::iterator it = m_connecting_list.begin();
+    list_t<socket_local_t *>::iterator it = m_connecting_list.begin();
     while (it != m_connecting_list.end()) {
         (*it)->m_wait_accept_sem.up();
     }
@@ -131,9 +136,7 @@ int32 socket_local_t::release()
     m_ref--;
     if (peer != NULL) {
         peer->m_ref--;
-        //console()->kprintf(PINK, "socket %p ref = %u, %s\n", peer, peer->m_ref, peer->m_addr.m_path);
     }
-    //console()->kprintf(PINK, "socket %p release, ref = %u, %s\n", this, m_ref, m_addr.m_path);
 
     return 0;
 }
@@ -150,8 +153,10 @@ int32 socket_local_t::listen(uint32 backlog)
     return 0;
 }
 
-int32 socket_local_t::accept(socket_t* server_socket)
+int32 socket_local_t::accept(socket_t* socket)
 {
+    socket_local_t* server_socket = (socket_local_t* ) socket;
+
     /* wait for connect */
     while (server_socket->m_connecting_list.empty()) {
         server_socket->m_flags |= socket_t::SF_WAITDATA;
@@ -161,7 +166,7 @@ int32 socket_local_t::accept(socket_t* server_socket)
     }
 
     /* get a connect */
-    socket_t* client_socket = NULL;
+    socket_local_t* client_socket = NULL;
 
     spinlock_t* lock = server_socket->m_connecting_list.get_lock();
     uint32 flags;
@@ -176,7 +181,6 @@ int32 socket_local_t::accept(socket_t* server_socket)
     this->m_connected_socket = client_socket;
     this->m_state = socket_t::SS_CONNECTED;
     this->m_ref++;
-    //console()->kprintf(PINK, "inc ref, socket %p ref: %u\n", this, m_ref);
 
     /* wake up client that accepted */
     client_socket->m_wait_accept_sem.up();
@@ -200,7 +204,7 @@ int32 socket_local_t::connect(sock_addr_t* server_addr)
     }
 
     /* get server socket */
-    socket_t* server_socket = socket_local_t::lookup_local_socket((sock_addr_local_t *) server_addr);
+    socket_local_t* server_socket = socket_local_t::lookup_local_socket((sock_addr_local_t *) server_addr);
     if (server_socket == NULL || server_socket->m_state != socket_t::SS_UNCONNECTED) {
         return -EINVAL;
     }
@@ -235,8 +239,8 @@ int32 socket_local_t::connect(sock_addr_t* server_addr)
 
 int32 socket_local_t::read(void* buf, uint32 size)
 {
-    char* p = (char *) buf;
-    char ch;
+    uint8* p = (uint8 *) buf;
+    uint8 ch;
     for (uint32 i = 0; i < size; i++) {
         if (m_sock_buf.get_char(ch) < 0) {
             return -1;
@@ -250,7 +254,7 @@ int32 socket_local_t::read(void* buf, uint32 size)
 int32 socket_local_t::write(void* buf, uint32 size)
 {
     sock_ring_buffer_t* connect_sock_buf = &((socket_local_t *) (m_connected_socket))->m_sock_buf;
-    char* p = (char *) buf;
+    uint8* p = (uint8 *) buf;
     for (uint32 i = 0; i < size; i++) {
         if (connect_sock_buf->put_char(*p++) < 0) {
             return -1;

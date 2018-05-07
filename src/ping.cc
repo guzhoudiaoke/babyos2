@@ -6,7 +6,6 @@
 #include "userlib.h"
 #include "icmp.h"
 
-const uint32 c_invalid_ip = 0xffffffff;
 const uint32 c_packet_size = 32;
 
 uint32 parse_ip(const char* str)
@@ -15,7 +14,6 @@ uint32 parse_ip(const char* str)
     if (str == NULL) {
         return c_invalid_ip;
     }
-    userlib_t::printf("parse_ip: %s\n", str);
 
     const char* p = str;
     int count = 0;
@@ -110,11 +108,15 @@ void ping(uint32 ip)
 int main(int argc, char** argv)
 {
     if (argc != 2) {
-        userlib_t::printf("Usage: ping a.b.c.d\n");
+        userlib_t::printf("Usage: ping a.b.c.d, or ping www.baidu.com\n");
         userlib_t::exit(0);
     }
 
     uint32 ip = parse_ip(argv[1]);
+    if (ip == c_invalid_ip) {
+        ip = userlib_t::get_ip_by_name(argv[1]);
+    }
+
     if (ip == c_invalid_ip) {
         userlib_t::printf("invalid ip.\n");
         userlib_t::exit(0);

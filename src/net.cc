@@ -39,6 +39,7 @@ void net_t::init()
     m_net_buffers.init(os()->get_obj_pool_of_size());
     m_ext_buffers.init(os()->get_obj_pool_of_size());
 
+    /* net buffers */
     uint32 total_buf_num = PAGE_SIZE * NET_BUF_PAGES / NET_BUF_SIZE;
     uint32 n = 0;
     while (n < total_buf_num) {
@@ -50,6 +51,7 @@ void net_t::init()
         }
     }
 
+    /* ext buffers */
     uint32 total_ext_num = PAGE_SIZE * EXT_BUF_PAGES / EXT_BUF_SIZE;
     n = 0;
     while (n < total_ext_num) {
@@ -212,6 +214,11 @@ icmp_t* net_t::get_icmp()
 udp_t* net_t::get_udp()
 {
     return &m_udp;
+}
+
+tcp_t* net_t::get_tcp()
+{
+    return &m_tcp;
 }
 
 uint16 net_t::check_sum(uint8* data, uint32 len)

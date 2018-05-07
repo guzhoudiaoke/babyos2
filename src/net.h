@@ -15,6 +15,7 @@
 #include "icmp.h"
 #include "net_buf.h"
 #include "udp.h"
+#include "tcp.h"
 
 #define NET_BUF_PAGES       1024
 #define EXT_BUF_PAGES       1024
@@ -23,11 +24,6 @@
 #define PROTO_IP            0x0800
 #define PROTO_ARP           0x0806
 
-
-typedef struct packet_s {
-    uint32              m_packet_len;
-    list_t<net_buf_t *> m_buffer_list;
-} packet_t;
 
 class net_t {
 public:
@@ -47,6 +43,7 @@ public:
     ip_t*       get_ip();
     icmp_t*     get_icmp();
     udp_t*      get_udp();
+    tcp_t*      get_tcp();
 
     uint32 get_ipaddr();
     uint32 get_subnet_mask();
@@ -71,6 +68,7 @@ private:
     ip_t                m_ip;
     icmp_t              m_icmp;
     udp_t               m_udp;
+    tcp_t               m_tcp;
 
     uint32              m_ipaddr;
     uint32              m_subnet_mask;

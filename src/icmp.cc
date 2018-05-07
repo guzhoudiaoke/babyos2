@@ -105,9 +105,9 @@ void icmp_t::echo_reply_receive(net_buf_t* buf, uint32 ip)
         return;
     }
 
-    console()->kprintf(WHITE, "receive an icmp echo reply from ip: ");
-    net_t::dump_ip_addr(ip);
-    console()->kprintf(WHITE, " seq: %u\n", net_t::ntohs(hdr->m_seq_no));
+    //console()->kprintf(WHITE, "receive an icmp echo reply from ip: ");
+    //net_t::dump_ip_addr(ip);
+    //console()->kprintf(WHITE, " seq: %u\n", net_t::ntohs(hdr->m_seq_no));
 }
 
 void icmp_t::receive(net_buf_t* buf, uint32 ip)

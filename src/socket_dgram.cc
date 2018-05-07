@@ -154,7 +154,7 @@ int32 socket_dgram_t::dup(socket_t* socket)
     return -1;
 }
 
-int32 socket_dgram_t::get_name(sock_addr_t* addr)
+int32 socket_dgram_t::get_addr(sock_addr_t* addr)
 {
     return -1;
 }

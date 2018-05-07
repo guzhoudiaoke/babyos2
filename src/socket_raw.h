@@ -22,7 +22,7 @@ public:
     void  init();
 
     int32 create(uint32 family, uint32 type, uint32 protocol);
-    int32 get_name(sock_addr_t* addr);
+    int32 get_addr(sock_addr_t* addr);
     int32 release();
     int32 dup(socket_t* socket);
 

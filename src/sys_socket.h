@@ -10,9 +10,6 @@
 #include "traps.h"
 #include "spinlock.h"
 #include "socket.h"
-#include "socket_local.h"
-#include "socket_raw.h"
-#include "socket_dgram.h"
 
 class sys_socket_t {
 public:

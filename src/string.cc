@@ -127,6 +127,10 @@ bool is_digit(char c)
 
 int sprint_int(char* buffer, int n, int width, int base, bool sign)
 {
+    if (base <= 0) {
+        return -1;
+    }
+
     const static char digits[] = "0123456789abcdef";
     char buf[16] = {0};
 

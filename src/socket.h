@@ -48,7 +48,7 @@ public:
     virtual int32 create(uint32 family, uint32 type, uint32 protocol);
     virtual int32 release() = 0;
     virtual int32 dup(socket_t* socket) = 0;
-    virtual int32 get_name(sock_addr_t* addr) = 0;
+    virtual int32 get_addr(sock_addr_t* addr) = 0;
 
     virtual int32 bind(sock_addr_t* myaddr) = 0;
     virtual int32 listen(uint32 backlog) = 0;
@@ -66,12 +66,6 @@ public:
     uint32              m_type;
     uint32              m_protocol;
     socket_state_t      m_state;
-
-    list_t<socket_t *>  m_connecting_list;
-    socket_t*           m_connected_socket;
-
-    semaphore_t         m_wait_connect_sem;
-    semaphore_t         m_wait_accept_sem;
 };
 
 #endif

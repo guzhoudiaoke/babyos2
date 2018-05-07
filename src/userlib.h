@@ -26,6 +26,8 @@
 
 #define CHARACTER(ch)       (ch & 0xff)
 
+const uint32 c_invalid_ip = 0xffffffff;
+
 class userlib_t {
     static const int fd_stdin  = 0;
     static const int fd_stdout = 1;

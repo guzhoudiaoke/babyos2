@@ -294,6 +294,19 @@ void test_dns()
     }
 }
 
+void test_tcp()
+{
+    static char str[64] = {0};
+    strcpy(str, "Hello TCP");
+    uint32 ip = net_t::make_ipaddr(192, 168, 1, 105);
+
+    tcp_hdr_flag_t flag;
+    flag.m_syn = 1;
+    if (os()->get_net()->get_ipaddr() != ip) {
+        os()->get_net()->get_tcp()->transmit(ip, 4096, 4097, 0, 0, flag, (uint8 *) str, strlen(str));
+    }
+}
+
 void test_net()
 {
     //test_rtl8139();
@@ -301,6 +314,7 @@ void test_net()
     //test_ip();
     //test_icmp();
     //test_dns();
+    //test_tcp();
 }
 
 void babyos_t::run()

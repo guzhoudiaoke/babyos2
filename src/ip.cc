@@ -153,6 +153,11 @@ void ip_t::receive(net_buf_t* buf)
             os()->get_net()->free_net_buffer(buf);
         }
         break;
+    case PROTO_TCP:
+        if (!os()->get_net()->get_tcp()->receive(buf, net_t::ntohl(hdr->m_src_ip))) {
+            os()->get_net()->free_net_buffer(buf);
+        }
+        break;
     default:
         //console()->kprintf(YELLOW, "get an ip package with protocol: %x, not support.\n", hdr->m_protocol);
         os()->get_net()->free_net_buffer(buf);

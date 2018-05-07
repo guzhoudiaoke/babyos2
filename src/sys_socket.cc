@@ -5,6 +5,10 @@
 
 #include "sys_socket.h"
 #include "babyos.h"
+#include "socket_local.h"
+#include "socket_raw.h"
+#include "socket_dgram.h"
+#include "socket_stream.h"
 
 int32 (*sys_socket_t::s_sys_socket_table[])(trap_frame_t* frame) = {
     sys_socket_t::sys_socket,
@@ -21,6 +25,7 @@ void sys_socket_t::init()
     socket_local_t::init_local_sockets();
     socket_raw_t::init_raw_sockets();
     socket_dgram_t::init_dgram_sockets();
+    socket_stream_t::init_stream_sockets();
 }
 
 socket_t* sys_socket_t::alloc_socket(uint32 family, uint32 type)
@@ -34,6 +39,9 @@ socket_t* sys_socket_t::alloc_socket(uint32 family, uint32 type)
         }
         else if (type == socket_t::SOCK_DGRAM) {
             return socket_dgram_t::alloc_dgram_socket();
+        }
+        else if (type == socket_t::SOCK_STREAM) {
+            return socket_stream_t::alloc_stream_socket();
         }
     }
 
@@ -128,7 +136,6 @@ int32 sys_socket_t::listen(int fd, uint32 backlog)
 
 int32 sys_socket_t::accept(int fd, sock_addr_t* client_addr)
 {
-    //console()->kprintf(WHITE, "accept, pid: %u, fd: %u\n", current->m_pid, fd);
     socket_t* socket = look_up_socket(fd);
 
     /* not find a socket */
@@ -169,14 +176,13 @@ int32 sys_socket_t::accept(int fd, sock_addr_t* client_addr)
         return -ENOSR;
     }
 
-    //console()->kprintf(PINK, "server socket: %p, create new socket: %p to wait for connect.\n", socket, new_socket);
     uint32 ret = new_socket->accept(socket);
     if (ret < 0) {
         return ret;
     }
 
     if (client_addr != NULL) {
-        if (new_socket->get_name(client_addr) < 0) {
+        if (new_socket->get_addr(client_addr) < 0) {
             return -ECONNABORTED;
         }
     }
@@ -186,7 +192,6 @@ int32 sys_socket_t::accept(int fd, sock_addr_t* client_addr)
 
 int32 sys_socket_t::connect(int fd, sock_addr_t* user_addr)
 {
-    //console()->kprintf(WHITE, "connect, pid: %u, fd: %u\n", current->m_pid, fd);
     socket_t* socket = look_up_socket(fd);
     if (socket == NULL) {
         return -EBADF;

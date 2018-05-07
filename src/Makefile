@@ -55,6 +55,8 @@ OBJS = \
 	udp.o\
 	dns.o\
 	socket_dgram.o\
+	tcp.o\
+	socket_stream.o\
 
 AS = as --32
 CC = gcc -m32

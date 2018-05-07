@@ -19,7 +19,7 @@ public:
     void  init();
 
     int32 create(uint32 family, uint32 type, uint32 protocol);
-    int32 get_name(sock_addr_t* addr);
+    int32 get_addr(sock_addr_t* addr);
     int32 release();
     int32 dup(socket_t* socket);
 
@@ -40,12 +40,17 @@ public:
     static int32            bind_local_socket(socket_local_t* socket, sock_addr_local_t* addr);
 
 public:
-    uint32              m_ref;
-    sock_addr_local_t   m_addr;
-    sock_ring_buffer_t  m_sock_buf;
+    uint32                    m_ref;
+    sock_addr_local_t         m_addr;
+    sock_ring_buffer_t        m_sock_buf;
 
-    static spinlock_t     s_lock;
-    static socket_local_t s_local_sockets[MAX_LOCAL_SOCKET];
+    list_t<socket_local_t *>  m_connecting_list;
+    socket_local_t*           m_connected_socket;
+    semaphore_t               m_wait_connect_sem;
+    semaphore_t               m_wait_accept_sem;
+
+    static spinlock_t         s_lock;
+    static socket_local_t     s_local_sockets[MAX_LOCAL_SOCKET];
 };
 
 #endif

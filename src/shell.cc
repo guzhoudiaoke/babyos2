@@ -334,7 +334,11 @@ static void udp_server()
             userlib_t::printf("ERROR, failed to recv_from, error %u\n", ret);
             break;
         }
-        userlib_t::printf("server receive from %x, %u: %s\n", addr_client.m_ip, addr_client.m_port, buffer);
+
+        uint32 ip = userlib_t::ntohl(addr_client.m_ip);
+        uint8* p = (uint8 *) &ip;
+        userlib_t::printf("server receive from %u.%u.%u.%u, %u: %s\n", 
+                p[3], p[2], p[1], p[0], userlib_t::ntohs(addr_client.m_port), buffer);
 
         ret = userlib_t::send_to(sock_fd, buffer, userlib_t::strlen(buffer), &addr_client);
         if (ret < 0) {
@@ -408,12 +412,157 @@ static void test_udp_client()
 
 /************************ udp ************************/
 
+
+/************************ nslookup ************************/
+
 void ns_lookup(const char* name)
 {
     uint32 ip = userlib_t::get_ip_by_name(name);
     uint8* p = (uint8 *) &ip;
     userlib_t::printf("IP: %u.%u.%u.%u\n", p[0], p[1], p[2], p[3]);
 }
+
+/************************ nslookup ************************/
+
+/************************ tcp ************************/
+static void tcp_server_echo(int conn_fd)
+{
+    char buffer[512] = {0};
+    for (int i = 0; i < 5; i++) {
+        userlib_t::memset(buffer, 0, 512);
+        int ret = userlib_t::read(conn_fd, buffer, 512);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, failed to read, error %u\n", ret);
+            break;
+        }
+        userlib_t::printf("server read %d bytes from client: %s\n", ret, buffer);
+
+        ret = userlib_t::write(conn_fd, buffer, userlib_t::strlen(buffer));
+        if (ret < 0) {
+            userlib_t::printf("ERROR, failed to write, error %u\n", ret);
+            break;
+        }
+        userlib_t::printf("server write %d bytes to client.\n", ret);
+    }
+}
+
+const int TEST_TCP_PORT = 23456;
+static void tcp_server()
+{
+    int sock_fd = userlib_t::socket(socket_t::AF_INET, socket_t::SOCK_STREAM, 0);
+    if (sock_fd < 0) {
+        userlib_t::printf("ERROR, server create socket failed, error %u\n", sock_fd);
+        return;
+    }
+    userlib_t::printf("server create socket success, fd: %u\n", sock_fd);
+
+    sock_addr_inet_t addr;
+    addr.m_family = socket_t::AF_INET;
+    addr.m_ip = userlib_t::htonl(sock_addr_inet_t::INADDR_ANY);
+    addr.m_port = userlib_t::htons(TEST_TCP_PORT);
+
+    int ret = 0;
+    if ((ret = userlib_t::bind(sock_fd, &addr)) < 0) {
+        userlib_t::printf("ERROR, server bind failed: %u\n", ret);
+        return;
+    }
+    userlib_t::printf("server bind success\n");
+
+    if ((ret = userlib_t::listen(sock_fd, 5)) < 0) {
+        userlib_t::printf("err, server listen failed, error %u\n", ret);
+        return;
+    }
+    userlib_t::printf("server listen succ\n");
+
+    int conn_fd = -1;
+    sock_addr_local_t client_addr;
+    for (int i = 0; i < 5; i++) {
+        if ((conn_fd = userlib_t::accept(sock_fd, &client_addr)) < 0) {
+            userlib_t::printf("accept failed %u\n", -conn_fd);
+            continue;
+        }
+        userlib_t::printf("server accept success: %u\n", conn_fd);
+        if (userlib_t::fork() == 0) {
+            userlib_t::close(sock_fd);
+            tcp_server_echo(conn_fd);
+            userlib_t::exit(0);
+        }
+        else {
+            userlib_t::close(conn_fd);
+        }
+    }
+}
+
+static void tcp_client()
+{
+    int sock_fd = userlib_t::socket(socket_t::AF_INET, socket_t::SOCK_STREAM, 0);
+    if (sock_fd < 0) {
+        userlib_t::printf("ERROR, client create socket failed, error %u\n", -sock_fd);
+        return;
+    }
+    userlib_t::printf("client create socket success, fd: %u\n", sock_fd);
+
+    sock_addr_inet_t addr;
+    addr.m_family = socket_t::AF_INET;
+    addr.m_ip = userlib_t::htonl(userlib_t::make_ipaddr(192, 168, 1, 105));
+    addr.m_port = userlib_t::htons(TEST_TCP_PORT);
+
+    int ret = 0;
+    if ((ret = userlib_t::connect(sock_fd, &addr)) < 0) {
+        userlib_t::printf("client connect to fd: %u failed, error %u\n", sock_fd, -ret);
+        return;
+    }
+
+    userlib_t::printf("client connect success\n");
+    char buffer[512] = {0};
+    for (int i = 0; i < 5; i++) {
+        userlib_t::memset(buffer, 0, 512);
+        userlib_t::printf("input some data: ");
+        userlib_t::gets(buffer, 512);
+
+        ret = userlib_t::write(sock_fd, buffer, userlib_t::strlen(buffer));
+        if (ret < 0) {
+            userlib_t::printf("ERROR, failed to write, error %u\n", ret);
+            break;
+        }
+        userlib_t::printf("client write %d bytes to server.\n", ret);
+
+        ret = userlib_t::read(sock_fd, buffer, ret);
+        if (ret < 0) {
+            userlib_t::printf("ERROR, failed to read, error %u\n", ret);
+            break;
+        }
+        userlib_t::printf("client read %d bytes from server: %s\n", ret, buffer);
+    }
+}
+
+static void test_tcp_client()
+{
+    int32 pid = userlib_t::fork();
+    if (pid == 0) {
+        /* server */
+        tcp_client();
+        userlib_t::exit(0);
+    }
+
+    /* shell */
+    userlib_t::wait(pid);
+}
+
+static void test_tcp_server()
+{
+    int32 pid = userlib_t::fork();
+    if (pid == 0) {
+        /* server */
+        tcp_server();
+        userlib_t::exit(0);
+    }
+
+    /* shell */
+    userlib_t::wait(pid);
+}
+
+/************************ tcp ************************/
 
 int main()
 {
@@ -461,6 +610,22 @@ int main()
         }
         if (userlib_t::strncmp(cmd_line, "nslookup", 8) == 0) {
             ns_lookup(cmd_line + 9);
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "tcpserver", 9) == 0) {
+            test_tcp_server();
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "tcpclient", 9) == 0) {
+            test_tcp_client();
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "ts", 2) == 0) {
+            test_tcp_server();
+            continue;
+        }
+        if (userlib_t::strncmp(cmd_line, "tc", 2) == 0) {
+            test_tcp_client();
             continue;
         }
 
