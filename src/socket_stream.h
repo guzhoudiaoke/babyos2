@@ -64,9 +64,12 @@ private:
     int32 tcp_syn(sock_addr_inet_t* server_addr);
     int32 tcp_ack(uint32 src_ip, uint16 src_port, uint32 dst_ip, uint16 dst_port, uint32 ack_no, bool syn);
     int32 tcp_send(uint32 src_ip, uint16 src_port, uint32 dst_ip, uint16 dst_port, uint8* data, uint32 len);
+    int32 tcp_fin(uint32 src_ip, uint16 src_port, uint32 dst_ip, uint16 dst_port, uint32 ack_no);
     int32 net_receive_syn(tcp_hdr_t* hdr, uint32 src_ip, uint16 src_port);
     int32 net_receive_ack(tcp_hdr_t* hdr, uint32 src_ip, uint16 src_port);
     int32 net_receive_data(tcp_hdr_t* hdr, net_buf_t* buf);
+    int32 net_receive_fin(tcp_hdr_t* hdr, uint32 src_ip, uint16 src_port);
+    int32 tcp_close();
 
 public:
     tcp_state_t              m_tcp_state;

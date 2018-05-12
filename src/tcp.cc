@@ -114,8 +114,8 @@ int32 tcp_t::receive(net_buf_t* buf, uint32 ip)
 
     console()->kprintf(GREEN, "receive a TCP packet from ip: ");
     net_t::dump_ip_addr(ip);
-    console()->kprintf(GREEN, " port: %u, syn: %u, ack: %u\n", net_t::ntohs(hdr->m_src_port),
-            hdr->m_flags.m_syn, hdr->m_flags.m_ack);
+    console()->kprintf(GREEN, " port: %u, syn: %u, ack: %u, fin: %u\n", net_t::ntohs(hdr->m_src_port),
+            hdr->m_flags.m_syn, hdr->m_flags.m_ack, hdr->m_flags.m_fin);
 
     buf->pop_front(sizeof(tcp_hdr_t));
     return socket_stream_t::stream_net_receive(hdr, buf, ip, os()->get_net()->get_ipaddr());

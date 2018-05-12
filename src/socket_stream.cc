@@ -172,7 +172,8 @@ int32 socket_stream_t::release()
         m_state = socket_t::SS_DISCONNECTING;
     }
 
-    return 0;
+    /* close tcp connect */
+    return tcp_close();
 }
 
 int32 socket_stream_t::bind(sock_addr_t* myaddr)
@@ -222,7 +223,6 @@ int32 socket_stream_t::accept(socket_t* socket)
     /* set state to SYN_RCVD */
     m_tcp_state = ST_SYN_RCVD;
     console()->kprintf(CYAN, "SYN_RCVD\n");
-
 
     /* send SYN_ACK */
     tcp_ack(net_t::ntohl(m_addr.m_ip),net_t::ntohs(m_addr.m_port),
@@ -349,6 +349,16 @@ int32 socket_stream_t::tcp_send(uint32 src_ip, uint16 src_port, uint32 dst_ip, u
     return os()->get_net()->get_tcp()->transmit(dst_ip, src_port, dst_port, m_seq_no++, 0, flag, data, len);
 }
 
+int32 socket_stream_t::tcp_fin(uint32 src_ip, uint16 src_port, uint32 dst_ip, uint16 dst_port, uint32 ack_no)
+{
+    tcp_hdr_flag_t flag;
+    flag.init();
+    flag.m_ack = 1;
+    flag.m_fin = 1;
+
+    return os()->get_net()->get_tcp()->transmit(dst_ip, src_port, dst_port, m_seq_no++, ack_no, flag, NULL, 0);
+}
+
 int32 socket_stream_t::net_receive_syn(tcp_hdr_t* hdr, uint32 src_ip, uint16 src_port)
 {
     if (!hdr->m_flags.m_ack) {
@@ -418,6 +428,18 @@ int32 socket_stream_t::net_receive_ack(tcp_hdr_t* hdr, uint32 src_ip, uint16 src
         m_sem.up();
         return 0;
     }
+    else if (m_tcp_state == ST_FIN_WAIT_1) {
+        /* receive ACK */
+        m_tcp_state = ST_FIN_WAIT_2;
+        console()->kprintf(GREEN, "FIN_WAIT_2\n");
+        return 0;
+    }
+    else if (m_tcp_state == ST_LAST_ACK) {
+        /* receive ACK */
+        m_tcp_state = ST_CLOSED;
+        console()->kprintf(YELLOW, "CLOSED\n");
+        return 0;
+    }
 
     return 0;
 }
@@ -439,6 +461,51 @@ int32 socket_stream_t::net_receive_data(tcp_hdr_t* hdr, net_buf_t* buf)
     return 0;
 }
 
+/* FIXME: should wake up process if it is waiting for read/write */
+int32 socket_stream_t::net_receive_fin(tcp_hdr_t* hdr, uint32 src_ip, uint16 src_port)
+{
+    console()->kprintf(CYAN, "receive FIN\n");
+    
+    /* already CLOSED */
+    if (m_tcp_state == ST_CLOSED) {
+        return 0;
+    }
+
+    /* wake up socket, if waiting for FIN at FIN_WAIT_2 */
+    if (m_tcp_state == ST_FIN_WAIT_2) {
+        console()->kprintf(CYAN, "socke is FIN_WAIT_2, wake it up\n");
+        m_sem.up();
+        return 0;
+    }
+
+    /* have not connected */
+    if (m_tcp_state != ST_ESTABLISHED) {
+        /* FIXME: How about we are connecting ? */
+        console()->kprintf(RED, "NOT connected\n");
+        m_tcp_state = ST_CLOSED;
+        return -1;
+    }
+
+    /* send ACK */
+    m_ack_no = net_t::ntohl(hdr->m_seq_no) + 1;
+    tcp_ack(net_t::ntohl(m_addr.m_ip), net_t::ntohs(m_addr.m_port),
+            net_t::ntohl(m_peer_addr.m_ip), net_t::ntohs(m_peer_addr.m_port), m_ack_no, false);
+
+    /* ESTABLISHED -> (receive FIN, send ACK) -> CLOSE_WAIT */
+    m_tcp_state = ST_CLOSE_WAIT;
+    console()->kprintf(YELLOW, "CLOSE_WAIT\n");
+
+    /* send FIN */
+    tcp_fin(net_t::ntohl(m_addr.m_ip), net_t::ntohs(m_addr.m_port),
+            net_t::ntohl(m_peer_addr.m_ip), net_t::ntohs(m_peer_addr.m_port), m_ack_no);
+
+    /* CLOSE_WAIT -> (send FIN) -> LAST_ACK */
+    m_tcp_state = ST_LAST_ACK;
+    console()->kprintf(YELLOW, "LAST_ACK\n");
+
+    return 0;
+}
+
 int32 socket_stream_t::net_receive(tcp_hdr_t* hdr, uint32 src_ip, uint16 src_port, net_buf_t* buf)
 {
     //console()->kprintf(GREEN, "socket_stream, receive a TCP packet from ip: ");
@@ -448,9 +515,14 @@ int32 socket_stream_t::net_receive(tcp_hdr_t* hdr, uint32 src_ip, uint16 src_por
     //net_t::dump_ip_addr(net_t::ntohl(m_addr.m_ip));
     //console()->kprintf(GREEN, " port: %u\n", net_t::ntohs(m_addr.m_port));
 
+    m_ack_no = net_t::ntohl(hdr->m_seq_no) + 1;
     if (hdr->m_flags.m_syn) {
-        /* SYNC */
+        /* SYN */
         return net_receive_syn(hdr, src_ip, src_port);
+    }
+    else if (hdr->m_flags.m_fin) {
+        /* FIN */
+        return net_receive_fin(hdr, src_ip, src_port);
     }
     else if (hdr->m_flags.m_ack) {
         /* ACK */
@@ -460,6 +532,43 @@ int32 socket_stream_t::net_receive(tcp_hdr_t* hdr, uint32 src_ip, uint16 src_por
         /* data */
         return net_receive_data(hdr, buf);
     }
+
+    return 0;
+}
+
+int32 socket_stream_t::tcp_close()
+{
+    console()->kprintf(CYAN, "tcp close\n");
+
+    /* not connected */
+    if (m_tcp_state != ST_ESTABLISHED) {
+        /* FIXME: how about connecting */
+        m_tcp_state = ST_CLOSED;
+        return -1;
+    }
+
+    /* send FIN */
+    tcp_fin(net_t::ntohl(m_addr.m_ip), net_t::ntohs(m_addr.m_port),
+            net_t::ntohl(m_peer_addr.m_ip), net_t::ntohs(m_peer_addr.m_port), m_ack_no);
+
+    /* ESTABLISHED -> FIN_WAIT_1 */
+    m_tcp_state = ST_FIN_WAIT_1;
+    console()->kprintf(GREEN, "FIN_WAIT_1\n");
+
+    /* wait for ACK */
+    m_sem.down();
+
+    /* receive FIN, send ACK */
+    tcp_ack(net_t::ntohl(m_addr.m_ip), net_t::ntohs(m_addr.m_port),
+            net_t::ntohl(m_peer_addr.m_ip), net_t::ntohs(m_peer_addr.m_port), m_ack_no, false);
+    console()->kprintf(GREEN, "send ACK before CLOSED\n");
+    
+    /* FIXME: should have state TIME_WAIT, do not wait for now */
+    m_tcp_state = ST_CLOSED;
+    console()->kprintf(YELLOW, "CLOSED\n");
+
+    /* free the socket */
+    m_ref = 0;
 
     return 0;
 }

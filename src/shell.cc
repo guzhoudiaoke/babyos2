@@ -428,7 +428,7 @@ void ns_lookup(const char* name)
 static void tcp_server_echo(int conn_fd)
 {
     char buffer[512] = {0};
-    for (int i = 0; i < 5; i++) {
+    while (1) {
         userlib_t::memset(buffer, 0, 512);
         int ret = userlib_t::read(conn_fd, buffer, 512);
         if (ret < 0) {
@@ -444,9 +444,10 @@ static void tcp_server_echo(int conn_fd)
         }
         userlib_t::printf("server write %d bytes to client.\n", ret);
     }
+    userlib_t::printf("break from while\n");
 }
 
-const int TEST_TCP_PORT = 23456;
+const int TEST_TCP_PORT = 56789;
 static void tcp_server()
 {
     int sock_fd = userlib_t::socket(socket_t::AF_INET, socket_t::SOCK_STREAM, 0);
@@ -485,6 +486,7 @@ static void tcp_server()
         if (userlib_t::fork() == 0) {
             userlib_t::close(sock_fd);
             tcp_server_echo(conn_fd);
+            //userlib_t::close(conn_fd);
             userlib_t::exit(0);
         }
         else {
@@ -515,7 +517,7 @@ static void tcp_client()
 
     userlib_t::printf("client connect success\n");
     char buffer[512] = {0};
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 1; i++) {
         userlib_t::memset(buffer, 0, 512);
         userlib_t::printf("input some data: ");
         userlib_t::gets(buffer, 512);
@@ -534,6 +536,7 @@ static void tcp_client()
         }
         userlib_t::printf("client read %d bytes from server: %s\n", ret, buffer);
     }
+    userlib_t::close(sock_fd);
 }
 
 static void test_tcp_client()
