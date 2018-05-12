@@ -89,7 +89,7 @@ void ping(uint32 ip)
 
     uint32 size = c_packet_size + sizeof(icmp_echo_hdr_t);
     for (int i = 0; i < 4; i++) {
-        uint8 data[size] = {0};
+        uint8 data[128] = {0};
         prepare_ping_data(data, c_packet_size + sizeof(icmp_echo_hdr_t), i);
         
         if (userlib_t::send_to(sock_fd, data, size, &dst_addr) < 0) {

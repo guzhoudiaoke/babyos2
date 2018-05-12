@@ -335,13 +335,14 @@ void console_t::do_input(char ch)
 
 int console_t::read(void* buf, int size)
 {
+    char *p = (char *) buf;
     int left = size;
     while (left > 0) {
         if (m_input_buffer.m_read_index == m_input_buffer.m_write_index) {
             current->sleep_on(&m_wait_queue);
         }
         char c = m_input_buffer.m_buffer[m_input_buffer.m_read_index++ % BUFFER_SIZE];
-        *(char *) buf++ = c;
+        *p++ = c;
         --left;
         if (c == '\n') {
             break;
