@@ -1,0 +1,68 @@
+What have done at version 1.0 at 2018-05-12:
+
+1.boot and load elf kernel, and protected mode
+1) boot
+2) load elf kernel
+3) PM
+
+2.simple draw characters by VBE
+1) draw matrix font
+2) kprintf, sprintf
+
+3.exception and interrupt
+1) exception, page fault
+2) keyboard
+3) ide hard disk
+4) clock interrupt
+
+4.memory manage:
+1) buddy to manage physical memory
+2) paging and page fault
+3) vm_area and mmap
+4) user stack and expand
+
+4.process
+1) fork and exec
+2) user mode process
+3) schedule
+4) exit, wait
+5) sleep, wakeup
+
+5.file system
+1) super block, inode, namei
+2) open, read, write
+3) mkdir, link, unlink
+4) console
+5) pipe
+6) socket
+
+6.lock
+1) spin lock
+2) semaphore
+
+7.IPC
+1) pipe
+2) socket SOCK_LOCAL
+3) signal
+
+8.MP
+1) MP config and MP boot
+2) MP schedule
+
+9.shell
+1) simple command
+
+10.network
+1) PCI config and enumerate PCI buses
+2) RTL8139 NIC
+3) ethernet
+4) arp
+5) ipv4
+6) icmp
+7) SOCK_RAW, ping
+8) UDP
+9) DNS
+10)SOCK_DGRAM, gethostbyname
+11)TCP, SOCK_STREAM
+
+

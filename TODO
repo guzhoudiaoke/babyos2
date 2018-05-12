@@ -1,0 +1,59 @@
+******************************************
+
+1.64 bit CPU
+1) boot
+2) MM
+3) others
+
+2.VFS
+1) ext2
+2) mmap to file
+
+******************************************
+
+3.network
+1) make TCP better
+2) IP fragment, reorganization
+3) DHCP
+
+4.a better user lib
+1) malloc, free
+2) 
+
+5.shell
+1) make signal better
+2) redirection > <
+3) pipe |
+4) background and forground &
+5) Ctl-C
+
+6.MP
+1) make MP boot better
+2) MP interrupt
+
+7.Schedule
+1) a better schedule algorithm
+2) a better MP schedule
+
+8.MM
+1) kmalloc, kfree
+2) vmalloc, vfree
+3) brk
+4) shared memory
+
+******************************************
+
+9.user mode thread
+1) thread
+2) lock
+3) share mem
+
+10.GUI
+1) window message system
+2) direct UI
+3) png
+4) mouse
+5) lib gui
+
+******************************************
+
